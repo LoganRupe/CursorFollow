@@ -1,0 +1,7 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "swift": true,
+        "xcodebuild": true,
+        "log": true
+    }
+}
