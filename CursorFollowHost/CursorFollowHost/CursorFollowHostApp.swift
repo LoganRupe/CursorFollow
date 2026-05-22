@@ -44,23 +44,52 @@ final class AppCoordinator: ObservableObject {
 @main
 struct CursorFollowHostApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
-    @StateObject private var coordinator = AppCoordinator()
 
     var body: some Scene {
-        MenuBarExtra("CursorFollow", systemImage: "camera.viewfinder") {
-            ContentView()
-                .environmentObject(coordinator.windowTracker)
-                .environmentObject(coordinator.captureEngine)
-        }
-        .menuBarExtraStyle(.window)
+        Settings { EmptyView() }
     }
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate, OSSystemExtensionRequestDelegate {
     private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "AppDelegate")
+    private var statusItem: NSStatusItem!
+    private var popover: NSPopover!
+    private var coordinator: AppCoordinator?
+    private var eventMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        coordinator = AppCoordinator()
+
+        // Set up the popover
+        popover = NSPopover()
+        popover.contentSize = NSSize(width: 380, height: 440)
+        popover.behavior = .transient
+        popover.contentViewController = NSHostingController(
+            rootView: ContentView()
+                .environmentObject(coordinator!.windowTracker)
+                .environmentObject(coordinator!.captureEngine)
+        )
+
+        // Set up the status item
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        if let button = statusItem.button {
+            button.image = NSImage(systemSymbolName: "camera.viewfinder", accessibilityDescription: "CursorFollow")
+            button.action = #selector(togglePopover(_:))
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+            button.target = self
+        }
+
         activateCameraExtension()
+    }
+
+    @objc private func togglePopover(_ sender: AnyObject?) {
+        guard let button = statusItem.button else { return }
+        if popover.isShown {
+            popover.performClose(sender)
+        } else {
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            popover.contentViewController?.view.window?.makeKey()
+        }
     }
 
     func activateCameraExtension() {

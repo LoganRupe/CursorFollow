@@ -21,6 +21,14 @@ struct ContentView: View {
                     .font(.headline)
                 Spacer()
                 captureStatusBadge
+                Button {
+                    NSApplication.shared.terminate(nil)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Quit CursorFollow")
             }
 
             Divider()
