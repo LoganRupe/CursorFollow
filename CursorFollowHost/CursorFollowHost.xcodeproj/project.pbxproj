@@ -1,0 +1,751 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		5902C7822FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowHost.CameraExtension.systemextension in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = 5902C7782FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowHost.CameraExtension.systemextension */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		5902C7582FBD97B900FFEA1C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5902C7422FBD97B700FFEA1C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5902C7492FBD97B700FFEA1C;
+			remoteInfo = CursorFollowHost;
+		};
+		5902C7622FBD97B900FFEA1C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5902C7422FBD97B700FFEA1C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5902C7492FBD97B700FFEA1C;
+			remoteInfo = CursorFollowHost;
+		};
+		5902C7802FBD97F300FFEA1C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5902C7422FBD97B700FFEA1C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5902C7772FBD97F300FFEA1C;
+			remoteInfo = CameraExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		5902C7872FBD97F300FFEA1C /* Embed System Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(SYSTEM_EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				5902C7822FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowHost.CameraExtension.systemextension in Embed System Extensions */,
+			);
+			name = "Embed System Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		5902C74A2FBD97B700FFEA1C /* CursorFollowHost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CursorFollowHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5902C7572FBD97B900FFEA1C /* CursorFollowHostTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CursorFollowHostTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5902C7612FBD97B900FFEA1C /* CursorFollowHostUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CursorFollowHostUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5902C7782FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowHost.CameraExtension.systemextension */ = {isa = PBXFileReference; explicitFileType = "wrapper.system-extension"; includeInIndex = 0; path = io.github.loganrupe.CursorFollowHost.CameraExtension.systemextension; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		5902C7832FBD97F300FFEA1C /* Exceptions for "CameraExtension" folder in "CameraExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5902C7772FBD97F300FFEA1C /* CameraExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		5902C74C2FBD97B700FFEA1C /* CursorFollowHost */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CursorFollowHost;
+			sourceTree = "<group>";
+		};
+		5902C75A2FBD97B900FFEA1C /* CursorFollowHostTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CursorFollowHostTests;
+			sourceTree = "<group>";
+		};
+		5902C7642FBD97B900FFEA1C /* CursorFollowHostUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CursorFollowHostUITests;
+			sourceTree = "<group>";
+		};
+		5902C7792FBD97F300FFEA1C /* CameraExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5902C7832FBD97F300FFEA1C /* Exceptions for "CameraExtension" folder in "CameraExtension" target */,
+			);
+			path = CameraExtension;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		5902C7472FBD97B700FFEA1C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5902C7542FBD97B900FFEA1C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5902C75E2FBD97B900FFEA1C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5902C7752FBD97F300FFEA1C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		5902C7412FBD97B700FFEA1C = {
+			isa = PBXGroup;
+			children = (
+				5902C74C2FBD97B700FFEA1C /* CursorFollowHost */,
+				5902C75A2FBD97B900FFEA1C /* CursorFollowHostTests */,
+				5902C7642FBD97B900FFEA1C /* CursorFollowHostUITests */,
+				5902C7792FBD97F300FFEA1C /* CameraExtension */,
+				5902C74B2FBD97B700FFEA1C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		5902C74B2FBD97B700FFEA1C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5902C74A2FBD97B700FFEA1C /* CursorFollowHost.app */,
+				5902C7572FBD97B900FFEA1C /* CursorFollowHostTests.xctest */,
+				5902C7612FBD97B900FFEA1C /* CursorFollowHostUITests.xctest */,
+				5902C7782FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowHost.CameraExtension.systemextension */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5902C7492FBD97B700FFEA1C /* CursorFollowHost */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5902C76B2FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowHost" */;
+			buildPhases = (
+				5902C7462FBD97B700FFEA1C /* Sources */,
+				5902C7472FBD97B700FFEA1C /* Frameworks */,
+				5902C7482FBD97B700FFEA1C /* Resources */,
+				5902C7872FBD97F300FFEA1C /* Embed System Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5902C7812FBD97F300FFEA1C /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				5902C74C2FBD97B700FFEA1C /* CursorFollowHost */,
+			);
+			name = CursorFollowHost;
+			packageProductDependencies = (
+			);
+			productName = CursorFollowHost;
+			productReference = 5902C74A2FBD97B700FFEA1C /* CursorFollowHost.app */;
+			productType = "com.apple.product-type.application";
+		};
+		5902C7562FBD97B900FFEA1C /* CursorFollowHostTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5902C76E2FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowHostTests" */;
+			buildPhases = (
+				5902C7532FBD97B900FFEA1C /* Sources */,
+				5902C7542FBD97B900FFEA1C /* Frameworks */,
+				5902C7552FBD97B900FFEA1C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5902C7592FBD97B900FFEA1C /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				5902C75A2FBD97B900FFEA1C /* CursorFollowHostTests */,
+			);
+			name = CursorFollowHostTests;
+			packageProductDependencies = (
+			);
+			productName = CursorFollowHostTests;
+			productReference = 5902C7572FBD97B900FFEA1C /* CursorFollowHostTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		5902C7602FBD97B900FFEA1C /* CursorFollowHostUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5902C7712FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowHostUITests" */;
+			buildPhases = (
+				5902C75D2FBD97B900FFEA1C /* Sources */,
+				5902C75E2FBD97B900FFEA1C /* Frameworks */,
+				5902C75F2FBD97B900FFEA1C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5902C7632FBD97B900FFEA1C /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				5902C7642FBD97B900FFEA1C /* CursorFollowHostUITests */,
+			);
+			name = CursorFollowHostUITests;
+			packageProductDependencies = (
+			);
+			productName = CursorFollowHostUITests;
+			productReference = 5902C7612FBD97B900FFEA1C /* CursorFollowHostUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		5902C7772FBD97F300FFEA1C /* CameraExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5902C7842FBD97F300FFEA1C /* Build configuration list for PBXNativeTarget "CameraExtension" */;
+			buildPhases = (
+				5902C7742FBD97F300FFEA1C /* Sources */,
+				5902C7752FBD97F300FFEA1C /* Frameworks */,
+				5902C7762FBD97F300FFEA1C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5902C7792FBD97F300FFEA1C /* CameraExtension */,
+			);
+			name = CameraExtension;
+			packageProductDependencies = (
+			);
+			productName = CameraExtension;
+			productReference = 5902C7782FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowHost.CameraExtension.systemextension */;
+			productType = "com.apple.product-type.system-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		5902C7422FBD97B700FFEA1C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2650;
+				LastUpgradeCheck = 2650;
+				TargetAttributes = {
+					5902C7492FBD97B700FFEA1C = {
+						CreatedOnToolsVersion = 26.5;
+					};
+					5902C7562FBD97B900FFEA1C = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = 5902C7492FBD97B700FFEA1C;
+					};
+					5902C7602FBD97B900FFEA1C = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = 5902C7492FBD97B700FFEA1C;
+					};
+					5902C7772FBD97F300FFEA1C = {
+						CreatedOnToolsVersion = 26.5;
+					};
+				};
+			};
+			buildConfigurationList = 5902C7452FBD97B700FFEA1C /* Build configuration list for PBXProject "CursorFollowHost" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 5902C7412FBD97B700FFEA1C;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 5902C74B2FBD97B700FFEA1C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5902C7492FBD97B700FFEA1C /* CursorFollowHost */,
+				5902C7562FBD97B900FFEA1C /* CursorFollowHostTests */,
+				5902C7602FBD97B900FFEA1C /* CursorFollowHostUITests */,
+				5902C7772FBD97F300FFEA1C /* CameraExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		5902C7482FBD97B700FFEA1C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5902C7552FBD97B900FFEA1C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5902C75F2FBD97B900FFEA1C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5902C7762FBD97F300FFEA1C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		5902C7462FBD97B700FFEA1C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5902C7532FBD97B900FFEA1C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5902C75D2FBD97B900FFEA1C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5902C7742FBD97F300FFEA1C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5902C7592FBD97B900FFEA1C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5902C7492FBD97B700FFEA1C /* CursorFollowHost */;
+			targetProxy = 5902C7582FBD97B900FFEA1C /* PBXContainerItemProxy */;
+		};
+		5902C7632FBD97B900FFEA1C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5902C7492FBD97B700FFEA1C /* CursorFollowHost */;
+			targetProxy = 5902C7622FBD97B900FFEA1C /* PBXContainerItemProxy */;
+		};
+		5902C7812FBD97F300FFEA1C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5902C7772FBD97F300FFEA1C /* CameraExtension */;
+			targetProxy = 5902C7802FBD97F300FFEA1C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		5902C7692FBD97B900FFEA1C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = YOURTEAMID;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		5902C76A2FBD97B900FFEA1C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = YOURTEAMID;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		5902C76C2FBD97B900FFEA1C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CursorFollowHost/CursorFollowHost.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YOURTEAMID;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowHost;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		5902C76D2FBD97B900FFEA1C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CursorFollowHost/CursorFollowHost.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YOURTEAMID;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowHost;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		5902C76F2FBD97B900FFEA1C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YOURTEAMID;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowHostTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CursorFollowHost.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CursorFollowHost";
+			};
+			name = Debug;
+		};
+		5902C7702FBD97B900FFEA1C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YOURTEAMID;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowHostTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CursorFollowHost.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CursorFollowHost";
+			};
+			name = Release;
+		};
+		5902C7722FBD97B900FFEA1C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YOURTEAMID;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowHostUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = CursorFollowHost;
+			};
+			name = Debug;
+		};
+		5902C7732FBD97B900FFEA1C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YOURTEAMID;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowHostUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = CursorFollowHost;
+			};
+			name = Release;
+		};
+		5902C7852FBD97F300FFEA1C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = CameraExtension/CameraExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = YOURTEAMID;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CameraExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CameraExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowHost.CameraExtension;
+				PRODUCT_NAME = "$(inherited)";
+				REGISTER_APP_GROUPS = YES;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		5902C7862FBD97F300FFEA1C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = CameraExtension/CameraExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = YOURTEAMID;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CameraExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CameraExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowHost.CameraExtension;
+				PRODUCT_NAME = "$(inherited)";
+				REGISTER_APP_GROUPS = YES;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5902C7452FBD97B700FFEA1C /* Build configuration list for PBXProject "CursorFollowHost" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5902C7692FBD97B900FFEA1C /* Debug */,
+				5902C76A2FBD97B900FFEA1C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5902C76B2FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowHost" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5902C76C2FBD97B900FFEA1C /* Debug */,
+				5902C76D2FBD97B900FFEA1C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5902C76E2FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowHostTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5902C76F2FBD97B900FFEA1C /* Debug */,
+				5902C7702FBD97B900FFEA1C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5902C7712FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowHostUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5902C7722FBD97B900FFEA1C /* Debug */,
+				5902C7732FBD97B900FFEA1C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5902C7842FBD97F300FFEA1C /* Build configuration list for PBXNativeTarget "CameraExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5902C7852FBD97F300FFEA1C /* Debug */,
+				5902C7862FBD97F300FFEA1C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 5902C7422FBD97B700FFEA1C /* Project object */;
+}
