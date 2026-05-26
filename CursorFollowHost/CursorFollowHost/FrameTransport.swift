@@ -30,7 +30,7 @@ protocol FrameTransport: Sendable {
 final class SharedMemoryFrameTransport: FrameTransport, @unchecked Sendable {
     private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "FrameTransport")
 
-    private let surface: IOSurface
+    let surface: IOSurface
     private let width: Int
     private let height: Int
 
@@ -157,6 +157,15 @@ final class SharedMemoryFrameTransport: FrameTransport, @unchecked Sendable {
             frameNotifyToken = -1
         }
         log.info("Frame transport stopped after \(self.sequenceNumber) frames")
+    }
+
+    /// Clear the IOSurface to black. Used when switching capture targets
+    /// to prevent stale pixels from the previous window bleeding through.
+    func clearSurface() {
+        surface.lock(options: [], seed: nil)
+        let size = width * height * 4
+        memset(surface.baseAddress, 0, size)
+        surface.unlock(options: [], seed: nil)
     }
 
     /// The IOSurface seed, needed by the extension to look up this surface.

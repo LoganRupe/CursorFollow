@@ -16,9 +16,21 @@ import os.log
 final class AppCoordinator: ObservableObject {
     let windowTracker = WindowTracker()
     let captureEngine = CaptureEngine()
+    let outputWindowController: OutputWindowController?
     private var cancellable: AnyCancellable?
 
     init() {
+        // Set up output window with the shared IOSurface
+        if let surface = captureEngine.ioSurface {
+            let owc = OutputWindowController(surface: surface)
+            self.outputWindowController = owc
+            captureEngine.onFrameDelivered = { [weak owc] in
+                owc?.notifyFrameReady()
+            }
+        } else {
+            self.outputWindowController = nil
+        }
+
         windowTracker.startObservingFrontApp()
 
         cancellable = windowTracker.$selectedWindow
@@ -32,6 +44,12 @@ final class AppCoordinator: ObservableObject {
                     } else if self.windowTracker.autoFollowEnabled {
                         await self.captureEngine.startCapture(window: window)
                     }
+                    // Update output window after capture starts (dimensions now set)
+                    self.outputWindowController?.updateForCapture(
+                        windowFrame: window.frame,
+                        captureWidth: self.captureEngine.activeCaptureWidth,
+                        captureHeight: self.captureEngine.activeCaptureHeight
+                    )
                 }
             }
 
@@ -64,11 +82,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, OSSystemExtensionRequestDele
         popover = NSPopover()
         popover.contentSize = NSSize(width: 380, height: 440)
         popover.behavior = .transient
-        popover.contentViewController = NSHostingController(
-            rootView: ContentView()
-                .environmentObject(coordinator!.windowTracker)
-                .environmentObject(coordinator!.captureEngine)
-        )
+        let rootView = ContentView()
+            .environmentObject(coordinator!.windowTracker)
+            .environmentObject(coordinator!.captureEngine)
+        if let owc = coordinator!.outputWindowController {
+            popover.contentViewController = NSHostingController(
+                rootView: rootView.environmentObject(owc)
+            )
+        } else {
+            popover.contentViewController = NSHostingController(rootView: rootView)
+        }
 
         // Set up the status item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
