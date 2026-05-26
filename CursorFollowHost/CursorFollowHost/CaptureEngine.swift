@@ -79,7 +79,7 @@ final class CaptureEngine: NSObject, ObservableObject {
             config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(frameRate))
             config.pixelFormat = kCVPixelFormatType_32BGRA
             config.queueDepth = 3 // Low queue depth for latency
-            config.showsCursor = false
+            config.showsCursor = true
 
             let transport = self.frameTransport
             let onFrame = self.onFrameDelivered
