@@ -1,6 +1,47 @@
+# macOS
 .DS_Store
-.build/
+.AppleDouble
+.LSOverride
+
+# Xcode build outputs
+build/
 DerivedData/
+*.app/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Xcode user-specific
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
 *.xcodeproj/xcuserdata/
 *.xcworkspace/xcuserdata/
-*.xcuserstate
+xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# Code signing
+*.mobileprovision
+*.provisionprofile
+
+# CocoaPods (if used)
+Pods/
+
+# Miscellaneous
+*.moved-aside
+*.hmap
+*.ipa
+timeline.xctimeline
+playground.xcworkspace
