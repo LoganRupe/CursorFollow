@@ -7,6 +7,7 @@
 
 import AppKit
 import Combine
+import CoreVideo
 import IOSurface
 import os.log
 
@@ -15,11 +16,13 @@ import os.log
 @MainActor
 final class OutputWindowController: ObservableObject {
     @Published private(set) var isVisible = false
+    @Published var alwaysOnTop = false { didSet { applyWindowLevel() } }
 
     private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "OutputWindow")
     private var window: NSWindow?
     private var surfaceView: SurfaceLayerView?
     private var frameRefreshCount: UInt64 = 0
+    private var displayLink: CVDisplayLink?
 
     /// The IOSurface to render. Set before showing the window.
     private let surface: IOSurface
@@ -27,6 +30,13 @@ final class OutputWindowController: ObservableObject {
     init(surface: IOSurface) {
         self.surface = surface
         log.info("OutputWindowController initialized with surfaceID=\(surface.surfaceID)")
+    }
+
+    deinit {
+        if let link = displayLink {
+            CVDisplayLinkStop(link)
+        }
+        NotificationCenter.default.removeObserver(self)
     }
 
     /// The current content size for the output window.
@@ -67,6 +77,7 @@ final class OutputWindowController: ObservableObject {
         if let window {
             window.orderFrontRegardless()
             isVisible = true
+            startDisplayLink()
             return
         }
 
@@ -83,7 +94,7 @@ final class OutputWindowController: ObservableObject {
         window.backgroundColor = .black
         window.contentAspectRatio = contentSize
         window.isReleasedWhenClosed = false
-        window.level = .normal
+        window.level = alwaysOnTop ? .floating : .normal
         window.collectionBehavior = [.fullScreenNone, .managed]
 
         let view = SurfaceLayerView(surface: surface)
@@ -101,12 +112,14 @@ final class OutputWindowController: ObservableObject {
         self.window = window
         self.surfaceView = view
         self.isVisible = true
+        startDisplayLink()
         log.info("Output window shown")
     }
 
     func hide() {
         window?.orderOut(nil)
         isVisible = false
+        stopDisplayLink()
         log.info("Output window hidden")
     }
 
@@ -118,17 +131,61 @@ final class OutputWindowController: ObservableObject {
         }
     }
 
-    /// Called from the capture queue when a new frame is available on the IOSurface.
-    /// Re-assigns layer contents on the main thread to force Core Animation to re-read the surface.
-    nonisolated func notifyFrameReady() {
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            self.surfaceView?.refreshSurface()
-            self.frameRefreshCount += 1
-            if self.frameRefreshCount == 1 {
-                self.log.info("First frame refresh delivered to output window")
+    private func applyWindowLevel() {
+        window?.level = alwaysOnTop ? .floating : .normal
+    }
+
+    // MARK: - Display Link
+
+    private func startDisplayLink() {
+        guard displayLink == nil else { return }
+
+        var link: CVDisplayLink?
+        CVDisplayLinkCreateWithActiveCGDisplays(&link)
+        guard let link else {
+            log.error("Failed to create CVDisplayLink")
+            return
+        }
+
+        let callback: CVDisplayLinkOutputCallback = { _, _, _, _, _, _ -> CVReturn in
+            // Trigger a main-thread refresh on every vsync
+            DispatchQueue.main.async {
+                // Posted as notification-less; actual refresh happens below
+                NotificationCenter.default.post(name: .outputWindowRefresh, object: nil)
+            }
+            return kCVReturnSuccess
+        }
+
+        CVDisplayLinkSetOutputCallback(link, callback, nil)
+        CVDisplayLinkStart(link)
+        self.displayLink = link
+
+        // Observe refresh notifications
+        NotificationCenter.default.addObserver(
+            forName: .outputWindowRefresh,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.surfaceView?.refreshSurface()
             }
         }
+
+        log.info("Display link started")
+    }
+
+    private func stopDisplayLink() {
+        guard let link = displayLink else { return }
+        CVDisplayLinkStop(link)
+        displayLink = nil
+        NotificationCenter.default.removeObserver(self, name: .outputWindowRefresh, object: nil)
+        log.info("Display link stopped")
+    }
+
+    /// Called from the capture queue when a new frame is available on the IOSurface.
+    /// Legacy callback — display link now handles continuous refresh.
+    nonisolated func notifyFrameReady() {
+        // No-op: display link handles refresh
     }
 }
 
@@ -170,8 +227,18 @@ private final class SurfaceLayerView: NSView {
     /// Re-assign the IOSurface as layer contents to force Core Animation
     /// to re-read the surface pixels on the next composite pass.
     func refreshSurface() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        layer?.contents = nil
         layer?.contents = surface
+        CATransaction.commit()
     }
 
     override var isOpaque: Bool { true }
+}
+
+// MARK: - Notification Names
+
+private extension Notification.Name {
+    static let outputWindowRefresh = Notification.Name("io.github.loganrupe.CursorFollowHost.outputWindowRefresh")
 }

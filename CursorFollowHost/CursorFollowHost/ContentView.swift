@@ -86,6 +86,11 @@ struct ContentView: View {
                     outputWindowController.toggle()
                 }
 
+                Toggle("Pin", isOn: $outputWindowController.alwaysOnTop)
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .help("Keep output window above all other windows")
+
                 if captureEngine.isCapturing {
                     Button("Stop") {
                         Task { await captureEngine.stopCapture() }
