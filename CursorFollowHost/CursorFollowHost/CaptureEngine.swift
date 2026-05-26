@@ -20,6 +20,13 @@ final class CaptureEngine: NSObject, ObservableObject {
     @Published private(set) var lastError: String?
     @Published private(set) var transportReady = false
 
+    /// Callback invoked on the capture queue after each frame is published.
+    /// Used by OutputWindowController to trigger layer redisplay.
+    nonisolated(unsafe) var onFrameDelivered: (@Sendable () -> Void)?
+
+    /// The shared IOSurface used for frame transport.
+    var ioSurface: IOSurface? { frameTransport?.surface }
+
     private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "CaptureEngine")
 
     private var stream: SCStream?
@@ -28,9 +35,11 @@ final class CaptureEngine: NSObject, ObservableObject {
 
     private let captureQueue = DispatchQueue(label: "io.github.loganrupe.CursorFollowHost.capture", qos: .userInteractive)
 
-    /// Target capture dimensions.
-    let captureWidth = 1920
-    let captureHeight = 1080
+    /// Target capture dimensions (updated per window).
+    @Published private(set) var activeCaptureWidth: Int = 1920
+    @Published private(set) var activeCaptureHeight: Int = 1080
+    let maxCaptureWidth = 1920
+    let maxCaptureHeight = 1080
     let frameRate = 60
 
     override init() {
@@ -54,20 +63,32 @@ final class CaptureEngine: NSObject, ObservableObject {
         do {
             let filter = SCContentFilter(desktopIndependentWindow: window.scWindow)
 
+            // Calculate dimensions that preserve the window's aspect ratio
+            // while fitting within the IOSurface bounds (1920x1080).
+            let windowW = window.frame.width
+            let windowH = window.frame.height
+            let scale = min(CGFloat(maxCaptureWidth) / windowW, CGFloat(maxCaptureHeight) / windowH, 1.0)
+            let captureW = Int(windowW * scale)
+            let captureH = Int(windowH * scale)
+            self.activeCaptureWidth = captureW
+            self.activeCaptureHeight = captureH
+
             let config = SCStreamConfiguration()
-            config.width = captureWidth
-            config.height = captureHeight
+            config.width = captureW
+            config.height = captureH
             config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(frameRate))
             config.pixelFormat = kCVPixelFormatType_32BGRA
             config.queueDepth = 3 // Low queue depth for latency
             config.showsCursor = false
 
             let transport = self.frameTransport
+            let onFrame = self.onFrameDelivered
             let output = CaptureStreamOutput(
                 frameHandler: { [weak self, transport] sampleBuffer in
                     guard let pixelBuffer = sampleBuffer.imageBuffer else { return }
                     let timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
                     transport?.publishFrame(pixelBuffer: pixelBuffer, timestamp: timestamp)
+                    onFrame?()
                     Task { @MainActor [weak self] in
                         guard let self else { return }
                         self.frameCount += 1
@@ -93,7 +114,7 @@ final class CaptureEngine: NSObject, ObservableObject {
             self.lastError = nil
             self.frameCount = 0
 
-            log.info("Started capture of window '\(window.title)' (ID: \(window.id)) at \(self.captureWidth)x\(self.captureHeight)@\(self.frameRate)fps")
+            log.info("Started capture of window '\(window.title)' (ID: \(window.id)) at \(captureW)x\(captureH)@\(self.frameRate)fps (source: \(Int(windowW))x\(Int(windowH)))")
         } catch {
             log.error("Failed to start capture: \(error.localizedDescription)")
             self.lastError = error.localizedDescription
@@ -118,12 +139,13 @@ final class CaptureEngine: NSObject, ObservableObject {
     }
 
     /// Switch to capturing a different window with minimal interruption.
-    /// Target: <300ms stream interruption.
     func switchTarget(to window: TrackedWindow) async {
         let wasCapturing = isCapturing
         if wasCapturing {
             await stopCapture()
         }
+        // Clear stale pixels from the previous capture
+        frameTransport?.clearSurface()
         // Restart with new target
         await startCapture(window: window)
     }

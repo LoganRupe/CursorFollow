@@ -10,6 +10,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var windowTracker: WindowTracker
     @EnvironmentObject var captureEngine: CaptureEngine
+    @EnvironmentObject var outputWindowController: OutputWindowController
 
     var body: some View {
         VStack(spacing: 12) {
@@ -80,6 +81,10 @@ struct ContentView: View {
                 }
 
                 Spacer()
+
+                Button(outputWindowController.isVisible ? "Hide Output Window" : "Show Output Window") {
+                    outputWindowController.toggle()
+                }
 
                 if captureEngine.isCapturing {
                     Button("Stop") {
