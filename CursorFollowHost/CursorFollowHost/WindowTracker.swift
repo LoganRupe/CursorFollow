@@ -55,6 +55,10 @@ final class WindowTracker: ObservableObject {
 
     private var lastSwitchTime: Date = .distantPast
     private var activationObserver: Any?
+    private var focusPollTimer: Timer?
+
+    /// The CGWindowID of the frontmost window we last detected via polling.
+    private var lastPolledFrontWindowID: CGWindowID = 0
 
     func startObservingFrontApp() {
         guard activationObserver == nil else { return }
@@ -69,6 +73,7 @@ final class WindowTracker: ObservableObject {
                 await self.handleAppActivation(app)
             }
         }
+        startFocusPollTimer()
         log.info("Started observing frontmost app changes")
     }
 
@@ -77,6 +82,96 @@ final class WindowTracker: ObservableObject {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
             activationObserver = nil
             log.info("Stopped observing frontmost app changes")
+        }
+        stopFocusPollTimer()
+    }
+
+    // MARK: - Focus Polling (detects tab/window changes within the same app)
+
+    private func startFocusPollTimer() {
+        guard focusPollTimer == nil else { return }
+        focusPollTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                await self.pollFrontmostWindow()
+            }
+        }
+        log.info("Started focus poll timer")
+    }
+
+    private func stopFocusPollTimer() {
+        focusPollTimer?.invalidate()
+        focusPollTimer = nil
+    }
+
+    /// Polls CGWindowList to detect if the frontmost window of the active app changed
+    /// (e.g. macOS tab switch within VS Code). This catches cases where AX notifications
+    /// aren't delivered by Electron/Chromium-based apps.
+    private func pollFrontmostWindow() async {
+        guard autoFollowEnabled else { return }
+
+        guard let frontApp = NSWorkspace.shared.frontmostApplication else { return }
+        let bundleID = frontApp.bundleIdentifier ?? ""
+
+        // Skip our own app and excluded apps
+        guard bundleID != "io.github.loganrupe.CursorFollowHost",
+              !excludedBundleIDs.contains(bundleID) else {
+            return
+        }
+
+        let pid = frontApp.processIdentifier
+
+        // Query CGWindowList for on-screen windows (ordered front-to-back)
+        guard let windowList = CGWindowListCopyWindowInfo(
+            [.optionOnScreenOnly, .excludeDesktopElements],
+            kCGNullWindowID
+        ) as? [[CFString: Any]] else { return }
+
+        // Find the frontmost window belonging to the active app
+        guard let frontWindow = windowList.first(where: { info in
+            guard let ownerPID = info[kCGWindowOwnerPID] as? pid_t,
+                  ownerPID == pid,
+                  let layer = info[kCGWindowLayer] as? Int,
+                  layer == 0 else { // Layer 0 = normal windows
+                return false
+            }
+            // Must have reasonable size (skip tiny overlays)
+            if let bounds = info[kCGWindowBounds] as? [String: CGFloat],
+               let w = bounds["Width"], let h = bounds["Height"],
+               w < 100 || h < 100 {
+                return false
+            }
+            return true
+        }) else { return }
+
+        guard let windowID = frontWindow[kCGWindowNumber] as? CGWindowID else { return }
+
+        // If the frontmost window changed, trigger a target switch
+        if windowID != lastPolledFrontWindowID {
+            lastPolledFrontWindowID = windowID
+
+            // Only act if this differs from what we're currently capturing
+            guard windowID != selectedWindow?.id else { return }
+
+            // Debounce
+            let now = Date()
+            guard now.timeIntervalSince(lastSwitchTime) >= switchDebounceInterval else { return }
+            lastSwitchTime = now
+
+            log.info("Detected frontmost window change via poll (windowID: \(windowID), app: \(bundleID))")
+
+            await refreshWindows()
+
+            guard let target = windows.first(where: { $0.id == windowID }) else {
+                // Fallback: pick first window matching the app
+                if let fallback = windows.first(where: { $0.bundleID == bundleID }) {
+                    guard fallback.id != selectedWindow?.id else { return }
+                    selectWindow(fallback)
+                }
+                return
+            }
+
+            selectWindow(target)
         }
     }
 
