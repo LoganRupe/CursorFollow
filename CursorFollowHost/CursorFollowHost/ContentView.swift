@@ -93,7 +93,7 @@ struct ContentView: View {
 
                 if captureEngine.isCapturing {
                     Button("Stop") {
-                        Task { await captureEngine.stopCapture() }
+                        Task { await captureEngine.userStop() }
                     }
                     .tint(.red)
                 } else {

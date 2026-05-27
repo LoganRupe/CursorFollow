@@ -19,6 +19,8 @@ final class CaptureEngine: NSObject, ObservableObject {
     @Published private(set) var frameCount: UInt64 = 0
     @Published private(set) var lastError: String?
     @Published private(set) var transportReady = false
+    /// Set when the user explicitly stops capture; prevents auto-follow from restarting.
+    @Published private(set) var userStopped = false
 
     /// Callback invoked on the capture queue after each frame is published.
     /// Used by OutputWindowController to trigger layer redisplay.
@@ -55,6 +57,8 @@ final class CaptureEngine: NSObject, ObservableObject {
 
     /// Start capturing the specified window.
     func startCapture(window: TrackedWindow) async {
+        userStopped = false
+
         if isCapturing {
             log.warning("Capture already in progress, stopping first")
             await stopCapture()
@@ -136,6 +140,12 @@ final class CaptureEngine: NSObject, ObservableObject {
         self.streamOutput = nil
         self.isCapturing = false
         log.info("Capture stopped. Total frames delivered: \(self.frameCount)")
+    }
+
+    /// User-initiated stop: stops capture and prevents auto-follow from restarting.
+    func userStop() async {
+        userStopped = true
+        await stopCapture()
     }
 
     /// Switch to capturing a different window with minimal interruption.

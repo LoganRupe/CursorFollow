@@ -41,7 +41,7 @@ final class AppCoordinator: ObservableObject {
                     guard let self else { return }
                     if self.captureEngine.isCapturing {
                         await self.captureEngine.switchTarget(to: window)
-                    } else if self.windowTracker.autoFollowEnabled {
+                    } else if self.windowTracker.autoFollowEnabled && !self.captureEngine.userStopped {
                         await self.captureEngine.startCapture(window: window)
                     }
                     // Update output window after capture starts (dimensions now set)
