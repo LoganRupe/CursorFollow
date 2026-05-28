@@ -94,6 +94,7 @@ final class OutputWindowController: ObservableObject {
         window.backgroundColor = .black
         window.contentAspectRatio = contentSize
         window.isReleasedWhenClosed = false
+        window.sharingType = .readOnly
         window.level = alwaysOnTop ? .floating : .normal
         window.collectionBehavior = [.fullScreenNone, .managed]
 
