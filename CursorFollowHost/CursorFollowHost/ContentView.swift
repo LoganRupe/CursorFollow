@@ -44,6 +44,15 @@ struct ContentView: View {
                 .controlSize(.small)
             }
 
+            // Filter mode
+            Picker("Filter", selection: $windowTracker.filterMode) {
+                ForEach(FilterMode.allCases, id: \.self) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .help("All: follow any window. Exclude: skip selected windows. Include: only follow selected windows.")
+
             // Window list
             if windowTracker.windows.isEmpty {
                 VStack(spacing: 8) {
@@ -59,16 +68,27 @@ struct ContentView: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: 120)
             } else {
-                List(windowTracker.windows, selection: Binding(
-                    get: { windowTracker.selectedWindow },
-                    set: { window in
-                        if let window {
+                List(windowTracker.windows) { window in
+                    WindowRow(
+                        window: window,
+                        isSelected: window == windowTracker.selectedWindow,
+                        isFiltered: windowTracker.isWindowFiltered(window),
+                        filterMode: windowTracker.filterMode
+                    )
+                    .tag(window)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if windowTracker.filterMode != .all {
+                            windowTracker.toggleFilterMembership(window)
+                        } else {
                             windowTracker.selectWindow(window)
                         }
                     }
-                )) { window in
-                    WindowRow(window: window, isSelected: window == windowTracker.selectedWindow)
-                        .tag(window)
+                    .contextMenu {
+                        Button("Switch to this window") {
+                            windowTracker.selectWindow(window)
+                        }
+                    }
                 }
                 .listStyle(.bordered)
                 .frame(minHeight: 200)
@@ -161,9 +181,18 @@ struct ContentView: View {
 struct WindowRow: View {
     let window: TrackedWindow
     let isSelected: Bool
+    let isFiltered: Bool
+    let filterMode: FilterMode
 
     var body: some View {
         HStack {
+            // Filter indicator
+            if filterMode != .all {
+                Image(systemName: isFiltered ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isFiltered ? (filterMode == .exclude ? .red : .green) : .secondary)
+                    .font(.body)
+            }
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(window.title)
                     .font(.body)
@@ -173,6 +202,11 @@ struct WindowRow: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
+            if isSelected {
+                Image(systemName: "video.fill")
+                    .foregroundStyle(.green)
+                    .font(.caption)
+            }
             Text("\(Int(window.frame.width))×\(Int(window.frame.height))")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)

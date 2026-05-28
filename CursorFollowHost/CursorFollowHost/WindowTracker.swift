@@ -29,6 +29,13 @@ struct TrackedWindow: Identifiable, Hashable {
     }
 }
 
+/// Controls how the auto-follow filter list is applied.
+enum FilterMode: String, CaseIterable {
+    case all = "All"
+    case exclude = "Exclude"
+    case include = "Include"
+}
+
 /// Enumerates on-screen windows and publishes a selectable list.
 /// Filters out system UI elements, menu bar items, and utility windows.
 /// When auto-follow is enabled, automatically switches to the frontmost window.
@@ -37,11 +44,28 @@ final class WindowTracker: ObservableObject {
     @Published private(set) var windows: [TrackedWindow] = []
     @Published var selectedWindow: TrackedWindow?
     @Published var autoFollowEnabled = true
+    @Published var filterMode: FilterMode = .all {
+        didSet { UserDefaults.standard.set(filterMode.rawValue, forKey: "filterMode") }
+    }
+    @Published var excludedBundleIDs: Set<String> = [] {
+        didSet { Self.saveSet(excludedBundleIDs, key: "excludedBundleIDs") }
+    }
+    @Published var includedBundleIDs: Set<String> = [] {
+        didSet { Self.saveSet(includedBundleIDs, key: "includedBundleIDs") }
+    }
+
+    private static func saveSet(_ set: Set<String>, key: String) {
+        UserDefaults.standard.set(Array(set), forKey: key)
+    }
+
+    private static func loadSet(key: String) -> Set<String> {
+        Set(UserDefaults.standard.stringArray(forKey: key) ?? [])
+    }
 
     private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "WindowTracker")
 
-    /// Bundle IDs to exclude from the window list.
-    private let excludedBundleIDs: Set<String> = [
+    /// Bundle IDs to always exclude from the window list (system UI).
+    private let systemExcludedBundleIDs: Set<String> = [
         "com.apple.controlcenter",
         "com.apple.notificationcenterui",
         "com.apple.WindowManager",
@@ -59,6 +83,62 @@ final class WindowTracker: ObservableObject {
 
     /// The CGWindowID of the frontmost window we last detected via polling.
     private var lastPolledFrontWindowID: CGWindowID = 0
+
+    init() {
+        if let raw = UserDefaults.standard.string(forKey: "filterMode"),
+           let mode = FilterMode(rawValue: raw) {
+            filterMode = mode
+        }
+        excludedBundleIDs = Self.loadSet(key: "excludedBundleIDs")
+        includedBundleIDs = Self.loadSet(key: "includedBundleIDs")
+    }
+
+    /// Returns whether auto-follow should switch to the given window based on the current filter.
+    func shouldFollowWindow(_ window: TrackedWindow) -> Bool {
+        guard let bundleID = window.bundleID else { return true }
+        switch filterMode {
+        case .all:
+            return true
+        case .exclude:
+            return !excludedBundleIDs.contains(bundleID)
+        case .include:
+            return includedBundleIDs.contains(bundleID)
+        }
+    }
+
+    /// Returns whether a window is in the active filter list for the current mode.
+    func isWindowFiltered(_ window: TrackedWindow) -> Bool {
+        guard let bundleID = window.bundleID else { return false }
+        switch filterMode {
+        case .all:
+            return false
+        case .exclude:
+            return excludedBundleIDs.contains(bundleID)
+        case .include:
+            return includedBundleIDs.contains(bundleID)
+        }
+    }
+
+    /// Toggle a window's membership in the current filter list (exclude or include).
+    func toggleFilterMembership(_ window: TrackedWindow) {
+        guard let bundleID = window.bundleID else { return }
+        switch filterMode {
+        case .all:
+            break
+        case .exclude:
+            if excludedBundleIDs.contains(bundleID) {
+                excludedBundleIDs.remove(bundleID)
+            } else {
+                excludedBundleIDs.insert(bundleID)
+            }
+        case .include:
+            if includedBundleIDs.contains(bundleID) {
+                includedBundleIDs.remove(bundleID)
+            } else {
+                includedBundleIDs.insert(bundleID)
+            }
+        }
+    }
 
     func startObservingFrontApp() {
         guard activationObserver == nil else { return }
@@ -113,9 +193,9 @@ final class WindowTracker: ObservableObject {
         guard let frontApp = NSWorkspace.shared.frontmostApplication else { return }
         let bundleID = frontApp.bundleIdentifier ?? ""
 
-        // Skip our own app and excluded apps
+        // Skip our own app and system apps
         guard bundleID != "io.github.loganrupe.CursorFollowHost",
-              !excludedBundleIDs.contains(bundleID) else {
+              !systemExcludedBundleIDs.contains(bundleID) else {
             return
         }
 
@@ -166,11 +246,13 @@ final class WindowTracker: ObservableObject {
                 // Fallback: pick first window matching the app
                 if let fallback = windows.first(where: { $0.bundleID == bundleID }) {
                     guard fallback.id != selectedWindow?.id else { return }
+                    guard shouldFollowWindow(fallback) else { return }
                     selectWindow(fallback)
                 }
                 return
             }
 
+            guard shouldFollowWindow(target) else { return }
             selectWindow(target)
         }
     }
@@ -180,9 +262,9 @@ final class WindowTracker: ObservableObject {
 
         let bundleID = app.bundleIdentifier ?? ""
 
-        // Don't follow our own app or excluded apps
+        // Don't follow our own app or system apps
         guard bundleID != "io.github.loganrupe.CursorFollowHost",
-              !excludedBundleIDs.contains(bundleID) else {
+              !systemExcludedBundleIDs.contains(bundleID) else {
             return
         }
 
@@ -207,6 +289,12 @@ final class WindowTracker: ObservableObject {
         // Don't switch if already tracking this window
         guard target.id != selectedWindow?.id else { return }
 
+        // Respect the filter mode
+        guard shouldFollowWindow(target) else {
+            log.debug("Blocked switch to '\(target.title)' by filter (mode: \(self.filterMode.rawValue))")
+            return
+        }
+
         selectWindow(target)
     }
 
@@ -216,8 +304,8 @@ final class WindowTracker: ObservableObject {
             let filtered = content.windows.compactMap { window -> TrackedWindow? in
                 let bundleID = window.owningApplication?.bundleIdentifier
 
-                // Skip windows from excluded apps
-                if let bundleID, excludedBundleIDs.contains(bundleID) {
+                // Skip windows from system apps
+                if let bundleID, systemExcludedBundleIDs.contains(bundleID) {
                     return nil
                 }
 
