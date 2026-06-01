@@ -80,7 +80,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, OSSystemExtensionRequestDele
 
         // Set up the popover
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 380, height: 440)
+        popover.contentSize = NSSize(width: 252, height: 456)
         popover.behavior = .transient
         let rootView = ContentView()
             .environmentObject(coordinator!.windowTracker)
