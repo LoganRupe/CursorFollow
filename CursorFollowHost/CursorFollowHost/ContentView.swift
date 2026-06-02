@@ -11,6 +11,8 @@ final class AppSettings: ObservableObject {
     @Published private(set) var startOnLoginEnabled = false
     @Published private(set) var hideWhenNotSharingEnabled = false
     @Published private(set) var pinOutputOnTopEnabled = false
+    @Published private(set) var showResolution = false
+    @Published private(set) var showFrameCount = false
 
     private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "AppSettings")
     private let defaults: UserDefaults
@@ -18,12 +20,16 @@ final class AppSettings: ObservableObject {
     private enum Keys {
         static let hideWhenNotSharingEnabled = "settings.hideWhenNotSharingEnabled"
         static let pinOutputOnTopEnabled = "settings.pinOutputOnTopEnabled"
+        static let showResolution = "settings.showResolution"
+        static let showFrameCount = "settings.showFrameCount"
     }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         hideWhenNotSharingEnabled = defaults.bool(forKey: Keys.hideWhenNotSharingEnabled)
         pinOutputOnTopEnabled = defaults.bool(forKey: Keys.pinOutputOnTopEnabled)
+        showResolution = defaults.bool(forKey: Keys.showResolution)
+        showFrameCount = defaults.bool(forKey: Keys.showFrameCount)
         refreshStartOnLoginStatus()
     }
 
@@ -55,6 +61,16 @@ final class AppSettings: ObservableObject {
     func setPinOutputOnTop(_ enabled: Bool) {
         pinOutputOnTopEnabled = enabled
         defaults.set(enabled, forKey: Keys.pinOutputOnTopEnabled)
+    }
+
+    func setShowResolution(_ enabled: Bool) {
+        showResolution = enabled
+        defaults.set(enabled, forKey: Keys.showResolution)
+    }
+
+    func setShowFrameCount(_ enabled: Bool) {
+        showFrameCount = enabled
+        defaults.set(enabled, forKey: Keys.showFrameCount)
     }
 
     private static func isEnabled(status: SMAppService.Status) -> Bool {
@@ -318,9 +334,17 @@ struct ContentView: View {
         }
         .onAppear {
             outputWindowController.alwaysOnTop = appSettings.pinOutputOnTopEnabled
+            outputWindowController.showResolution = appSettings.showResolution
+            outputWindowController.showFrameCount = appSettings.showFrameCount
         }
         .onChange(of: appSettings.pinOutputOnTopEnabled) { _, enabled in
             outputWindowController.alwaysOnTop = enabled
+        }
+        .onChange(of: appSettings.showResolution) { _, enabled in
+            outputWindowController.showResolution = enabled
+        }
+        .onChange(of: appSettings.showFrameCount) { _, enabled in
+            outputWindowController.showFrameCount = enabled
         }
         .onChange(of: appSettings.hideWhenNotSharingEnabled) { _, enabled in
             if enabled && !captureEngine.isCapturing {
@@ -422,8 +446,6 @@ private struct SettingsModalView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appSettings: AppSettings
 
-    @State private var showResolution = true
-    @State private var hideFrameCount = false
     @State private var selectedQuality: CaptureQuality = .balanced
 
     var body: some View {
@@ -519,13 +541,13 @@ private struct SettingsModalView: View {
                 SettingsToggleRow(
                     title: "Show resolution",
                     subtitle: "Overlay display metrics in list",
-                    isOn: $showResolution
+                    isOn: showResolutionBinding
                 )
                 Divider().overlay(Color.white.opacity(0.06))
                 SettingsToggleRow(
-                    title: "Hide frame count",
-                    subtitle: "Remove frame counter from main menu",
-                    isOn: $hideFrameCount
+                    title: "Show frame count",
+                    subtitle: "Display frame counter on output window",
+                    isOn: showFrameCountBinding
                 )
             }
         }
@@ -552,6 +574,20 @@ private struct SettingsModalView: View {
                     appSettings.setHideWhenNotSharing(false)
                 }
             }
+        )
+    }
+
+    private var showResolutionBinding: Binding<Bool> {
+        Binding(
+            get: { appSettings.showResolution },
+            set: { appSettings.setShowResolution($0) }
+        )
+    }
+
+    private var showFrameCountBinding: Binding<Bool> {
+        Binding(
+            get: { appSettings.showFrameCount },
+            set: { appSettings.setShowFrameCount($0) }
         )
     }
 

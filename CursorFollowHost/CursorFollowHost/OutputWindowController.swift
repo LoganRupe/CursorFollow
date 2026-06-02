@@ -9,6 +9,7 @@ import AppKit
 import Combine
 import CoreVideo
 import IOSurface
+import SwiftUI
 import os.log
 
 /// Manages a borderless NSWindow that renders captured frames in real-time.
@@ -17,12 +18,19 @@ import os.log
 final class OutputWindowController: ObservableObject {
     @Published private(set) var isVisible = false
     @Published var alwaysOnTop = false { didSet { applyWindowLevel() } }
+    @Published var showResolution = false { didSet { updateOverlayIfNeeded() } }
+    @Published var showFrameCount = false { didSet { updateOverlayIfNeeded() } }
+    @Published private(set) var resolutionText = ""
+    @Published private(set) var currentFPS: Double = 0
 
     private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "OutputWindow")
     private var window: NSWindow?
     private var surfaceView: SurfaceLayerView?
+    private var overlayHostingView: NSView?
     private var frameRefreshCount: UInt64 = 0
     private var displayLink: CVDisplayLink?
+    private var fpsFrameCount: UInt64 = 0
+    private var fpsTimer: Timer?
 
     /// The IOSurface to render. Set before showing the window.
     private let surface: IOSurface
@@ -65,6 +73,7 @@ final class OutputWindowController: ObservableObject {
         let cropH = min(CGFloat(captureHeight) / surfaceHeight, 1.0)
         currentContentsRect = CGRect(x: 0, y: 1.0 - cropH, width: cropW, height: cropH)
         surfaceView?.layer?.contentsRect = currentContentsRect
+        resolutionText = "\(captureWidth)×\(captureHeight)"
 
         if let window {
             window.contentAspectRatio = newSize
@@ -104,6 +113,12 @@ final class OutputWindowController: ObservableObject {
         view.layer?.contentsRect = currentContentsRect
         window.contentView = view
 
+        // Overlay (top-left metrics)
+        let hosting = PassthroughHostingView(rootView: OverlayView(controller: self))
+        hosting.frame = NSRect(origin: .zero, size: contentSize)
+        hosting.autoresizingMask = [.width, .height]
+        view.addSubview(hosting)
+
         // Center on screen
         window.center()
 
@@ -112,8 +127,10 @@ final class OutputWindowController: ObservableObject {
 
         self.window = window
         self.surfaceView = view
+        self.overlayHostingView = hosting
         self.isVisible = true
         startDisplayLink()
+        startFPSTimer()
         log.info("Output window shown")
     }
 
@@ -121,6 +138,7 @@ final class OutputWindowController: ObservableObject {
         window?.orderOut(nil)
         isVisible = false
         stopDisplayLink()
+        stopFPSTimer()
         log.info("Output window hidden")
     }
 
@@ -134,6 +152,30 @@ final class OutputWindowController: ObservableObject {
 
     private func applyWindowLevel() {
         window?.level = alwaysOnTop ? .floating : .normal
+    }
+
+    private func updateOverlayIfNeeded() {
+        // No-op: SwiftUI view reacts to @Published changes automatically.
+    }
+
+    // MARK: - FPS Timer
+
+    private func startFPSTimer() {
+        guard fpsTimer == nil else { return }
+        fpsFrameCount = 0
+        fpsTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.currentFPS = Double(self.fpsFrameCount)
+                self.fpsFrameCount = 0
+            }
+        }
+    }
+
+    private func stopFPSTimer() {
+        fpsTimer?.invalidate()
+        fpsTimer = nil
+        currentFPS = 0
     }
 
     // MARK: - Display Link
@@ -184,9 +226,11 @@ final class OutputWindowController: ObservableObject {
     }
 
     /// Called from the capture queue when a new frame is available on the IOSurface.
-    /// Legacy callback — display link now handles continuous refresh.
+    /// Increments the per-second FPS counter used by the overlay.
     nonisolated func notifyFrameReady() {
-        // No-op: display link handles refresh
+        DispatchQueue.main.async { [weak self] in
+            self?.fpsFrameCount += 1
+        }
     }
 }
 
@@ -236,6 +280,44 @@ private final class SurfaceLayerView: NSView {
     }
 
     override var isOpaque: Bool { true }
+}
+
+// MARK: - Overlay View
+
+/// Transparent passthrough host so clicks reach the surface view beneath.
+private final class PassthroughHostingView<Content: View>: NSHostingView<Content> {
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    override var isOpaque: Bool { false }
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        layer?.backgroundColor = .clear
+    }
+}
+
+private struct OverlayView: View {
+    @ObservedObject var controller: OutputWindowController
+
+    var body: some View {
+        let hasContent = (controller.showResolution && !controller.resolutionText.isEmpty)
+            || controller.showFrameCount
+        if hasContent {
+            VStack(alignment: .leading, spacing: 3) {
+                if controller.showResolution && !controller.resolutionText.isEmpty {
+                    Text(controller.resolutionText)
+                }
+                if controller.showFrameCount {
+                    Text(String(format: "%.0f fps", controller.currentFPS))
+                }
+            }
+            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
+            .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+            .padding(10)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+    }
 }
 
 // MARK: - Notification Names
