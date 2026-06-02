@@ -9,10 +9,21 @@
 @MainActor
 final class AppSettings: ObservableObject {
     @Published private(set) var startOnLoginEnabled = false
+    @Published private(set) var hideWhenNotSharingEnabled = false
+    @Published private(set) var pinOutputOnTopEnabled = false
 
     private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "AppSettings")
+    private let defaults: UserDefaults
 
-    init() {
+    private enum Keys {
+        static let hideWhenNotSharingEnabled = "settings.hideWhenNotSharingEnabled"
+        static let pinOutputOnTopEnabled = "settings.pinOutputOnTopEnabled"
+    }
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        hideWhenNotSharingEnabled = defaults.bool(forKey: Keys.hideWhenNotSharingEnabled)
+        pinOutputOnTopEnabled = defaults.bool(forKey: Keys.pinOutputOnTopEnabled)
         refreshStartOnLoginStatus()
     }
 
@@ -34,6 +45,16 @@ final class AppSettings: ObservableObject {
 
     func refreshStartOnLoginStatus() {
         startOnLoginEnabled = Self.isEnabled(status: SMAppService.mainApp.status)
+    }
+
+    func setHideWhenNotSharing(_ enabled: Bool) {
+        hideWhenNotSharingEnabled = enabled
+        defaults.set(enabled, forKey: Keys.hideWhenNotSharingEnabled)
+    }
+
+    func setPinOutputOnTop(_ enabled: Bool) {
+        pinOutputOnTopEnabled = enabled
+        defaults.set(enabled, forKey: Keys.pinOutputOnTopEnabled)
     }
 
     private static func isEnabled(status: SMAppService.Status) -> Bool {
@@ -295,6 +316,26 @@ struct ContentView: View {
                 windowTracker.stopObservingFrontApp()
             }
         }
+        .onAppear {
+            outputWindowController.alwaysOnTop = appSettings.pinOutputOnTopEnabled
+        }
+        .onChange(of: appSettings.pinOutputOnTopEnabled) { _, enabled in
+            outputWindowController.alwaysOnTop = enabled
+        }
+        .onChange(of: appSettings.hideWhenNotSharingEnabled) { _, enabled in
+            if enabled && !captureEngine.isCapturing {
+                outputWindowController.hide()
+            }
+        }
+        .onChange(of: captureEngine.isCapturing) { _, isCapturing in
+            if appSettings.hideWhenNotSharingEnabled {
+                if isCapturing {
+                    outputWindowController.show()
+                } else {
+                    outputWindowController.hide()
+                }
+            }
+        }
         .sheet(isPresented: $isSettingsPresented) {
             SettingsModalView()
                 .environmentObject(appSettings)
@@ -381,10 +422,8 @@ private struct SettingsModalView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appSettings: AppSettings
 
-    @State private var hideWhenNotSharing = false
     @State private var showResolution = true
     @State private var hideFrameCount = false
-    @State private var pinOutputOnTop = false
     @State private var selectedQuality: CaptureQuality = .balanced
 
     var body: some View {
@@ -461,8 +500,20 @@ private struct SettingsModalView: View {
                 Divider().overlay(Color.white.opacity(0.06))
                 SettingsToggleRow(
                     title: "Hide when not sharing",
-                    subtitle: "Automatically minimize to dock",
-                    isOn: $hideWhenNotSharing
+                    subtitle: appSettings.pinOutputOnTopEnabled && !appSettings.hideWhenNotSharingEnabled
+                        ? "Disabled while Pin output on top is enabled"
+                        : "Automatically minimize to dock",
+                    isOn: hideWhenNotSharingBinding,
+                    isDisabled: appSettings.pinOutputOnTopEnabled && !appSettings.hideWhenNotSharingEnabled
+                )
+                Divider().overlay(Color.white.opacity(0.06))
+                SettingsToggleRow(
+                    title: "Pin output on top",
+                    subtitle: appSettings.hideWhenNotSharingEnabled && !appSettings.pinOutputOnTopEnabled
+                        ? "Disabled while Hide when not sharing is enabled"
+                        : "Keep output window above other windows",
+                    isOn: pinOutputOnTopBinding,
+                    isDisabled: appSettings.hideWhenNotSharingEnabled && !appSettings.pinOutputOnTopEnabled
                 )
                 Divider().overlay(Color.white.opacity(0.06))
                 SettingsToggleRow(
@@ -476,14 +527,32 @@ private struct SettingsModalView: View {
                     subtitle: "Remove frame counter from main menu",
                     isOn: $hideFrameCount
                 )
-                Divider().overlay(Color.white.opacity(0.06))
-                SettingsToggleRow(
-                    title: "Pin output on top",
-                    subtitle: "Keep output window above other windows",
-                    isOn: $pinOutputOnTop
-                )
             }
         }
+    }
+
+    private var hideWhenNotSharingBinding: Binding<Bool> {
+        Binding(
+            get: { appSettings.hideWhenNotSharingEnabled },
+            set: { enabled in
+                appSettings.setHideWhenNotSharing(enabled)
+                if enabled {
+                    appSettings.setPinOutputOnTop(false)
+                }
+            }
+        )
+    }
+
+    private var pinOutputOnTopBinding: Binding<Bool> {
+        Binding(
+            get: { appSettings.pinOutputOnTopEnabled },
+            set: { enabled in
+                appSettings.setPinOutputOnTop(enabled)
+                if enabled {
+                    appSettings.setHideWhenNotSharing(false)
+                }
+            }
+        )
     }
 
     private var captureQualitySection: some View {
@@ -685,6 +754,7 @@ private struct SettingsToggleRow: View {
     let title: String
     let subtitle: String
     @Binding var isOn: Bool
+    var isDisabled: Bool = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -704,5 +774,7 @@ private struct SettingsToggleRow: View {
                 .toggleStyle(.switch)
         }
         .padding(.vertical, 10)
+        .opacity(isDisabled ? 0.55 : 1)
+        .disabled(isDisabled)
     }
 }
