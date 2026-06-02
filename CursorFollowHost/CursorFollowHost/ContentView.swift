@@ -5,12 +5,58 @@
 //  Created by Logan Rupe on 20/5/2026.
 //
 
+
+@MainActor
+final class AppSettings: ObservableObject {
+    @Published private(set) var startOnLoginEnabled = false
+
+    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "AppSettings")
+
+    init() {
+        refreshStartOnLoginStatus()
+    }
+
+    func setStartOnLogin(_ enabled: Bool) {
+        let service = SMAppService.mainApp
+
+        do {
+            if enabled {
+                try service.register()
+            } else {
+                try service.unregister()
+            }
+        } catch {
+            log.error("Failed to update login item registration: \(error.localizedDescription, privacy: .public)")
+        }
+
+        refreshStartOnLoginStatus()
+    }
+
+    func refreshStartOnLoginStatus() {
+        startOnLoginEnabled = Self.isEnabled(status: SMAppService.mainApp.status)
+    }
+
+    private static func isEnabled(status: SMAppService.Status) -> Bool {
+        switch status {
+        case .enabled, .requiresApproval:
+            return true
+        case .notFound, .notRegistered:
+            return false
+        @unknown default:
+            return false
+        }
+    }
+}
 import SwiftUI
+import Combine
+import ServiceManagement
+import os
 
 struct ContentView: View {
     @EnvironmentObject var windowTracker: WindowTracker
     @EnvironmentObject var captureEngine: CaptureEngine
     @EnvironmentObject var outputWindowController: OutputWindowController
+    @StateObject private var appSettings = AppSettings()
     @State private var isSettingsPresented = false
 
     var body: some View {
@@ -250,6 +296,7 @@ struct ContentView: View {
         }
         .sheet(isPresented: $isSettingsPresented) {
             SettingsModalView()
+                .environmentObject(appSettings)
                 .frame(width: 840, height: 560)
         }
     }
@@ -323,8 +370,8 @@ struct WindowRow: View {
 
 private struct SettingsModalView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var appSettings: AppSettings
 
-    @State private var startOnLogin = true
     @State private var hideWhenNotSharing = false
     @State private var showResolution = true
     @State private var hideFrameCount = false
@@ -364,6 +411,9 @@ private struct SettingsModalView: View {
             }
             .padding(18)
         }
+        .onAppear {
+            appSettings.refreshStartOnLoginStatus()
+        }
     }
 
     private var header: some View {
@@ -394,7 +444,10 @@ private struct SettingsModalView: View {
                 SettingsToggleRow(
                     title: "Start on Login",
                     subtitle: "Launch CursorFollow automatically",
-                    isOn: $startOnLogin
+                    isOn: Binding(
+                        get: { appSettings.startOnLoginEnabled },
+                        set: { appSettings.setStartOnLogin($0) }
+                    )
                 )
                 Divider().overlay(Color.white.opacity(0.06))
                 SettingsToggleRow(
