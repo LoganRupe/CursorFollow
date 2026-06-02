@@ -58,6 +58,7 @@ struct ContentView: View {
     @EnvironmentObject var outputWindowController: OutputWindowController
     @StateObject private var appSettings = AppSettings()
     @State private var isSettingsPresented = false
+    @State private var isQuitConfirmationPresented = false
 
     var body: some View {
         VStack(spacing: 13) {
@@ -80,7 +81,7 @@ struct ContentView: View {
                 .buttonStyle(.plain)
                 .help("Settings")
                 Button {
-                    NSApplication.shared.terminate(nil)
+                    isQuitConfirmationPresented = true
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
@@ -298,6 +299,14 @@ struct ContentView: View {
             SettingsModalView()
                 .environmentObject(appSettings)
                 .frame(width: 840, height: 560)
+        }
+        .alert("Quit CursorFollow?", isPresented: $isQuitConfirmationPresented) {
+            Button("Quit", role: .destructive) {
+                NSApplication.shared.terminate(nil)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to quit CursorFollow?")
         }
     }
 
