@@ -11,6 +11,45 @@ import ScreenCaptureKit
 import CoreMedia
 import os.log
 
+enum CaptureQuality: String, CaseIterable {
+    case balanced
+    case performant
+    case lowLatency
+
+    var label: String {
+        switch self {
+        case .balanced:
+            return "BALANCED"
+        case .performant:
+            return "PERFORMANT"
+        case .lowLatency:
+            return "LOW-LATENCY"
+        }
+    }
+
+    var frameRate: Int {
+        switch self {
+        case .balanced:
+            return 60
+        case .performant:
+            return 30
+        case .lowLatency:
+            return 60
+        }
+    }
+
+    var queueDepth: Int {
+        switch self {
+        case .balanced:
+            return 3
+        case .performant:
+            return 5
+        case .lowLatency:
+            return 2
+        }
+    }
+}
+
 /// Captures a target window using ScreenCaptureKit and delivers frames
 /// to the FrameTransport for consumption by the camera extension.
 @MainActor
@@ -21,6 +60,7 @@ final class CaptureEngine: NSObject, ObservableObject {
     @Published private(set) var transportReady = false
     /// Set when the user explicitly stops capture; prevents auto-follow from restarting.
     @Published private(set) var userStopped = true
+    @Published private(set) var captureQuality: CaptureQuality
 
     /// Callback invoked on the capture queue after each frame is published.
     /// Used by OutputWindowController to trigger layer redisplay.
@@ -42,9 +82,23 @@ final class CaptureEngine: NSObject, ObservableObject {
     @Published private(set) var activeCaptureHeight: Int = 1080
     let maxCaptureWidth = 1920
     let maxCaptureHeight = 1080
-    let frameRate = 60
 
-    override init() {
+    private let defaults: UserDefaults
+
+    private enum Keys {
+        static let captureQuality = "settings.captureQuality"
+    }
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        if let savedQuality = defaults.string(forKey: Keys.captureQuality),
+           let quality = CaptureQuality(rawValue: savedQuality) {
+            self.captureQuality = quality
+        } else {
+            self.captureQuality = .balanced
+            defaults.set(CaptureQuality.balanced.rawValue, forKey: Keys.captureQuality)
+        }
+
         self.frameTransport = SharedMemoryFrameTransport()
         super.init()
         if let transport = frameTransport {
@@ -53,6 +107,13 @@ final class CaptureEngine: NSObject, ObservableObject {
         } else {
             log.error("CaptureEngine: frame transport unavailable — check app group entitlement")
         }
+    }
+
+    func setCaptureQuality(_ quality: CaptureQuality) {
+        guard captureQuality != quality else { return }
+        captureQuality = quality
+        defaults.set(quality.rawValue, forKey: Keys.captureQuality)
+        log.info("Capture quality set to \(quality.rawValue, privacy: .public)")
     }
 
     /// Start capturing the specified window.
@@ -80,9 +141,10 @@ final class CaptureEngine: NSObject, ObservableObject {
             let config = SCStreamConfiguration()
             config.width = captureW
             config.height = captureH
+            let frameRate = captureQuality.frameRate
             config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(frameRate))
             config.pixelFormat = kCVPixelFormatType_32BGRA
-            config.queueDepth = 3 // Low queue depth for latency
+            config.queueDepth = captureQuality.queueDepth
             config.showsCursor = true
 
             let transport = self.frameTransport
@@ -118,7 +180,7 @@ final class CaptureEngine: NSObject, ObservableObject {
             self.lastError = nil
             self.frameCount = 0
 
-            log.info("Started capture of window '\(window.title)' (ID: \(window.id)) at \(captureW)x\(captureH)@\(self.frameRate)fps (source: \(Int(windowW))x\(Int(windowH)))")
+            log.info("Started capture of window '\(window.title)' (ID: \(window.id)) at \(captureW)x\(captureH)@\(frameRate)fps, quality=\(self.captureQuality.rawValue, privacy: .public), queueDepth=\(config.queueDepth) (source: \(Int(windowW))x\(Int(windowH)))")
         } catch {
             log.error("Failed to start capture: \(error.localizedDescription)")
             self.lastError = error.localizedDescription
