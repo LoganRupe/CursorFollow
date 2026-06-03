@@ -129,6 +129,17 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
                 .help("Settings")
+                .popover(isPresented: $isSettingsPresented, arrowEdge: .bottom) {
+                    SettingsModalView(
+                        onCancel: { isSettingsPresented = false },
+                        onSave: { isSettingsPresented = false }
+                    )
+                    .environmentObject(appSettings)
+                    .environmentObject(captureEngine)
+                    .environmentObject(autoFollowHotKeyManager)
+                    .environmentObject(toggleShareHotKeyManager)
+                    .frame(width: 840, height: 650)
+                }
                 Button {
                     isQuitConfirmationPresented = true
                 } label: {
@@ -372,14 +383,6 @@ struct ContentView: View {
                 }
             }
         }
-        .sheet(isPresented: $isSettingsPresented) {
-            SettingsModalView()
-                .environmentObject(appSettings)
-                .environmentObject(captureEngine)
-                .environmentObject(autoFollowHotKeyManager)
-                .environmentObject(toggleShareHotKeyManager)
-                .frame(width: 840, height: 650)
-        }
         .alert("Quit CursorFollow?", isPresented: $isQuitConfirmationPresented) {
             Button("Quit", role: .destructive) {
                 NSApplication.shared.terminate(nil)
@@ -458,11 +461,13 @@ struct WindowRow: View {
 // MARK: - Settings Modal
 
 private struct SettingsModalView: View {
-    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appSettings: AppSettings
     @EnvironmentObject private var captureEngine: CaptureEngine
     @EnvironmentObject private var autoFollowHotKeyManager: AutoFollowHotKeyManager
     @EnvironmentObject private var toggleShareHotKeyManager: ToggleShareHotKeyManager
+
+    let onCancel: () -> Void
+    let onSave: () -> Void
 
     private enum HotkeyCaptureTarget {
         case autoFollow
@@ -476,6 +481,17 @@ private struct SettingsModalView: View {
     @State private var toggleShareShortcutStatusMessage: String?
     @State private var autoFollowClearStatusWorkItem: DispatchWorkItem?
     @State private var toggleShareClearStatusWorkItem: DispatchWorkItem?
+    @State private var draftStartOnLoginEnabled = false
+    @State private var draftAutoShareOnStart = false
+    @State private var draftHideWhenNotSharingEnabled = false
+    @State private var draftPinOutputOnTopEnabled = false
+    @State private var draftShowResolution = false
+    @State private var draftShowFrameCount = false
+    @State private var initialCaptureQuality: CaptureQuality = .balanced
+    @State private var initialAutoFollowShortcut: HotKeyShortcut?
+    @State private var initialToggleShareShortcut: HotKeyShortcut?
+    @State private var didSaveChanges = false
+    @State private var escapeKeyEventMonitor: Any?
 
     var body: some View {
         ZStack {
@@ -487,7 +503,6 @@ private struct SettingsModalView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .ignoresSafeArea()
 
             VStack(spacing: 16) {
                 header
@@ -511,12 +526,22 @@ private struct SettingsModalView: View {
             }
             .padding(18)
         }
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
         .onAppear {
-            appSettings.refreshStartOnLoginStatus()
-            selectedQuality = captureEngine.captureQuality
+            loadDraftState()
+            didSaveChanges = false
+            startEscapeMonitor()
         }
         .onDisappear {
+            stopEscapeMonitor()
             stopShortcutCapture()
+            if !didSaveChanges {
+                restoreDiscardedChanges()
+            }
         }
     }
 
@@ -527,18 +552,6 @@ private struct SettingsModalView: View {
                 .foregroundStyle(.white)
 
             Spacer()
-
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.white.opacity(0.75))
-                    .frame(width: 28, height: 28)
-                    .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-            }
-            .buttonStyle(.plain)
-            .help("Close")
         }
     }
 
@@ -548,37 +561,31 @@ private struct SettingsModalView: View {
                 SettingsToggleRow(
                     title: "Start on Login",
                     subtitle: "Launch CursorFollow automatically",
-                    isOn: Binding(
-                        get: { appSettings.startOnLoginEnabled },
-                        set: { appSettings.setStartOnLogin($0) }
-                    )
+                    isOn: $draftStartOnLoginEnabled
                 )
                 Divider().overlay(Color.white.opacity(0.06))
                 SettingsToggleRow(
                     title: "Automatically share on start",
                     subtitle: "Begin capture immediately on launch",
-                    isOn: Binding(
-                        get: { appSettings.autoShareOnStart },
-                        set: { appSettings.setAutoShareOnStart($0) }
-                    )
+                    isOn: $draftAutoShareOnStart
                 )
                 Divider().overlay(Color.white.opacity(0.06))
                 SettingsToggleRow(
                     title: "Hide when not sharing",
-                    subtitle: appSettings.pinOutputOnTopEnabled && !appSettings.hideWhenNotSharingEnabled
+                    subtitle: draftPinOutputOnTopEnabled && !draftHideWhenNotSharingEnabled
                         ? "Disabled while Pin output on top is enabled"
                         : "Automatically minimize to dock",
                     isOn: hideWhenNotSharingBinding,
-                    isDisabled: appSettings.pinOutputOnTopEnabled && !appSettings.hideWhenNotSharingEnabled
+                    isDisabled: draftPinOutputOnTopEnabled && !draftHideWhenNotSharingEnabled
                 )
                 Divider().overlay(Color.white.opacity(0.06))
                 SettingsToggleRow(
                     title: "Pin output on top",
-                    subtitle: appSettings.hideWhenNotSharingEnabled && !appSettings.pinOutputOnTopEnabled
+                    subtitle: draftHideWhenNotSharingEnabled && !draftPinOutputOnTopEnabled
                         ? "Disabled while Hide when not sharing is enabled"
                         : "Keep output window above other windows",
                     isOn: pinOutputOnTopBinding,
-                    isDisabled: appSettings.hideWhenNotSharingEnabled && !appSettings.pinOutputOnTopEnabled
+                    isDisabled: draftHideWhenNotSharingEnabled && !draftPinOutputOnTopEnabled
                 )
             }
         }
@@ -586,11 +593,11 @@ private struct SettingsModalView: View {
 
     private var hideWhenNotSharingBinding: Binding<Bool> {
         Binding(
-            get: { appSettings.hideWhenNotSharingEnabled },
+            get: { draftHideWhenNotSharingEnabled },
             set: { enabled in
-                appSettings.setHideWhenNotSharing(enabled)
+                draftHideWhenNotSharingEnabled = enabled
                 if enabled {
-                    appSettings.setPinOutputOnTop(false)
+                    draftPinOutputOnTopEnabled = false
                 }
             }
         )
@@ -598,11 +605,11 @@ private struct SettingsModalView: View {
 
     private var pinOutputOnTopBinding: Binding<Bool> {
         Binding(
-            get: { appSettings.pinOutputOnTopEnabled },
+            get: { draftPinOutputOnTopEnabled },
             set: { enabled in
-                appSettings.setPinOutputOnTop(enabled)
+                draftPinOutputOnTopEnabled = enabled
                 if enabled {
-                    appSettings.setHideWhenNotSharing(false)
+                    draftHideWhenNotSharingEnabled = false
                 }
             }
         )
@@ -610,15 +617,15 @@ private struct SettingsModalView: View {
 
     private var showResolutionBinding: Binding<Bool> {
         Binding(
-            get: { appSettings.showResolution },
-            set: { appSettings.setShowResolution($0) }
+            get: { draftShowResolution },
+            set: { draftShowResolution = $0 }
         )
     }
 
     private var showFrameCountBinding: Binding<Bool> {
         Binding(
-            get: { appSettings.showFrameCount },
-            set: { appSettings.setShowFrameCount($0) }
+            get: { draftShowFrameCount },
+            set: { draftShowFrameCount = $0 }
         )
     }
 
@@ -629,7 +636,6 @@ private struct SettingsModalView: View {
                     ForEach(CaptureQuality.allCases, id: \.self) { quality in
                         Button {
                             selectedQuality = quality
-                            captureEngine.setCaptureQuality(quality)
                         } label: {
                             Text(quality.label)
                                 .font(.system(size: 12, weight: .bold))
@@ -789,7 +795,7 @@ private struct SettingsModalView: View {
             .animation(.easeInOut(duration: 0.2), value: toggleShareHotKeyManager.registrationError)
             .animation(.easeInOut(duration: 0.2), value: autoFollowShortcutStatusMessage)
             .animation(.easeInOut(duration: 0.2), value: toggleShareShortcutStatusMessage)
-            .frame(maxWidth: .infinity, minHeight: 130, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: 100, alignment: .topLeading)
         }
     }
 
@@ -861,7 +867,20 @@ private struct SettingsModalView: View {
             Spacer()
 
             Button {
-                dismiss()
+                handleCancel()
+            } label: {
+                Text("Cancel")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(Color.white.opacity(0.86))
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 10)
+                    .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .keyboardShortcut(.cancelAction)
+
+            Button {
+                handleSave()
             } label: {
                 Text("Save Changes")
                     .font(.headline.weight(.semibold))
@@ -871,6 +890,7 @@ private struct SettingsModalView: View {
                     .background(Color(red: 0.72, green: 0.79, blue: 1.0), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
             .buttonStyle(.plain)
+            .keyboardShortcut(.defaultAction)
         }
     }
 
@@ -906,6 +926,57 @@ private struct SettingsModalView: View {
             .foregroundStyle(Color(red: 0.74, green: 0.82, blue: 1.0))
         }
         .buttonStyle(.plain)
+    }
+
+    private func loadDraftState() {
+        appSettings.refreshStartOnLoginStatus()
+
+        draftStartOnLoginEnabled = appSettings.startOnLoginEnabled
+        draftAutoShareOnStart = appSettings.autoShareOnStart
+        draftHideWhenNotSharingEnabled = appSettings.hideWhenNotSharingEnabled
+        draftPinOutputOnTopEnabled = appSettings.pinOutputOnTopEnabled
+        draftShowResolution = appSettings.showResolution
+        draftShowFrameCount = appSettings.showFrameCount
+
+        initialCaptureQuality = captureEngine.captureQuality
+        selectedQuality = initialCaptureQuality
+
+        initialAutoFollowShortcut = autoFollowHotKeyManager.currentShortcut
+        initialToggleShareShortcut = toggleShareHotKeyManager.currentShortcut
+    }
+
+    private func handleCancel() {
+        onCancel()
+    }
+
+    private func handleSave() {
+        stopShortcutCapture()
+
+        appSettings.setStartOnLogin(draftStartOnLoginEnabled)
+        appSettings.setAutoShareOnStart(draftAutoShareOnStart)
+        appSettings.setHideWhenNotSharing(draftHideWhenNotSharingEnabled)
+        appSettings.setPinOutputOnTop(draftPinOutputOnTopEnabled)
+        appSettings.setShowResolution(draftShowResolution)
+        appSettings.setShowFrameCount(draftShowFrameCount)
+        captureEngine.setCaptureQuality(selectedQuality)
+
+        didSaveChanges = true
+        initialCaptureQuality = selectedQuality
+        initialAutoFollowShortcut = autoFollowHotKeyManager.currentShortcut
+        initialToggleShareShortcut = toggleShareHotKeyManager.currentShortcut
+        onSave()
+    }
+
+    private func restoreDiscardedChanges() {
+        if let initialAutoFollowShortcut {
+            _ = autoFollowHotKeyManager.applyShortcut(initialAutoFollowShortcut)
+        }
+        if let initialToggleShareShortcut {
+            _ = toggleShareHotKeyManager.applyShortcut(initialToggleShareShortcut)
+        }
+
+        autoFollowShortcutStatusMessage = nil
+        toggleShareShortcutStatusMessage = nil
     }
 
     private func startShortcutCapture(for target: HotkeyCaptureTarget) {
@@ -1005,6 +1076,24 @@ private struct SettingsModalView: View {
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5, execute: workItem)
+    }
+
+    private func startEscapeMonitor() {
+        stopEscapeMonitor()
+        escapeKeyEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
+            guard event.keyCode == UInt16(kVK_Escape), activeHotkeyCapture == nil else {
+                return event
+            }
+            onCancel()
+            return nil
+        }
+    }
+
+    private func stopEscapeMonitor() {
+        if let escapeKeyEventMonitor {
+            NSEvent.removeMonitor(escapeKeyEventMonitor)
+            self.escapeKeyEventMonitor = nil
+        }
     }
 }
 

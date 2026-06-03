@@ -11,6 +11,11 @@ import SystemExtensions
 import Carbon
 import os.log
 
+struct HotKeyShortcut: Equatable {
+    let keyCode: UInt32
+    let modifiers: UInt32
+}
+
 @MainActor
 final class AutoFollowHotKeyManager: ObservableObject {
     private static let hotKeySignature: OSType = 0x4346484B // 'CFHK'
@@ -68,6 +73,10 @@ final class AutoFollowHotKeyManager: ObservableObject {
         removeHotKeyHandler()
     }
 
+    var currentShortcut: HotKeyShortcut {
+        HotKeyShortcut(keyCode: keyCode, modifiers: modifiers)
+    }
+
     @discardableResult
     func updateShortcut(from event: NSEvent) -> Bool {
         guard event.type == .keyDown else { return false }
@@ -78,14 +87,23 @@ final class AutoFollowHotKeyManager: ObservableObject {
             return false
         }
 
-        let previousKeyCode = keyCode
-        let previousModifiers = modifiers
-
         let newKeyCode = UInt32(event.keyCode)
         let newModifiers = Self.carbonModifiers(from: relevantFlags)
-        let newTokens = Self.tokens(forKeyCode: newKeyCode, modifiers: newModifiers)
+        return applyShortcut(HotKeyShortcut(keyCode: newKeyCode, modifiers: newModifiers))
+    }
 
-        let status = registerHotKey(keyCode: newKeyCode, modifiers: newModifiers)
+    @discardableResult
+    func applyShortcut(_ shortcut: HotKeyShortcut) -> Bool {
+        guard shortcut.keyCode != keyCode || shortcut.modifiers != modifiers else {
+            registrationError = nil
+            return true
+        }
+
+        let previousKeyCode = keyCode
+        let previousModifiers = modifiers
+        let newTokens = Self.tokens(forKeyCode: shortcut.keyCode, modifiers: shortcut.modifiers)
+
+        let status = registerHotKey(keyCode: shortcut.keyCode, modifiers: shortcut.modifiers)
         guard status == noErr else {
             let rollbackStatus = registerHotKey(keyCode: previousKeyCode, modifiers: previousModifiers)
             if rollbackStatus != noErr {
@@ -98,8 +116,8 @@ final class AutoFollowHotKeyManager: ObservableObject {
             return false
         }
 
-        keyCode = newKeyCode
-        modifiers = newModifiers
+        keyCode = shortcut.keyCode
+        modifiers = shortcut.modifiers
         shortcutTokens = newTokens
 
         defaults.set(Int(keyCode), forKey: DefaultsKeys.keyCode)
@@ -341,6 +359,10 @@ final class ToggleShareHotKeyManager: ObservableObject {
         removeHotKeyHandler()
     }
 
+    var currentShortcut: HotKeyShortcut {
+        HotKeyShortcut(keyCode: keyCode, modifiers: modifiers)
+    }
+
     @discardableResult
     func updateShortcut(from event: NSEvent) -> Bool {
         guard event.type == .keyDown else { return false }
@@ -351,14 +373,23 @@ final class ToggleShareHotKeyManager: ObservableObject {
             return false
         }
 
-        let previousKeyCode = keyCode
-        let previousModifiers = modifiers
-
         let newKeyCode = UInt32(event.keyCode)
         let newModifiers = Self.carbonModifiers(from: relevantFlags)
-        let newTokens = Self.tokens(forKeyCode: newKeyCode, modifiers: newModifiers)
+        return applyShortcut(HotKeyShortcut(keyCode: newKeyCode, modifiers: newModifiers))
+    }
 
-        let status = registerHotKey(keyCode: newKeyCode, modifiers: newModifiers)
+    @discardableResult
+    func applyShortcut(_ shortcut: HotKeyShortcut) -> Bool {
+        guard shortcut.keyCode != keyCode || shortcut.modifiers != modifiers else {
+            registrationError = nil
+            return true
+        }
+
+        let previousKeyCode = keyCode
+        let previousModifiers = modifiers
+        let newTokens = Self.tokens(forKeyCode: shortcut.keyCode, modifiers: shortcut.modifiers)
+
+        let status = registerHotKey(keyCode: shortcut.keyCode, modifiers: shortcut.modifiers)
         guard status == noErr else {
             let rollbackStatus = registerHotKey(keyCode: previousKeyCode, modifiers: previousModifiers)
             if rollbackStatus != noErr {
@@ -371,8 +402,8 @@ final class ToggleShareHotKeyManager: ObservableObject {
             return false
         }
 
-        keyCode = newKeyCode
-        modifiers = newModifiers
+        keyCode = shortcut.keyCode
+        modifiers = shortcut.modifiers
         shortcutTokens = newTokens
 
         defaults.set(Int(keyCode), forKey: DefaultsKeys.keyCode)
