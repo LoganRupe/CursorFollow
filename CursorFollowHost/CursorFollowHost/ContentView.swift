@@ -86,6 +86,8 @@ final class AppSettings: ObservableObject {
 }
 import SwiftUI
 import Combine
+import AppKit
+import Carbon
 import ServiceManagement
 import os
 
@@ -93,6 +95,8 @@ struct ContentView: View {
     @EnvironmentObject var windowTracker: WindowTracker
     @EnvironmentObject var captureEngine: CaptureEngine
     @EnvironmentObject var outputWindowController: OutputWindowController
+    @EnvironmentObject var autoFollowHotKeyManager: AutoFollowHotKeyManager
+    @EnvironmentObject var toggleShareHotKeyManager: ToggleShareHotKeyManager
     @StateObject private var appSettings = AppSettings()
     @State private var isSettingsPresented = false
     @State private var isQuitConfirmationPresented = false
@@ -363,7 +367,9 @@ struct ContentView: View {
         .sheet(isPresented: $isSettingsPresented) {
             SettingsModalView()
                 .environmentObject(appSettings)
-                .frame(width: 840, height: 560)
+                .environmentObject(autoFollowHotKeyManager)
+                .environmentObject(toggleShareHotKeyManager)
+                .frame(width: 840, height: 620)
         }
         .alert("Quit CursorFollow?", isPresented: $isQuitConfirmationPresented) {
             Button("Quit", role: .destructive) {
@@ -445,8 +451,21 @@ struct WindowRow: View {
 private struct SettingsModalView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appSettings: AppSettings
+    @EnvironmentObject private var autoFollowHotKeyManager: AutoFollowHotKeyManager
+    @EnvironmentObject private var toggleShareHotKeyManager: ToggleShareHotKeyManager
+
+    private enum HotkeyCaptureTarget {
+        case autoFollow
+        case toggleShare
+    }
 
     @State private var selectedQuality: CaptureQuality = .balanced
+    @State private var activeHotkeyCapture: HotkeyCaptureTarget?
+    @State private var keyEventMonitor: Any?
+    @State private var autoFollowShortcutStatusMessage: String?
+    @State private var toggleShareShortcutStatusMessage: String?
+    @State private var autoFollowClearStatusWorkItem: DispatchWorkItem?
+    @State private var toggleShareClearStatusWorkItem: DispatchWorkItem?
 
     var body: some View {
         ZStack {
@@ -466,12 +485,12 @@ private struct SettingsModalView: View {
                     HStack(alignment: .top, spacing: 18) {
                         VStack(alignment: .leading, spacing: 18) {
                             generalSection
-                            hotkeysSection
+                            captureQualitySection
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
 
                         VStack(alignment: .leading, spacing: 18) {
-                            captureQualitySection
+                            hotkeysSection
                             aboutSection
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -483,6 +502,9 @@ private struct SettingsModalView: View {
         }
         .onAppear {
             appSettings.refreshStartOnLoginStatus()
+        }
+        .onDisappear {
+            stopShortcutCapture()
         }
     }
 
@@ -625,36 +647,139 @@ private struct SettingsModalView: View {
 
     private var hotkeysSection: some View {
         SettingsCard(title: "HOTKEYS") {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Toggle Auto-follow")
-                        .font(.system(size: 26 / 2, weight: .semibold))
-                        .foregroundStyle(.white)
-                    Text("Global system shortcut")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Color.white.opacity(0.75))
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Toggle Auto-follow")
+                            .font(.system(size: 26 / 2, weight: .semibold))
+                            .foregroundStyle(.white)
+                        Text("Global system shortcut")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Color.white.opacity(0.75))
+                    }
+
+                    Spacer(minLength: 8)
+
+                    HStack(spacing: 8) {
+                        ForEach(Array(autoFollowHotKeyManager.shortcutTokens.enumerated()), id: \.offset) { index, token in
+                            if index > 0 {
+                                Text("+")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(Color.white.opacity(0.85))
+                            }
+                            shortcutKey(token)
+                        }
+
+                        Button {
+                            if activeHotkeyCapture == .autoFollow {
+                                stopShortcutCapture()
+                            } else {
+                                startShortcutCapture(for: .autoFollow)
+                            }
+                        } label: {
+                            Image(systemName: activeHotkeyCapture == .autoFollow ? "xmark" : "pencil")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Color(red: 0.65, green: 0.76, blue: 1.0))
+                                .frame(width: 24, height: 24)
+                        }
+                        .buttonStyle(.plain)
+                        .help(activeHotkeyCapture == .autoFollow ? "Cancel shortcut recording" : "Change shortcut")
+                    }
+                }
+                .padding(.vertical, 2)
+
+                if activeHotkeyCapture == .autoFollow {
+                    Text("Press the new Auto-follow shortcut now (must include Control, Option, Shift, or Command).")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color(red: 0.67, green: 0.80, blue: 1.0))
+                        .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .top)), removal: .opacity))
                 }
 
-                Spacer(minLength: 8)
+                if let registrationError = autoFollowHotKeyManager.registrationError {
+                    Text(registrationError)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color(red: 1.0, green: 0.62, blue: 0.62))
+                        .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .top)), removal: .opacity))
+                }
 
-                HStack(spacing: 8) {
-                    shortcutKey("⌥ Opt")
-                    Text("+")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color.white.opacity(0.85))
-                    shortcutKey("F")
-                    Button {
-                        // Placeholder action for key remap.
-                    } label: {
-                        Image(systemName: "pencil")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Color(red: 0.65, green: 0.76, blue: 1.0))
-                            .frame(width: 24, height: 24)
+                if autoFollowHotKeyManager.registrationError == nil,
+                   let autoFollowShortcutStatusMessage {
+                    Text(autoFollowShortcutStatusMessage)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color(red: 0.64, green: 0.93, blue: 0.73))
+                        .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .top)), removal: .opacity))
+                }
+
+                Divider().overlay(Color.white.opacity(0.08))
+
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Toggle Sharing")
+                            .font(.system(size: 26 / 2, weight: .semibold))
+                            .foregroundStyle(.white)
+                        Text("Global system shortcut")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Color.white.opacity(0.75))
                     }
-                    .buttonStyle(.plain)
+
+                    Spacer(minLength: 8)
+
+                    HStack(spacing: 8) {
+                        ForEach(Array(toggleShareHotKeyManager.shortcutTokens.enumerated()), id: \.offset) { index, token in
+                            if index > 0 {
+                                Text("+")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(Color.white.opacity(0.85))
+                            }
+                            shortcutKey(token)
+                        }
+
+                        Button {
+                            if activeHotkeyCapture == .toggleShare {
+                                stopShortcutCapture()
+                            } else {
+                                startShortcutCapture(for: .toggleShare)
+                            }
+                        } label: {
+                            Image(systemName: activeHotkeyCapture == .toggleShare ? "xmark" : "pencil")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Color(red: 0.65, green: 0.76, blue: 1.0))
+                                .frame(width: 24, height: 24)
+                        }
+                        .buttonStyle(.plain)
+                        .help(activeHotkeyCapture == .toggleShare ? "Cancel shortcut recording" : "Change shortcut")
+                    }
+                }
+                .padding(.vertical, 2)
+
+                if activeHotkeyCapture == .toggleShare {
+                    Text("Press the new Toggle Sharing shortcut now (must include Control, Option, Shift, or Command).")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color(red: 0.67, green: 0.80, blue: 1.0))
+                        .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .top)), removal: .opacity))
+                }
+
+                if let registrationError = toggleShareHotKeyManager.registrationError {
+                    Text(registrationError)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color(red: 1.0, green: 0.62, blue: 0.62))
+                        .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .top)), removal: .opacity))
+                }
+
+                if toggleShareHotKeyManager.registrationError == nil,
+                   let toggleShareShortcutStatusMessage {
+                    Text(toggleShareShortcutStatusMessage)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color(red: 0.64, green: 0.93, blue: 0.73))
+                        .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .top)), removal: .opacity))
                 }
             }
-            .padding(.vertical, 2)
+            .animation(.easeInOut(duration: 0.2), value: activeHotkeyCapture)
+            .animation(.easeInOut(duration: 0.2), value: autoFollowHotKeyManager.registrationError)
+            .animation(.easeInOut(duration: 0.2), value: toggleShareHotKeyManager.registrationError)
+            .animation(.easeInOut(duration: 0.2), value: autoFollowShortcutStatusMessage)
+            .animation(.easeInOut(duration: 0.2), value: toggleShareShortcutStatusMessage)
+            .frame(maxWidth: .infinity, minHeight: 130, alignment: .topLeading)
         }
     }
 
@@ -742,6 +867,105 @@ private struct SettingsModalView: View {
             .foregroundStyle(Color(red: 0.74, green: 0.82, blue: 1.0))
         }
         .buttonStyle(.plain)
+    }
+
+    private func startShortcutCapture(for target: HotkeyCaptureTarget) {
+        stopShortcutCapture()
+        withAnimation(.easeInOut(duration: 0.2)) {
+            activeHotkeyCapture = target
+            switch target {
+            case .autoFollow:
+                autoFollowShortcutStatusMessage = nil
+            case .toggleShare:
+                toggleShareShortcutStatusMessage = nil
+            }
+        }
+
+        switch target {
+        case .autoFollow:
+            autoFollowClearStatusWorkItem?.cancel()
+            autoFollowClearStatusWorkItem = nil
+        case .toggleShare:
+            toggleShareClearStatusWorkItem?.cancel()
+            toggleShareClearStatusWorkItem = nil
+        }
+
+        keyEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
+            if event.keyCode == UInt16(kVK_Escape) {
+                stopShortcutCapture()
+                return nil
+            }
+
+            let didUpdate: Bool
+            switch target {
+            case .autoFollow:
+                didUpdate = autoFollowHotKeyManager.updateShortcut(from: event)
+            case .toggleShare:
+                didUpdate = toggleShareHotKeyManager.updateShortcut(from: event)
+            }
+
+            if didUpdate {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    switch target {
+                    case .autoFollow:
+                        autoFollowShortcutStatusMessage = "Shortcut updated to \(autoFollowHotKeyManager.shortcutTokens.joined(separator: " + "))."
+                    case .toggleShare:
+                        toggleShareShortcutStatusMessage = "Shortcut updated to \(toggleShareHotKeyManager.shortcutTokens.joined(separator: " + "))."
+                    }
+                }
+                scheduleShortcutStatusClear(for: target)
+                stopShortcutCapture()
+                return nil
+            }
+
+            NSSound.beep()
+            return nil
+        }
+    }
+
+    private func stopShortcutCapture() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            activeHotkeyCapture = nil
+        }
+        if let keyEventMonitor {
+            NSEvent.removeMonitor(keyEventMonitor)
+            self.keyEventMonitor = nil
+        }
+    }
+
+    private func scheduleShortcutStatusClear(for target: HotkeyCaptureTarget) {
+        switch target {
+        case .autoFollow:
+            autoFollowClearStatusWorkItem?.cancel()
+        case .toggleShare:
+            toggleShareClearStatusWorkItem?.cancel()
+        }
+
+        let workItem = DispatchWorkItem {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                switch target {
+                case .autoFollow:
+                    autoFollowShortcutStatusMessage = nil
+                case .toggleShare:
+                    toggleShareShortcutStatusMessage = nil
+                }
+            }
+            switch target {
+            case .autoFollow:
+                autoFollowClearStatusWorkItem = nil
+            case .toggleShare:
+                toggleShareClearStatusWorkItem = nil
+            }
+        }
+
+        switch target {
+        case .autoFollow:
+            autoFollowClearStatusWorkItem = workItem
+        case .toggleShare:
+            toggleShareClearStatusWorkItem = workItem
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5, execute: workItem)
     }
 }
 
