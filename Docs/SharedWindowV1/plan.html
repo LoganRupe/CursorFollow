@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shared Window V1 Plan</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f7f8fa;
+      --panel: #ffffff;
+      --text: #1d2430;
+      --muted: #637083;
+      --border: #d8dee8;
+      --accent: #0f766e;
+      --accent-soft: #d9f3ef;
+      --code: #eef2f7;
+      --done: #15803d;
+      --warn: #a16207;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101418;
+        --panel: #161c22;
+        --text: #ecf1f6;
+        --muted: #9aa7b5;
+        --border: #2b3540;
+        --accent: #2dd4bf;
+        --accent-soft: #123c38;
+        --code: #202832;
+        --done: #4ade80;
+        --warn: #facc15;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 40px 24px 72px;
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    nav a {
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      text-decoration: none;
+      background: var(--panel);
+    }
+
+    nav a[aria-current="page"] {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 2.2rem;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin-top: 34px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      font-size: 1.35rem;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin-top: 22px;
+      font-size: 1rem;
+      letter-spacing: 0;
+    }
+
+    p {
+      max-width: 820px;
+    }
+
+    ul, ol {
+      padding-left: 24px;
+    }
+
+    li {
+      margin: 7px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+      background: var(--panel);
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--code);
+    }
+
+    pre {
+      overflow-x: auto;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--code);
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: var(--code);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    pre code {
+      padding: 0;
+      background: transparent;
+    }
+
+    .summary {
+      color: var(--muted);
+      font-size: 1.08rem;
+    }
+
+    .callout {
+      margin: 22px 0;
+      padding: 16px 18px;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .phase {
+      margin: 18px 0;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .phase h3 {
+      margin-top: 0;
+    }
+
+    .gate {
+      color: var(--done);
+      font-weight: 700;
+    }
+
+    .warning {
+      border-left-color: var(--warn);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <nav aria-label="Shared Window V1 docs">
+      <a href="index.html">Overview</a>
+      <a href="requirements.html">Requirements</a>
+      <a href="plan.html" aria-current="page">Plan</a>
+    </nav>
+
+    <header>
+      <h1>Shared Window V1 Plan</h1>
+      <p class="summary">A phased implementation path for replacing virtual camera output with a persistent macOS output window.</p>
+    </header>
+
+    <section class="callout">
+      <strong>Branch:</strong> <code>feature/shared-window-output</code><br>
+      <strong>Implementation principle:</strong> keep capture and tracking in the host app; render to one stable output window that meeting apps can share.
+    </section>
+
+    <section>
+      <h2>Target Architecture</h2>
+      <pre><code>CursorFollowMac.app
+├── AppCoordinator
+│   ├── WindowTracker
+│   ├── CaptureEngine
+│   └── OutputWindowController
+│       └── CursorFollow Output window
+│           └── OutputFrameView / Metal-backed renderer
+└── User shares CursorFollow Output from conferencing app</code></pre>
+      <p>The camera extension, CoreMediaIO provider, and host-to-extension frame transport are not part of V1. The output surface is a standard app window owned by CursorFollow.</p>
+    </section>
+
+    <section>
+      <h2>Implementation Phases</h2>
+
+      <div class="phase">
+        <h3>Phase 0: Product Pivot and Project Cleanup</h3>
+        <p>Goal: make the shared-window path explicit in docs and code before adding more product surface area.</p>
+        <ol>
+          <li>Keep <code>Docs/CameraExtensionV2/</code> as historical reference.</li>
+          <li>Add Shared Window V1 docs and make them the active plan in docs navigation.</li>
+          <li>Document the branch and decision record for the pivot.</li>
+          <li>Identify reusable host-app pieces and remove launch-time dependencies on the camera-extension path.</li>
+          <li>Record a file-level checklist for the first implementation pass.</li>
+        </ol>
+        <p class="gate">Gate: repository docs and app startup behavior clearly identify Shared Window V1 as the current product direction.</p>
+      </div>
+
+      <div class="phase">
+        <h3>Phase 1: Stable Output Window</h3>
+        <p>Goal: create a persistent NSWindow suitable for screen-share pickers.</p>
+        <ol>
+          <li>Implement or adapt <code>OutputWindowController</code> to create a titled window named <code>CursorFollow Output</code>.</li>
+          <li>Keep the output window alive across target switches and pause/resume actions.</li>
+          <li>Ensure the output window is visible, non-minimized by default, and discoverable by conferencing share pickers.</li>
+          <li>Add a fallback view for no target, missing permissions, paused output, and target unavailable.</li>
+        </ol>
+        <p class="gate">Gate: the output window appears as a selectable share source in at least one conferencing app or browser share picker.</p>
+      </div>
+
+      <div class="phase">
+        <h3>Phase 2: Frame Rendering Pipeline</h3>
+        <p>Goal: render captured frames into the output window with low latency and predictable scaling.</p>
+        <ol>
+          <li>Connect <code>CaptureEngine</code> frame callbacks to the output renderer.</li>
+          <li>Prefer a Metal-backed view or efficient Core Animation path for live frame presentation.</li>
+          <li>Support fit, fill, and actual-size presentation modes.</li>
+          <li>Preserve target aspect ratio and handle Retina scale correctly.</li>
+          <li>Avoid frame queues that can accumulate stale frames; display the latest frame.</li>
+        </ol>
+        <p class="gate">Gate: selected target window content appears live in the output window with acceptable visual quality.</p>
+      </div>
+
+      <div class="phase">
+        <h3>Phase 3: Target Selection and Auto-Follow</h3>
+        <p>Goal: make the output window track the intended source without selecting CursorFollow itself.</p>
+        <ol>
+          <li>Exclude CursorFollow control and output windows from target candidates.</li>
+          <li>Support manual target selection from eligible windows.</li>
+          <li>Support frontmost-window auto-follow with debounce to avoid rapid switching.</li>
+          <li>Handle disappearing or minimized windows by keeping the output window stable and showing a clear state.</li>
+          <li>Keep target-switch recovery under the 300 ms goal where ScreenCaptureKit allows.</li>
+        </ol>
+        <p class="gate">Gate: target switching works repeatedly without recursion, crashes, or share-source loss.</p>
+      </div>
+
+      <div class="phase">
+        <h3>Phase 4: Controls, Status, and Validation</h3>
+        <p>Goal: make the app usable during real calls.</p>
+        <ol>
+          <li>Add menu bar controls for output window show/hide, pause/resume, fit mode, and target mode.</li>
+          <li>Show permission status and a direct path to System Settings when capture permissions are missing.</li>
+          <li>Validate behavior in Zoom, Google Meet, Slack Huddles, or Teams as available.</li>
+          <li>Run a 30-minute continuous share test and record CPU, memory, and visual stability notes.</li>
+          <li>Update README and docs with the shared-window workflow.</li>
+        </ol>
+        <p class="gate">Gate: CursorFollow can be used in a real meeting by sharing the persistent output window.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Phase 0 Inspection Notes</h2>
+      <p>The current host app already contains several pieces needed for Shared Window V1. <code>WindowTracker</code> enumerates ScreenCaptureKit windows, filters system and CursorFollow-owned windows, supports manual selection, and auto-follows frontmost-window changes with debounce. <code>CaptureEngine</code> already captures a selected <code>SCWindow</code> at bounded dimensions with quality presets and low queue depth. <code>OutputWindowController</code> already creates a persistent titled <code>NSWindow</code> named <code>CursorFollow Output</code> and renders an <code>IOSurface</code> through a Core Animation layer. <code>ContentView</code> already exposes show/hide, start/stop, filtering, settings, and hotkey-related controls.</p>
+      <p>The remaining Phase 0 cleanup is mostly product alignment: the app still imports and activates the camera system extension on launch, the capture path is named and documented as extension frame transport, host entitlements still include system-extension install and app-group concerns, and the output window lacks explicit fallback states and fit-mode controls required by the V1 requirements.</p>
+    </section>
+
+    <section>
+      <h2>Phase 0 File-Level Checklist</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>File or area</th>
+            <th>Reusable now</th>
+            <th>Phase 0 implementation checklist</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>CursorFollowMac/CursorFollowMac/CursorFollowMacApp.swift</code></td>
+            <td><code>AppCoordinator</code> already wires <code>WindowTracker</code>, <code>CaptureEngine</code>, and <code>OutputWindowController</code>; global hotkeys already toggle auto-follow and capture.</td>
+            <td>
+              <ul>
+                <li>Remove <code>SystemExtensions</code> import and <code>OSSystemExtensionRequestDelegate</code> conformance from the Shared Window V1 app path.</li>
+                <li>Stop calling <code>activateCameraExtension()</code> during launch.</li>
+                <li>Delete or quarantine the camera-extension activation delegate methods behind an explicit future-camera feature boundary.</li>
+                <li>Ensure the popover always has a valid shared-window status path when <code>OutputWindowController</code> cannot initialize.</li>
+                <li>Keep coordinator ownership of the output window so the window identity survives target switches and menu popover lifecycle changes.</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><code>CursorFollowMac/CursorFollowMac/CaptureEngine.swift</code></td>
+            <td>Reusable ScreenCaptureKit startup, target switching, bounded capture dimensions, quality presets, frame count, error state, and low-latency queue-depth controls.</td>
+            <td>
+              <ul>
+                <li>Update class comments and logs so capture frames are described as host-renderer output, not camera-extension delivery.</li>
+                <li>Replace the extension-oriented transport dependency with a host rendering sink abstraction, or rename it if the IOSurface writer remains the V1 renderer input.</li>
+                <li>Expose enough capture state for fallback UI: missing permission, target unavailable, paused, and stopped-by-user.</li>
+                <li>Keep <code>switchTarget(to:)</code> clearing stale pixels before restart.</li>
+                <li>Verify <code>queueDepth</code> stays low for <code>lowLatency</code> and document the chosen default for V1.</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><code>CursorFollowMac/CursorFollowMac/FrameTransport.swift</code></td>
+            <td>The IOSurface allocation, row-copy path, black clear, and surface metadata can be reused for same-process output rendering.</td>
+            <td>
+              <ul>
+                <li>Rename or split <code>SharedMemoryFrameTransport</code> so the V1 host renderer does not appear to require camera-extension IPC.</li>
+                <li>Remove Darwin notification state from the V1 path unless a future extension mode explicitly uses it.</li>
+                <li>Remove app-group assumptions from V1 renderer setup if the host-only IOSurface path does not need them.</li>
+                <li>Keep <code>clearSurface()</code> as part of target-switch and paused-state cleanup.</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><code>CursorFollowMac/CursorFollowMac/OutputWindowController.swift</code></td>
+            <td>Already owns a titled persistent <code>NSWindow</code>, <code>sharingType = .readOnly</code>, Core Animation IOSurface display, display-link refresh, crop rect updates, metrics overlay, and show/hide lifecycle.</td>
+            <td>
+              <ul>
+                <li>Keep the window title <code>CursorFollow Output</code> visible to share pickers even if the titlebar remains visually hidden.</li>
+                <li>Add explicit renderer states for no target, missing permission, paused, and target unavailable.</li>
+                <li>Add fit, fill, and actual-size presentation modes; map them to layer gravity, contents rect, or a renderer transform.</li>
+                <li>Confirm hide/show does not destroy the <code>NSWindow</code> during normal operation.</li>
+                <li>Validate whether the always-on-top and hide-when-not-sharing settings affect share-picker discoverability.</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><code>CursorFollowMac/CursorFollowMac/WindowTracker.swift</code></td>
+            <td>Reusable <code>TrackedWindow</code> model, ScreenCaptureKit window enumeration, self-window/system filtering, manual selection, filter modes, and frontmost-window debounce.</td>
+            <td>
+              <ul>
+                <li>Centralize the CursorFollow bundle ID instead of repeating the string in polling, activation, and enumeration paths.</li>
+                <li>Add a specific exclusion path for the output window if ScreenCaptureKit ever reports CursorFollow windows under a different owner or title.</li>
+                <li>Preserve selection state when a target temporarily disappears and report an unavailable state to the coordinator instead of only clearing selection.</li>
+                <li>Document and test full-screen, minimized, and separate-Space behavior.</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><code>CursorFollowMac/CursorFollowMac/ContentView.swift</code></td>
+            <td>Reusable menu bar controls for auto-follow, filtering, window selection, output show/hide, start/stop capture, settings, overlays, and hotkey configuration.</td>
+            <td>
+              <ul>
+                <li>Normalize imports and type declarations before making larger UI edits.</li>
+                <li>Rename camera/share wording where needed so controls match the shared-window product model.</li>
+                <li>Add fit-mode controls and paused/resumed state controls required by V1.</li>
+                <li>Show permission and target-unavailable states from coordinator/capture state instead of relying only on empty-window-list text or raw errors.</li>
+                <li>Keep compact menu bar ergonomics; avoid adding a separate landing or setup screen for V1.</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><code>CursorFollowMac/CursorFollowMac/CursorFollowMac.entitlements</code></td>
+            <td>Current entitlements support the previous system-extension and app-group transport path.</td>
+            <td>
+              <ul>
+                <li>Remove <code>com.apple.developer.system-extension.install</code> from the V1 host app if no system extension is activated.</li>
+                <li>Remove the app-group entitlement from the V1 host app if same-process output rendering no longer needs shared extension memory.</li>
+                <li>Retain only entitlements verified as necessary for ScreenCaptureKit, login item behavior, signing, and distribution.</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><code>CursorFollowMac/CameraExtension/</code></td>
+            <td>Useful only as historical reference or future optional camera mode.</td>
+            <td>
+              <ul>
+                <li>Leave source files untouched during V1 cleanup unless the Xcode target requires removal from the active scheme.</li>
+                <li>Ensure Shared Window V1 docs and README describe this folder as historical, not part of the default runtime path.</li>
+                <li>Do not bump camera extension versions for V1-only work unless the extension target is intentionally shipped.</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><code>CursorFollowMac/CursorFollowMac.xcodeproj/project.pbxproj</code></td>
+            <td>The app, extension, and build settings are already present.</td>
+            <td>
+              <ul>
+                <li>Audit target membership and active scheme behavior after removing launch-time extension activation.</li>
+                <li>Keep the CameraExtension target available as historical/future work unless explicitly retired.</li>
+                <li>Verify signing settings no longer imply camera-extension installation for normal V1 builds.</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><code>README.md</code>, <code>Docs/README.md</code>, <code>Docs/Copilot/context-cursorfollow.md</code></td>
+            <td>The docs already identify Shared Window V1 as the active product direction.</td>
+            <td>
+              <ul>
+                <li>Update any remaining camera-first wording after the code cleanup lands.</li>
+                <li>Document the user workflow as sharing <code>CursorFollow Output</code> from a screen-share picker.</li>
+                <li>Record validation results for at least one conferencing app or browser picker.</li>
+              </ul>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Proposed File Impact</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>File or area</th>
+            <th>Expected change</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>CursorFollowMac/CursorFollowMac/OutputWindowController.swift</code></td>
+            <td>Own the persistent output window lifecycle and connect it to the renderer.</td>
+          </tr>
+          <tr>
+            <td><code>CursorFollowMac/CursorFollowMac/CaptureEngine.swift</code></td>
+            <td>Expose captured frames to the host renderer rather than only to frame transport.</td>
+          </tr>
+          <tr>
+            <td><code>CursorFollowMac/CursorFollowMac/WindowTracker.swift</code></td>
+            <td>Exclude CursorFollow windows and refine auto-follow behavior.</td>
+          </tr>
+          <tr>
+            <td><code>CursorFollowMac/CursorFollowMac/ContentView.swift</code></td>
+            <td>Add controls and state for shared-window mode.</td>
+          </tr>
+          <tr>
+            <td><code>CameraExtension/</code></td>
+            <td>Leave untouched for historical or optional future camera support unless explicitly retired.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Rendering Options</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Option</th>
+            <th>Pros</th>
+            <th>Cons</th>
+            <th>Recommendation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Metal-backed view</td>
+            <td>Best long-term path for low-latency frame presentation.</td>
+            <td>More setup and texture conversion work.</td>
+            <td>Preferred if existing frame format is easy to bridge.</td>
+          </tr>
+          <tr>
+            <td>Core Animation layer</td>
+            <td>Simple integration with AppKit/SwiftUI window content.</td>
+            <td>May require careful testing for latency and color correctness.</td>
+            <td>Good first implementation if it keeps the code small.</td>
+          </tr>
+          <tr>
+            <td>SwiftUI Image updates</td>
+            <td>Fast to prototype.</td>
+            <td>Likely less efficient for continuous video frames.</td>
+            <td>Use only for fallback/prototype, not final V1.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Validation Checklist</h2>
+      <ul>
+        <li>Output window appears in macOS window list and conferencing share pickers.</li>
+        <li>Output window remains the same share source after target switch.</li>
+        <li>CursorFollow never captures its own output window.</li>
+        <li>Missing Screen Recording permission shows fallback state.</li>
+        <li>Full-screen and Space-boundary behavior is documented.</li>
+        <li>30-minute session shows no major memory growth or frame stall.</li>
+      </ul>
+    </section>
+
+    <section class="callout warning">
+      <strong>Risk to test early:</strong> some conferencing apps may hide windows that are fully occluded, minimized, or on another Space. Keep the output window visible and test the share picker before investing in polish.
+    </section>
+  </main>
+</body>
+</html>

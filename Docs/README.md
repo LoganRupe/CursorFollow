@@ -1,6 +1,6 @@
 # CursorFollow Documentation
 
-Project docs for CursorFollow — a macOS menu bar app that tracks a target window and exposes the capture as a virtual camera via a CoreMediaIO camera extension.
+Project docs for CursorFollow — a macOS menu bar app that tracks a target window and presents the capture in a stable, shareable output window.
 
 ## Structure
 
@@ -16,15 +16,21 @@ Docs/
 │   ├── feature-plan.md
 │   ├── feature-research.md
 │   └── implement-checklist.md
-└── CameraExtensionV2/    # Active implementation plan
+├── CameraExtensionV2/    # Historical virtual camera plan
     ├── _session.md
     ├── Requirements.md
     └── Plan.md
+└── SharedWindowV1/       # Active shared-window product plan
+    ├── index.html
+    ├── requirements.html
+    └── plan.html
 ```
 
 ## Current Status
 
-Rebuilding from scratch. See `CameraExtensionV2/` for the active plan.
+Pivoting from virtual-camera output to a normal macOS output window that users can select from conferencing screen-share pickers. See `SharedWindowV1/index.html` for the active plan.
+
+`CameraExtensionV2/` remains as historical reference for the CoreMediaIO virtual camera approach.
 
 ## Feature Documentation Pattern
 
@@ -41,8 +47,8 @@ Use `Prompts/_session-template.md` as the starting point.
 
 ## High-Risk Areas
 
-- Camera extension must use PlugInKit (`com.apple.cmio.registerassistantservice`), NOT ExtensionKit
 - Screen Recording and Accessibility permissions
-- Code signing and entitlements for extension discovery
+- Output window visibility and share-picker discoverability
+- Avoiding recursive capture of CursorFollow's own output window
 - Window switching edge cases (full-screen, Spaces, minimized windows)
-- Frame latency across IPC boundary
+- Frame latency from ScreenCaptureKit callback to visible output
