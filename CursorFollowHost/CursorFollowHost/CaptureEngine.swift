@@ -20,7 +20,7 @@ final class CaptureEngine: NSObject, ObservableObject {
     @Published private(set) var lastError: String?
     @Published private(set) var transportReady = false
     /// Set when the user explicitly stops capture; prevents auto-follow from restarting.
-    @Published private(set) var userStopped = false
+    @Published private(set) var userStopped = true
 
     /// Callback invoked on the capture queue after each frame is published.
     /// Used by OutputWindowController to trigger layer redisplay.

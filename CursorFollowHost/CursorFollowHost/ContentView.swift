@@ -9,6 +9,7 @@
 @MainActor
 final class AppSettings: ObservableObject {
     @Published private(set) var startOnLoginEnabled = false
+    @Published private(set) var autoShareOnStart = false
     @Published private(set) var hideWhenNotSharingEnabled = false
     @Published private(set) var pinOutputOnTopEnabled = false
     @Published private(set) var showResolution = false
@@ -18,6 +19,7 @@ final class AppSettings: ObservableObject {
     private let defaults: UserDefaults
 
     private enum Keys {
+        static let autoShareOnStart = "settings.autoShareOnStart"
         static let hideWhenNotSharingEnabled = "settings.hideWhenNotSharingEnabled"
         static let pinOutputOnTopEnabled = "settings.pinOutputOnTopEnabled"
         static let showResolution = "settings.showResolution"
@@ -26,6 +28,7 @@ final class AppSettings: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        autoShareOnStart = defaults.bool(forKey: Keys.autoShareOnStart)
         hideWhenNotSharingEnabled = defaults.bool(forKey: Keys.hideWhenNotSharingEnabled)
         pinOutputOnTopEnabled = defaults.bool(forKey: Keys.pinOutputOnTopEnabled)
         showResolution = defaults.bool(forKey: Keys.showResolution)
@@ -51,6 +54,11 @@ final class AppSettings: ObservableObject {
 
     func refreshStartOnLoginStatus() {
         startOnLoginEnabled = Self.isEnabled(status: SMAppService.mainApp.status)
+    }
+
+    func setAutoShareOnStart(_ enabled: Bool) {
+        autoShareOnStart = enabled
+        defaults.set(enabled, forKey: Keys.autoShareOnStart)
     }
 
     func setHideWhenNotSharing(_ enabled: Bool) {
@@ -369,7 +377,7 @@ struct ContentView: View {
                 .environmentObject(appSettings)
                 .environmentObject(autoFollowHotKeyManager)
                 .environmentObject(toggleShareHotKeyManager)
-                .frame(width: 840, height: 620)
+                .frame(width: 840, height: 650)
         }
         .alert("Quit CursorFollow?", isPresented: $isQuitConfirmationPresented) {
             Button("Quit", role: .destructive) {
@@ -491,6 +499,7 @@ private struct SettingsModalView: View {
 
                         VStack(alignment: .leading, spacing: 18) {
                             hotkeysSection
+                            displaySection
                             aboutSection
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -543,6 +552,15 @@ private struct SettingsModalView: View {
                 )
                 Divider().overlay(Color.white.opacity(0.06))
                 SettingsToggleRow(
+                    title: "Automatically share on start",
+                    subtitle: "Begin capture immediately on launch",
+                    isOn: Binding(
+                        get: { appSettings.autoShareOnStart },
+                        set: { appSettings.setAutoShareOnStart($0) }
+                    )
+                )
+                Divider().overlay(Color.white.opacity(0.06))
+                SettingsToggleRow(
                     title: "Hide when not sharing",
                     subtitle: appSettings.pinOutputOnTopEnabled && !appSettings.hideWhenNotSharingEnabled
                         ? "Disabled while Pin output on top is enabled"
@@ -558,18 +576,6 @@ private struct SettingsModalView: View {
                         : "Keep output window above other windows",
                     isOn: pinOutputOnTopBinding,
                     isDisabled: appSettings.hideWhenNotSharingEnabled && !appSettings.pinOutputOnTopEnabled
-                )
-                Divider().overlay(Color.white.opacity(0.06))
-                SettingsToggleRow(
-                    title: "Show resolution",
-                    subtitle: "Overlay display metrics in list",
-                    isOn: showResolutionBinding
-                )
-                Divider().overlay(Color.white.opacity(0.06))
-                SettingsToggleRow(
-                    title: "Show frame count",
-                    subtitle: "Display frame counter on output window",
-                    isOn: showFrameCountBinding
                 )
             }
         }
@@ -780,6 +786,24 @@ private struct SettingsModalView: View {
             .animation(.easeInOut(duration: 0.2), value: autoFollowShortcutStatusMessage)
             .animation(.easeInOut(duration: 0.2), value: toggleShareShortcutStatusMessage)
             .frame(maxWidth: .infinity, minHeight: 130, alignment: .topLeading)
+        }
+    }
+
+    private var displaySection: some View {
+        SettingsCard(title: "DISPLAY") {
+            VStack(spacing: 0) {
+                SettingsToggleRow(
+                    title: "Show resolution",
+                    subtitle: "Display resolution on output window",
+                    isOn: showResolutionBinding
+                )
+                Divider().overlay(Color.white.opacity(0.06))
+                SettingsToggleRow(
+                    title: "Show frame count",
+                    subtitle: "Display frame counter on output window",
+                    isOn: showFrameCountBinding
+                )
+            }
         }
     }
 
