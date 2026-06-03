@@ -20,7 +20,7 @@ The V1 attempt used `com.apple.product-type.extensionkit-extension` (ExtensionKi
 6. Info.plist must use `NSExtension` dict (NOT `EXExtensionAttributes`).
 7. `CFBundlePackageType = "XPC!"` is correct for camera extensions.
 8. The `CMIOExtension` dict with `CMIOExtensionMachServiceName` is required alongside `NSExtension`.
-9. Mach service name format: `$(TeamIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)` → `YOURTEAMID.io.github.loganrupe.CursorFollowHost.CameraExtension`.
+9. Mach service name format: `$(TeamIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)` → `YOURTEAMID.io.github.loganrupe.CursorFollowMac.CameraExtension`.
 10. App sandbox entitlement is required on the extension.
 11. App groups must match between host and extension for IPC.
 12. Extension binary entry point: `main.swift` calling `CMIOExtensionProvider.startService()` + `CFRunLoopRun()`.
@@ -42,9 +42,9 @@ The V1 attempt used `com.apple.product-type.extensionkit-extension` (ExtensionKi
 ### Signing Configuration (Valid)
 
 - Team: YOURTEAMID
-- Host app ID: `io.github.loganrupe.CursorFollowHost`
-- Extension ID: `io.github.loganrupe.CursorFollowHost.CameraExtension`
-- App group: `group.io.github.loganrupe.CursorFollowHost`
+- Host app ID: `io.github.loganrupe.CursorFollowMac`
+- Extension ID: `io.github.loganrupe.CursorFollowMac.CameraExtension`
+- App group: `group.io.github.loganrupe.CursorFollowMac`
 - Authority: Apple Development: Logan Rupe (YOURCERTID)
 - Hardened runtime: YES
 - App sandbox: YES on both host and extension
@@ -100,7 +100,7 @@ The V1 attempt used `com.apple.product-type.extensionkit-extension` (ExtensionKi
     <true/>
     <key>com.apple.security.application-groups</key>
     <array>
-        <string>group.io.github.loganrupe.CursorFollowHost</string>
+        <string>group.io.github.loganrupe.CursorFollowMac</string>
     </array>
 </dict>
 </plist>
@@ -112,7 +112,7 @@ The V1 attempt used `com.apple.product-type.extensionkit-extension` (ExtensionKi
 |---------|-------|
 | Product Type | `com.apple.product-type.app-extension` |
 | File Reference Type | `wrapper.app-extension` |
-| Bundle ID | `io.github.loganrupe.CursorFollowHost.CameraExtension` |
+| Bundle ID | `io.github.loganrupe.CursorFollowMac.CameraExtension` |
 | INFOPLIST_FILE | Points to plist with `NSExtension` dict |
 | GENERATE_INFOPLIST_FILE | YES |
 | Embed Build Phase | "Embed App Extensions" (dstSubfolderSpec = 13) |
@@ -131,10 +131,10 @@ pluginkit -mDAD -p com.apple.cmio.registerassistantservice
 system_profiler SPCameraDataType
 
 # 3. Verify code signing
-codesign -dvvv /Applications/CursorFollowHost.app/Contents/PlugIns/CameraExtension.appex
+codesign -dvvv /Applications/CursorFollowMac.app/Contents/PlugIns/CameraExtension.appex
 
 # 4. Verify entitlements
-codesign -d --entitlements - /Applications/CursorFollowHost.app/Contents/PlugIns/CameraExtension.appex
+codesign -d --entitlements - /Applications/CursorFollowMac.app/Contents/PlugIns/CameraExtension.appex
 
 # 5. Live logs
 log stream --style compact --predicate 'eventMessage CONTAINS "CursorFollow" OR subsystem CONTAINS "cmio"'
@@ -142,7 +142,7 @@ log stream --style compact --predicate 'eventMessage CONTAINS "CursorFollow" OR 
 
 ## Acceptance Criteria
 
-1. `pluginkit -mDAD -p com.apple.cmio.registerassistantservice` shows `io.github.loganrupe.CursorFollowHost.CameraExtension`.
+1. `pluginkit -mDAD -p com.apple.cmio.registerassistantservice` shows `io.github.loganrupe.CursorFollowMac.CameraExtension`.
 2. `system_profiler SPCameraDataType` lists "CursorFollow Camera".
 3. Photo Booth can select and display the virtual camera feed.
 4. Build-deploy-verify cycle is documented and repeatable.

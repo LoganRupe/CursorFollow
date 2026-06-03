@@ -29,7 +29,7 @@ Rebuild the CursorFollow camera extension from scratch as a correctly-typed **Pl
 - Extension must register with `pluginkit -mDAD -p com.apple.cmio.registerassistantservice`.
 - Performance target: <50 ms median capture-to-output latency.
 - Team ID: YOURTEAMID
-- Bundle ID prefix: io.github.loganrupe.CursorFollowHost
+- Bundle ID prefix: io.github.loganrupe.CursorFollowMac
 
 ## Progress Checklist
 
@@ -54,7 +54,7 @@ Rebuild the CursorFollow camera extension from scratch as a correctly-typed **Pl
 ## Decisions
 
 - **2026-05-20**: Working directly on `main` — this is a greenfield project, not a feature on an existing codebase. No branch overhead.
-- **2026-05-20**: Phase 2 transport uses IOSurface in app group container (`group.io.github.loganrupe.CursorFollowHost`) with a 28-byte metadata signaling file. IOSurface ID is written to metadata so extension can look it up in Phase 3.
+- **2026-05-20**: Phase 2 transport uses IOSurface in app group container (`group.io.github.loganrupe.CursorFollowMac`) with a 28-byte metadata signaling file. IOSurface ID is written to metadata so extension can look it up in Phase 3.
 - **2026-05-20**: CaptureEngine owns the FrameTransport (simpler than cross-object wiring via notifications).
 - **2026-05-22**: Replaced metadata file signaling with Darwin notifications (`notify_set_state` + `notify_post`) for cross-process surface ID sharing. Removed all file-based metadata.
 - **2026-05-22**: Refactored CaptureStreamOutput to use `@Sendable` closures capturing `frameTransport` directly — eliminates actor-isolation crash from background capture queue.
@@ -63,11 +63,11 @@ Rebuild the CursorFollow camera extension from scratch as a correctly-typed **Pl
 ## Phase 2 Implementation Notes
 
 ### Files Added
-- `CursorFollowHost/WindowTracker.swift` — SCShareableContent-based window enumeration with filtering
-- `CursorFollowHost/CaptureEngine.swift` — SCStream capture at 1920×1080@60fps BGRA
-- `CursorFollowHost/FrameTransport.swift` — IOSurface shared memory + metadata file transport
-- `CursorFollowHost/ContentView.swift` — Window picker UI with capture controls
-- `CursorFollowHost/CursorFollowHostApp.swift` — Wires WindowTracker + CaptureEngine as environment objects
+- `CursorFollowMac/WindowTracker.swift` — SCShareableContent-based window enumeration with filtering
+- `CursorFollowMac/CaptureEngine.swift` — SCStream capture at 1920×1080@60fps BGRA
+- `CursorFollowMac/FrameTransport.swift` — IOSurface shared memory + metadata file transport
+- `CursorFollowMac/ContentView.swift` — Window picker UI with capture controls
+- `CursorFollowMac/CursorFollowMacApp.swift` — Wires WindowTracker + CaptureEngine as environment objects
 
 ### Architecture
 ```
@@ -81,7 +81,7 @@ SharedMemoryFrameTransport
        │ writes to
        ├─ IOSurface (frame pixels, 1920×1080 BGRA)
        └─ frame_metadata.bin (sequence + timestamp + surfaceID)
-              in ~/Library/Group Containers/group.io.github.loganrupe.CursorFollowHost/
+              in ~/Library/Group Containers/group.io.github.loganrupe.CursorFollowMac/
 ```
 
 ### Edge Cases Noted

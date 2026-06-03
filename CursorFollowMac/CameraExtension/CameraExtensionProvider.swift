@@ -15,10 +15,10 @@ import notify
 let kFrameRate: Int = 60
 
 /// App group identifier shared between host and extension.
-private let kAppGroupID = "group.io.github.loganrupe.CursorFollowHost"
+private let kAppGroupID = "group.io.github.loganrupe.CursorFollowMac"
 
 /// Darwin notification name for cross-user surface ID sharing.
-private let kSurfaceNotificationName = "io.github.loganrupe.CursorFollowHost.surfaceID"
+private let kSurfaceNotificationName = "io.github.loganrupe.CursorFollowMac.surfaceID"
 
 /// notify.h NOTIFY_TOKEN_INVALID = UINT32_MAX, not visible to Swift as it's a C macro.
 private let kNotifyTokenInvalid: Int32 = -1
@@ -50,7 +50,7 @@ class CameraExtensionDeviceSource: NSObject, CMIOExtensionDeviceSource {
 	private var _notifyToken: Int32 = -1
 	private var _surfaceCheckCounter: UInt64 = 0
 	
-	private let _log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost.CameraExtension", category: "DeviceSource")
+	private let _log = Logger(subsystem: "io.github.loganrupe.CursorFollowMac.CameraExtension", category: "DeviceSource")
 	
 	init(localizedName: String) {
 		

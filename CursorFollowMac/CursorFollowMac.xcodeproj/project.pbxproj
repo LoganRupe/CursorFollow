@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		5902C7822FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowHost.CameraExtension.systemextension in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = 5902C7782FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowHost.CameraExtension.systemextension */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		5902C7822FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowMac.CameraExtension.systemextension in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = 5902C7782FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowMac.CameraExtension.systemextension */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -16,14 +16,14 @@
 			containerPortal = 5902C7422FBD97B700FFEA1C /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 5902C7492FBD97B700FFEA1C;
-			remoteInfo = CursorFollowHost;
+			remoteInfo = CursorFollowMac;
 		};
 		5902C7622FBD97B900FFEA1C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 5902C7422FBD97B700FFEA1C /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 5902C7492FBD97B700FFEA1C;
-			remoteInfo = CursorFollowHost;
+			remoteInfo = CursorFollowMac;
 		};
 		5902C7802FBD97F300FFEA1C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -41,7 +41,7 @@
 			dstPath = "$(SYSTEM_EXTENSIONS_FOLDER_PATH)";
 			dstSubfolderSpec = 16;
 			files = (
-				5902C7822FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowHost.CameraExtension.systemextension in Embed System Extensions */,
+				5902C7822FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowMac.CameraExtension.systemextension in Embed System Extensions */,
 			);
 			name = "Embed System Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -49,10 +49,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		5902C74A2FBD97B700FFEA1C /* CursorFollowHost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CursorFollowHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		5902C7572FBD97B900FFEA1C /* CursorFollowHostTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CursorFollowHostTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		5902C7612FBD97B900FFEA1C /* CursorFollowHostUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CursorFollowHostUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		5902C7782FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowHost.CameraExtension.systemextension */ = {isa = PBXFileReference; explicitFileType = "wrapper.system-extension"; includeInIndex = 0; path = io.github.loganrupe.CursorFollowHost.CameraExtension.systemextension; sourceTree = BUILT_PRODUCTS_DIR; };
+		5902C74A2FBD97B700FFEA1C /* CursorFollowMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CursorFollowMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5902C7572FBD97B900FFEA1C /* CursorFollowMacTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CursorFollowMacTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5902C7612FBD97B900FFEA1C /* CursorFollowMacUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CursorFollowMacUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5902C7782FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowMac.CameraExtension.systemextension */ = {isa = PBXFileReference; explicitFileType = "wrapper.system-extension"; includeInIndex = 0; path = io.github.loganrupe.CursorFollowMac.CameraExtension.systemextension; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -66,19 +66,19 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		5902C74C2FBD97B700FFEA1C /* CursorFollowHost */ = {
+		5902C74C2FBD97B700FFEA1C /* CursorFollowMac */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = CursorFollowHost;
+			path = CursorFollowMac;
 			sourceTree = "<group>";
 		};
-		5902C75A2FBD97B900FFEA1C /* CursorFollowHostTests */ = {
+		5902C75A2FBD97B900FFEA1C /* CursorFollowMacTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = CursorFollowHostTests;
+			path = CursorFollowMacTests;
 			sourceTree = "<group>";
 		};
-		5902C7642FBD97B900FFEA1C /* CursorFollowHostUITests */ = {
+		5902C7642FBD97B900FFEA1C /* CursorFollowMacUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = CursorFollowHostUITests;
+			path = CursorFollowMacUITests;
 			sourceTree = "<group>";
 		};
 		5902C7792FBD97F300FFEA1C /* CameraExtension */ = {
@@ -126,9 +126,9 @@
 		5902C7412FBD97B700FFEA1C = {
 			isa = PBXGroup;
 			children = (
-				5902C74C2FBD97B700FFEA1C /* CursorFollowHost */,
-				5902C75A2FBD97B900FFEA1C /* CursorFollowHostTests */,
-				5902C7642FBD97B900FFEA1C /* CursorFollowHostUITests */,
+				5902C74C2FBD97B700FFEA1C /* CursorFollowMac */,
+				5902C75A2FBD97B900FFEA1C /* CursorFollowMacTests */,
+				5902C7642FBD97B900FFEA1C /* CursorFollowMacUITests */,
 				5902C7792FBD97F300FFEA1C /* CameraExtension */,
 				5902C74B2FBD97B700FFEA1C /* Products */,
 			);
@@ -137,10 +137,10 @@
 		5902C74B2FBD97B700FFEA1C /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				5902C74A2FBD97B700FFEA1C /* CursorFollowHost.app */,
-				5902C7572FBD97B900FFEA1C /* CursorFollowHostTests.xctest */,
-				5902C7612FBD97B900FFEA1C /* CursorFollowHostUITests.xctest */,
-				5902C7782FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowHost.CameraExtension.systemextension */,
+				5902C74A2FBD97B700FFEA1C /* CursorFollowMac.app */,
+				5902C7572FBD97B900FFEA1C /* CursorFollowMacTests.xctest */,
+				5902C7612FBD97B900FFEA1C /* CursorFollowMacUITests.xctest */,
+				5902C7782FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowMac.CameraExtension.systemextension */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -148,9 +148,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		5902C7492FBD97B700FFEA1C /* CursorFollowHost */ = {
+		5902C7492FBD97B700FFEA1C /* CursorFollowMac */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 5902C76B2FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowHost" */;
+			buildConfigurationList = 5902C76B2FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowMac" */;
 			buildPhases = (
 				5902C7462FBD97B700FFEA1C /* Sources */,
 				5902C7472FBD97B700FFEA1C /* Frameworks */,
@@ -163,18 +163,18 @@
 				5902C7812FBD97F300FFEA1C /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				5902C74C2FBD97B700FFEA1C /* CursorFollowHost */,
+				5902C74C2FBD97B700FFEA1C /* CursorFollowMac */,
 			);
-			name = CursorFollowHost;
+			name = CursorFollowMac;
 			packageProductDependencies = (
 			);
-			productName = CursorFollowHost;
-			productReference = 5902C74A2FBD97B700FFEA1C /* CursorFollowHost.app */;
+			productName = CursorFollowMac;
+			productReference = 5902C74A2FBD97B700FFEA1C /* CursorFollowMac.app */;
 			productType = "com.apple.product-type.application";
 		};
-		5902C7562FBD97B900FFEA1C /* CursorFollowHostTests */ = {
+		5902C7562FBD97B900FFEA1C /* CursorFollowMacTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 5902C76E2FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowHostTests" */;
+			buildConfigurationList = 5902C76E2FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowMacTests" */;
 			buildPhases = (
 				5902C7532FBD97B900FFEA1C /* Sources */,
 				5902C7542FBD97B900FFEA1C /* Frameworks */,
@@ -186,18 +186,18 @@
 				5902C7592FBD97B900FFEA1C /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				5902C75A2FBD97B900FFEA1C /* CursorFollowHostTests */,
+				5902C75A2FBD97B900FFEA1C /* CursorFollowMacTests */,
 			);
-			name = CursorFollowHostTests;
+			name = CursorFollowMacTests;
 			packageProductDependencies = (
 			);
-			productName = CursorFollowHostTests;
-			productReference = 5902C7572FBD97B900FFEA1C /* CursorFollowHostTests.xctest */;
+			productName = CursorFollowMacTests;
+			productReference = 5902C7572FBD97B900FFEA1C /* CursorFollowMacTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		5902C7602FBD97B900FFEA1C /* CursorFollowHostUITests */ = {
+		5902C7602FBD97B900FFEA1C /* CursorFollowMacUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 5902C7712FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowHostUITests" */;
+			buildConfigurationList = 5902C7712FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowMacUITests" */;
 			buildPhases = (
 				5902C75D2FBD97B900FFEA1C /* Sources */,
 				5902C75E2FBD97B900FFEA1C /* Frameworks */,
@@ -209,13 +209,13 @@
 				5902C7632FBD97B900FFEA1C /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				5902C7642FBD97B900FFEA1C /* CursorFollowHostUITests */,
+				5902C7642FBD97B900FFEA1C /* CursorFollowMacUITests */,
 			);
-			name = CursorFollowHostUITests;
+			name = CursorFollowMacUITests;
 			packageProductDependencies = (
 			);
-			productName = CursorFollowHostUITests;
-			productReference = 5902C7612FBD97B900FFEA1C /* CursorFollowHostUITests.xctest */;
+			productName = CursorFollowMacUITests;
+			productReference = 5902C7612FBD97B900FFEA1C /* CursorFollowMacUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		5902C7772FBD97F300FFEA1C /* CameraExtension */ = {
@@ -237,7 +237,7 @@
 			packageProductDependencies = (
 			);
 			productName = CameraExtension;
-			productReference = 5902C7782FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowHost.CameraExtension.systemextension */;
+			productReference = 5902C7782FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowMac.CameraExtension.systemextension */;
 			productType = "com.apple.product-type.system-extension";
 		};
 /* End PBXNativeTarget section */
@@ -266,7 +266,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 5902C7452FBD97B700FFEA1C /* Build configuration list for PBXProject "CursorFollowHost" */;
+			buildConfigurationList = 5902C7452FBD97B700FFEA1C /* Build configuration list for PBXProject "CursorFollowMac" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -280,9 +280,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				5902C7492FBD97B700FFEA1C /* CursorFollowHost */,
-				5902C7562FBD97B900FFEA1C /* CursorFollowHostTests */,
-				5902C7602FBD97B900FFEA1C /* CursorFollowHostUITests */,
+				5902C7492FBD97B700FFEA1C /* CursorFollowMac */,
+				5902C7562FBD97B900FFEA1C /* CursorFollowMacTests */,
+				5902C7602FBD97B900FFEA1C /* CursorFollowMacUITests */,
 				5902C7772FBD97F300FFEA1C /* CameraExtension */,
 			);
 		};
@@ -353,12 +353,12 @@
 /* Begin PBXTargetDependency section */
 		5902C7592FBD97B900FFEA1C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 5902C7492FBD97B700FFEA1C /* CursorFollowHost */;
+			target = 5902C7492FBD97B700FFEA1C /* CursorFollowMac */;
 			targetProxy = 5902C7582FBD97B900FFEA1C /* PBXContainerItemProxy */;
 		};
 		5902C7632FBD97B900FFEA1C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 5902C7492FBD97B700FFEA1C /* CursorFollowHost */;
+			target = 5902C7492FBD97B700FFEA1C /* CursorFollowMac */;
 			targetProxy = 5902C7622FBD97B900FFEA1C /* PBXContainerItemProxy */;
 		};
 		5902C7812FBD97F300FFEA1C /* PBXTargetDependency */ = {
@@ -494,7 +494,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = CursorFollowHost/CursorFollowHost.entitlements;
+				CODE_SIGN_ENTITLEMENTS = CursorFollowMac/CursorFollowMac.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -511,7 +511,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowHost;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowMac;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -528,7 +528,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = CursorFollowHost/CursorFollowHost.entitlements;
+				CODE_SIGN_ENTITLEMENTS = CursorFollowMac/CursorFollowMac.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -545,7 +545,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowHost;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowMac;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -567,14 +567,14 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowHostTests;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowMacTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CursorFollowHost.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CursorFollowHost";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CursorFollowMac.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CursorFollowMac";
 			};
 			name = Debug;
 		};
@@ -588,14 +588,14 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowHostTests;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowMacTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CursorFollowHost.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CursorFollowHost";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CursorFollowMac.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CursorFollowMac";
 			};
 			name = Release;
 		};
@@ -607,14 +607,14 @@
 				DEVELOPMENT_TEAM = YOURTEAMID;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowHostUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowMacUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = CursorFollowHost;
+				TEST_TARGET_NAME = CursorFollowMac;
 			};
 			name = Debug;
 		};
@@ -626,14 +626,14 @@
 				DEVELOPMENT_TEAM = YOURTEAMID;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowHostUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowMacUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = CursorFollowHost;
+				TEST_TARGET_NAME = CursorFollowMac;
 			};
 			name = Release;
 		};
@@ -656,7 +656,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MARKETING_VERSION = 1.1;
-				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowHost.CameraExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowMac.CameraExtension;
 				PRODUCT_NAME = "$(inherited)";
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
@@ -687,7 +687,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MARKETING_VERSION = 1.1;
-				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowHost.CameraExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowMac.CameraExtension;
 				PRODUCT_NAME = "$(inherited)";
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
@@ -702,7 +702,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		5902C7452FBD97B700FFEA1C /* Build configuration list for PBXProject "CursorFollowHost" */ = {
+		5902C7452FBD97B700FFEA1C /* Build configuration list for PBXProject "CursorFollowMac" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5902C7692FBD97B900FFEA1C /* Debug */,
@@ -711,7 +711,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		5902C76B2FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowHost" */ = {
+		5902C76B2FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowMac" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5902C76C2FBD97B900FFEA1C /* Debug */,
@@ -720,7 +720,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		5902C76E2FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowHostTests" */ = {
+		5902C76E2FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowMacTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5902C76F2FBD97B900FFEA1C /* Debug */,
@@ -729,7 +729,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		5902C7712FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowHostUITests" */ = {
+		5902C7712FBD97B900FFEA1C /* Build configuration list for PBXNativeTarget "CursorFollowMacUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5902C7722FBD97B900FFEA1C /* Debug */,

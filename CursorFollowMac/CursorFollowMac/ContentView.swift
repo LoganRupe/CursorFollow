@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  CursorFollowHost
+//  CursorFollowMac
 //
 //  Created by Logan Rupe on 20/5/2026.
 //
@@ -15,7 +15,7 @@ final class AppSettings: ObservableObject {
     @Published private(set) var showResolution = false
     @Published private(set) var showFrameCount = false
 
-    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "AppSettings")
+    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowMac", category: "AppSettings")
     private let defaults: UserDefaults
 
     private enum Keys {
@@ -839,12 +839,12 @@ private struct SettingsModalView: View {
                     aboutLink(
                         "DOCUMENTATION",
                         icon: "doc.text",
-                        destination: "https://github.com/LoganRupe/CursorFollow-mac/src/branch/main/README.md"
+                        destination: "https://github.com/LoganRupe/CursorFollow/src/branch/main/README.md"
                     )
                     aboutLink(
                         "CHANGELOG",
                         icon: "clock.arrow.circlepath",
-                        destination: "https://github.com/LoganRupe/CursorFollow-mac/src/branch/main/CHANGELOG.md"
+                        destination: "https://github.com/LoganRupe/CursorFollow/src/branch/main/CHANGELOG.md"
                     )
                 }
             }

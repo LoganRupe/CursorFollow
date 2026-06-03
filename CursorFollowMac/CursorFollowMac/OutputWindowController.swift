@@ -1,6 +1,6 @@
 //
 //  OutputWindowController.swift
-//  CursorFollowHost
+//  CursorFollowMac
 //
 //  Created by Logan Rupe on 22/5/2026.
 //
@@ -23,7 +23,7 @@ final class OutputWindowController: ObservableObject {
     @Published private(set) var resolutionText = ""
     @Published private(set) var currentFPS: Double = 0
 
-    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "OutputWindow")
+    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowMac", category: "OutputWindow")
     private var window: NSWindow?
     private var surfaceView: SurfaceLayerView?
     private var overlayHostingView: NSView?
@@ -323,5 +323,5 @@ private struct OverlayView: View {
 // MARK: - Notification Names
 
 private extension Notification.Name {
-    static let outputWindowRefresh = Notification.Name("io.github.loganrupe.CursorFollowHost.outputWindowRefresh")
+    static let outputWindowRefresh = Notification.Name("io.github.loganrupe.CursorFollowMac.outputWindowRefresh")
 }

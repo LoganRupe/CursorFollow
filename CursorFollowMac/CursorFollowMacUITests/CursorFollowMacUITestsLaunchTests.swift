@@ -1,13 +1,13 @@
 //
-//  CursorFollowHostUITestsLaunchTests.swift
-//  CursorFollowHostUITests
+//  CursorFollowMacUITestsLaunchTests.swift
+//  CursorFollowMacUITests
 //
 //  Created by Logan Rupe on 20/5/2026.
 //
 
 import XCTest
 
-final class CursorFollowHostUITestsLaunchTests: XCTestCase {
+final class CursorFollowMacUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true
