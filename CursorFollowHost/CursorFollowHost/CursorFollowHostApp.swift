@@ -8,7 +8,554 @@
 import SwiftUI
 import Combine
 import SystemExtensions
+import Carbon
 import os.log
+
+@MainActor
+final class AutoFollowHotKeyManager: ObservableObject {
+    private static let hotKeySignature: OSType = 0x4346484B // 'CFHK'
+    private static let hotKeyID: UInt32 = 1
+
+    private enum DefaultsKeys {
+        static let keyCode = "hotkey.autoFollow.keyCode"
+        static let modifiers = "hotkey.autoFollow.modifiers"
+    }
+
+    @Published private(set) var shortcutTokens: [String]
+    @Published private(set) var registrationError: String?
+
+    var onTriggered: (() -> Void)?
+
+    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "AutoFollowHotKeyManager")
+    private let defaults: UserDefaults
+
+    private var keyCode: UInt32
+    private var modifiers: UInt32
+    private var hotKeyRef: EventHotKeyRef?
+    private var hotKeyHandlerRef: EventHandlerRef?
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+
+        let defaultKeyCode = UInt32(kVK_ANSI_F)
+        let defaultModifiers = UInt32(optionKey)
+
+        if defaults.object(forKey: DefaultsKeys.keyCode) == nil {
+            defaults.set(defaultKeyCode, forKey: DefaultsKeys.keyCode)
+        }
+        if defaults.object(forKey: DefaultsKeys.modifiers) == nil {
+            defaults.set(defaultModifiers, forKey: DefaultsKeys.modifiers)
+        }
+
+        keyCode = UInt32(defaults.integer(forKey: DefaultsKeys.keyCode))
+        modifiers = UInt32(defaults.integer(forKey: DefaultsKeys.modifiers))
+        shortcutTokens = Self.tokens(forKeyCode: keyCode, modifiers: modifiers)
+    }
+
+    func start() {
+        installHotKeyHandlerIfNeeded()
+        let status = registerHotKey(keyCode: keyCode, modifiers: modifiers)
+        if status == noErr {
+            registrationError = nil
+        } else {
+            registrationError = Self.errorMessage(for: status, tokens: shortcutTokens)
+            log.error("Failed to register existing hotkey on startup: \(status)")
+        }
+    }
+
+    func stop() {
+        unregisterHotKey()
+        removeHotKeyHandler()
+    }
+
+    @discardableResult
+    func updateShortcut(from event: NSEvent) -> Bool {
+        guard event.type == .keyDown else { return false }
+
+        let relevantFlags = event.modifierFlags.intersection([.command, .option, .control, .shift])
+        guard !relevantFlags.isEmpty else {
+            log.debug("Rejected hotkey update without modifiers")
+            return false
+        }
+
+        let previousKeyCode = keyCode
+        let previousModifiers = modifiers
+
+        let newKeyCode = UInt32(event.keyCode)
+        let newModifiers = Self.carbonModifiers(from: relevantFlags)
+        let newTokens = Self.tokens(forKeyCode: newKeyCode, modifiers: newModifiers)
+
+        let status = registerHotKey(keyCode: newKeyCode, modifiers: newModifiers)
+        guard status == noErr else {
+            let rollbackStatus = registerHotKey(keyCode: previousKeyCode, modifiers: previousModifiers)
+            if rollbackStatus != noErr {
+                registrationError = "Failed to restore previous shortcut (OSStatus \(rollbackStatus))."
+                log.error("Failed to restore previous hotkey after remap failure: \(rollbackStatus)")
+            } else {
+                registrationError = Self.errorMessage(for: status, tokens: newTokens)
+            }
+            log.error("Failed to register requested hotkey: \(status)")
+            return false
+        }
+
+        keyCode = newKeyCode
+        modifiers = newModifiers
+        shortcutTokens = newTokens
+
+        defaults.set(Int(keyCode), forKey: DefaultsKeys.keyCode)
+        defaults.set(Int(modifiers), forKey: DefaultsKeys.modifiers)
+
+        registrationError = nil
+        log.info("Updated auto-follow hotkey to \(self.shortcutTokens.joined(separator: " + "), privacy: .public)")
+        return true
+    }
+
+    private func installHotKeyHandlerIfNeeded() {
+        guard hotKeyHandlerRef == nil else { return }
+
+        var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+        let userData = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+        let status = InstallEventHandler(
+            GetEventDispatcherTarget(),
+            { _, event, userData in
+                guard let event, let userData else { return noErr }
+                let manager = Unmanaged<AutoFollowHotKeyManager>.fromOpaque(userData).takeUnretainedValue()
+                return manager.handleHotKeyPressed(event)
+            },
+            1,
+            &eventType,
+            userData,
+            &hotKeyHandlerRef
+        )
+
+        guard status == noErr else {
+            log.error("Failed to install global hotkey handler: \(status)")
+            return
+        }
+    }
+
+    private func removeHotKeyHandler() {
+        if let hotKeyHandlerRef {
+            RemoveEventHandler(hotKeyHandlerRef)
+            self.hotKeyHandlerRef = nil
+        }
+    }
+
+    private func registerHotKey(keyCode: UInt32, modifiers: UInt32) -> OSStatus {
+        unregisterHotKey()
+
+        let hotKeyID = EventHotKeyID(signature: Self.hotKeySignature, id: Self.hotKeyID)
+        var registeredHotKeyRef: EventHotKeyRef?
+        let status = RegisterEventHotKey(
+            keyCode,
+            modifiers,
+            hotKeyID,
+            GetEventDispatcherTarget(),
+            0,
+            &registeredHotKeyRef
+        )
+
+        guard status == noErr else {
+            return status
+        }
+
+        hotKeyRef = registeredHotKeyRef
+        return status
+    }
+
+    private static func errorMessage(for status: OSStatus, tokens: [String]) -> String {
+        if status == eventHotKeyExistsErr {
+            return "Shortcut \(tokens.joined(separator: " + ")) is already in use by another app."
+        }
+        return "Could not register shortcut \(tokens.joined(separator: " + ")) (OSStatus \(status))."
+    }
+
+    private func unregisterHotKey() {
+        if let hotKeyRef {
+            UnregisterEventHotKey(hotKeyRef)
+            self.hotKeyRef = nil
+        }
+    }
+
+    private func handleHotKeyPressed(_ event: EventRef) -> OSStatus {
+        var hotKeyID = EventHotKeyID()
+        let status = GetEventParameter(
+            event,
+            EventParamName(kEventParamDirectObject),
+            EventParamType(typeEventHotKeyID),
+            nil,
+            MemoryLayout<EventHotKeyID>.size,
+            nil,
+            &hotKeyID
+        )
+
+        guard status == noErr else {
+            log.error("Failed to decode hotkey event: \(status)")
+            return status
+        }
+
+        guard hotKeyID.signature == Self.hotKeySignature,
+              hotKeyID.id == Self.hotKeyID else {
+            return noErr
+        }
+
+        onTriggered?()
+        return noErr
+    }
+
+    private static func carbonModifiers(from flags: NSEvent.ModifierFlags) -> UInt32 {
+        var result: UInt32 = 0
+        if flags.contains(.command) { result |= UInt32(cmdKey) }
+        if flags.contains(.option) { result |= UInt32(optionKey) }
+        if flags.contains(.control) { result |= UInt32(controlKey) }
+        if flags.contains(.shift) { result |= UInt32(shiftKey) }
+        return result
+    }
+
+    private static func tokens(forKeyCode keyCode: UInt32, modifiers: UInt32) -> [String] {
+        var tokens: [String] = []
+
+        if modifiers & UInt32(controlKey) != 0 { tokens.append("⌃ Ctrl") }
+        if modifiers & UInt32(optionKey) != 0 { tokens.append("⌥ Opt") }
+        if modifiers & UInt32(shiftKey) != 0 { tokens.append("⇧ Shift") }
+        if modifiers & UInt32(cmdKey) != 0 { tokens.append("⌘ Cmd") }
+
+        tokens.append(keyLabel(for: keyCode))
+        return tokens
+    }
+
+    private static func keyLabel(for keyCode: UInt32) -> String {
+        switch Int(keyCode) {
+        case kVK_ANSI_A: return "A"
+        case kVK_ANSI_B: return "B"
+        case kVK_ANSI_C: return "C"
+        case kVK_ANSI_D: return "D"
+        case kVK_ANSI_E: return "E"
+        case kVK_ANSI_F: return "F"
+        case kVK_ANSI_G: return "G"
+        case kVK_ANSI_H: return "H"
+        case kVK_ANSI_I: return "I"
+        case kVK_ANSI_J: return "J"
+        case kVK_ANSI_K: return "K"
+        case kVK_ANSI_L: return "L"
+        case kVK_ANSI_M: return "M"
+        case kVK_ANSI_N: return "N"
+        case kVK_ANSI_O: return "O"
+        case kVK_ANSI_P: return "P"
+        case kVK_ANSI_Q: return "Q"
+        case kVK_ANSI_R: return "R"
+        case kVK_ANSI_S: return "S"
+        case kVK_ANSI_T: return "T"
+        case kVK_ANSI_U: return "U"
+        case kVK_ANSI_V: return "V"
+        case kVK_ANSI_W: return "W"
+        case kVK_ANSI_X: return "X"
+        case kVK_ANSI_Y: return "Y"
+        case kVK_ANSI_Z: return "Z"
+        case kVK_ANSI_0: return "0"
+        case kVK_ANSI_1: return "1"
+        case kVK_ANSI_2: return "2"
+        case kVK_ANSI_3: return "3"
+        case kVK_ANSI_4: return "4"
+        case kVK_ANSI_5: return "5"
+        case kVK_ANSI_6: return "6"
+        case kVK_ANSI_7: return "7"
+        case kVK_ANSI_8: return "8"
+        case kVK_ANSI_9: return "9"
+        case kVK_F1: return "F1"
+        case kVK_F2: return "F2"
+        case kVK_F3: return "F3"
+        case kVK_F4: return "F4"
+        case kVK_F5: return "F5"
+        case kVK_F6: return "F6"
+        case kVK_F7: return "F7"
+        case kVK_F8: return "F8"
+        case kVK_F9: return "F9"
+        case kVK_F10: return "F10"
+        case kVK_F11: return "F11"
+        case kVK_F12: return "F12"
+        case kVK_Space: return "Space"
+        case kVK_Return: return "Return"
+        case kVK_Escape: return "Esc"
+        case kVK_Tab: return "Tab"
+        default:
+            return "Key \(keyCode)"
+        }
+    }
+}
+
+@MainActor
+final class ToggleShareHotKeyManager: ObservableObject {
+    private static let hotKeySignature: OSType = 0x43464853 // 'CFHS'
+    private static let hotKeyID: UInt32 = 2
+
+    private enum DefaultsKeys {
+        static let keyCode = "hotkey.toggleShare.keyCode"
+        static let modifiers = "hotkey.toggleShare.modifiers"
+    }
+
+    @Published private(set) var shortcutTokens: [String]
+    @Published private(set) var registrationError: String?
+
+    var onTriggered: (() -> Void)?
+
+    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "ToggleShareHotKeyManager")
+    private let defaults: UserDefaults
+
+    private var keyCode: UInt32
+    private var modifiers: UInt32
+    private var hotKeyRef: EventHotKeyRef?
+    private var hotKeyHandlerRef: EventHandlerRef?
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+
+        let defaultKeyCode = UInt32(kVK_ANSI_S)
+        let defaultModifiers = UInt32(optionKey)
+
+        if defaults.object(forKey: DefaultsKeys.keyCode) == nil {
+            defaults.set(defaultKeyCode, forKey: DefaultsKeys.keyCode)
+        }
+        if defaults.object(forKey: DefaultsKeys.modifiers) == nil {
+            defaults.set(defaultModifiers, forKey: DefaultsKeys.modifiers)
+        }
+
+        keyCode = UInt32(defaults.integer(forKey: DefaultsKeys.keyCode))
+        modifiers = UInt32(defaults.integer(forKey: DefaultsKeys.modifiers))
+        shortcutTokens = Self.tokens(forKeyCode: keyCode, modifiers: modifiers)
+    }
+
+    func start() {
+        installHotKeyHandlerIfNeeded()
+        let status = registerHotKey(keyCode: keyCode, modifiers: modifiers)
+        if status == noErr {
+            registrationError = nil
+        } else {
+            registrationError = Self.errorMessage(for: status, tokens: shortcutTokens)
+            log.error("Failed to register existing share hotkey on startup: \(status)")
+        }
+    }
+
+    func stop() {
+        unregisterHotKey()
+        removeHotKeyHandler()
+    }
+
+    @discardableResult
+    func updateShortcut(from event: NSEvent) -> Bool {
+        guard event.type == .keyDown else { return false }
+
+        let relevantFlags = event.modifierFlags.intersection([.command, .option, .control, .shift])
+        guard !relevantFlags.isEmpty else {
+            log.debug("Rejected share hotkey update without modifiers")
+            return false
+        }
+
+        let previousKeyCode = keyCode
+        let previousModifiers = modifiers
+
+        let newKeyCode = UInt32(event.keyCode)
+        let newModifiers = Self.carbonModifiers(from: relevantFlags)
+        let newTokens = Self.tokens(forKeyCode: newKeyCode, modifiers: newModifiers)
+
+        let status = registerHotKey(keyCode: newKeyCode, modifiers: newModifiers)
+        guard status == noErr else {
+            let rollbackStatus = registerHotKey(keyCode: previousKeyCode, modifiers: previousModifiers)
+            if rollbackStatus != noErr {
+                registrationError = "Failed to restore previous shortcut (OSStatus \(rollbackStatus))."
+                log.error("Failed to restore previous share hotkey after remap failure: \(rollbackStatus)")
+            } else {
+                registrationError = Self.errorMessage(for: status, tokens: newTokens)
+            }
+            log.error("Failed to register requested share hotkey: \(status)")
+            return false
+        }
+
+        keyCode = newKeyCode
+        modifiers = newModifiers
+        shortcutTokens = newTokens
+
+        defaults.set(Int(keyCode), forKey: DefaultsKeys.keyCode)
+        defaults.set(Int(modifiers), forKey: DefaultsKeys.modifiers)
+
+        registrationError = nil
+        log.info("Updated share-toggle hotkey to \(self.shortcutTokens.joined(separator: " + "), privacy: .public)")
+        return true
+    }
+
+    private func installHotKeyHandlerIfNeeded() {
+        guard hotKeyHandlerRef == nil else { return }
+
+        var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+        let userData = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+        let status = InstallEventHandler(
+            GetEventDispatcherTarget(),
+            { _, event, userData in
+                guard let event, let userData else { return noErr }
+                let manager = Unmanaged<ToggleShareHotKeyManager>.fromOpaque(userData).takeUnretainedValue()
+                return manager.handleHotKeyPressed(event)
+            },
+            1,
+            &eventType,
+            userData,
+            &hotKeyHandlerRef
+        )
+
+        guard status == noErr else {
+            log.error("Failed to install global share hotkey handler: \(status)")
+            return
+        }
+    }
+
+    private func removeHotKeyHandler() {
+        if let hotKeyHandlerRef {
+            RemoveEventHandler(hotKeyHandlerRef)
+            self.hotKeyHandlerRef = nil
+        }
+    }
+
+    private func registerHotKey(keyCode: UInt32, modifiers: UInt32) -> OSStatus {
+        unregisterHotKey()
+
+        let hotKeyID = EventHotKeyID(signature: Self.hotKeySignature, id: Self.hotKeyID)
+        var registeredHotKeyRef: EventHotKeyRef?
+        let status = RegisterEventHotKey(
+            keyCode,
+            modifiers,
+            hotKeyID,
+            GetEventDispatcherTarget(),
+            0,
+            &registeredHotKeyRef
+        )
+
+        guard status == noErr else {
+            return status
+        }
+
+        hotKeyRef = registeredHotKeyRef
+        return status
+    }
+
+    private static func errorMessage(for status: OSStatus, tokens: [String]) -> String {
+        if status == eventHotKeyExistsErr {
+            return "Shortcut \(tokens.joined(separator: " + ")) is already in use by another app."
+        }
+        return "Could not register shortcut \(tokens.joined(separator: " + ")) (OSStatus \(status))."
+    }
+
+    private func unregisterHotKey() {
+        if let hotKeyRef {
+            UnregisterEventHotKey(hotKeyRef)
+            self.hotKeyRef = nil
+        }
+    }
+
+    private func handleHotKeyPressed(_ event: EventRef) -> OSStatus {
+        var hotKeyID = EventHotKeyID()
+        let status = GetEventParameter(
+            event,
+            EventParamName(kEventParamDirectObject),
+            EventParamType(typeEventHotKeyID),
+            nil,
+            MemoryLayout<EventHotKeyID>.size,
+            nil,
+            &hotKeyID
+        )
+
+        guard status == noErr else {
+            log.error("Failed to decode hotkey event: \(status)")
+            return status
+        }
+
+        guard hotKeyID.signature == Self.hotKeySignature,
+              hotKeyID.id == Self.hotKeyID else {
+            return noErr
+        }
+
+        onTriggered?()
+        return noErr
+    }
+
+    private static func carbonModifiers(from flags: NSEvent.ModifierFlags) -> UInt32 {
+        var result: UInt32 = 0
+        if flags.contains(.command) { result |= UInt32(cmdKey) }
+        if flags.contains(.option) { result |= UInt32(optionKey) }
+        if flags.contains(.control) { result |= UInt32(controlKey) }
+        if flags.contains(.shift) { result |= UInt32(shiftKey) }
+        return result
+    }
+
+    private static func tokens(forKeyCode keyCode: UInt32, modifiers: UInt32) -> [String] {
+        var tokens: [String] = []
+
+        if modifiers & UInt32(controlKey) != 0 { tokens.append("⌃ Ctrl") }
+        if modifiers & UInt32(optionKey) != 0 { tokens.append("⌥ Opt") }
+        if modifiers & UInt32(shiftKey) != 0 { tokens.append("⇧ Shift") }
+        if modifiers & UInt32(cmdKey) != 0 { tokens.append("⌘ Cmd") }
+
+        tokens.append(keyLabel(for: keyCode))
+        return tokens
+    }
+
+    private static func keyLabel(for keyCode: UInt32) -> String {
+        switch Int(keyCode) {
+        case kVK_ANSI_A: return "A"
+        case kVK_ANSI_B: return "B"
+        case kVK_ANSI_C: return "C"
+        case kVK_ANSI_D: return "D"
+        case kVK_ANSI_E: return "E"
+        case kVK_ANSI_F: return "F"
+        case kVK_ANSI_G: return "G"
+        case kVK_ANSI_H: return "H"
+        case kVK_ANSI_I: return "I"
+        case kVK_ANSI_J: return "J"
+        case kVK_ANSI_K: return "K"
+        case kVK_ANSI_L: return "L"
+        case kVK_ANSI_M: return "M"
+        case kVK_ANSI_N: return "N"
+        case kVK_ANSI_O: return "O"
+        case kVK_ANSI_P: return "P"
+        case kVK_ANSI_Q: return "Q"
+        case kVK_ANSI_R: return "R"
+        case kVK_ANSI_S: return "S"
+        case kVK_ANSI_T: return "T"
+        case kVK_ANSI_U: return "U"
+        case kVK_ANSI_V: return "V"
+        case kVK_ANSI_W: return "W"
+        case kVK_ANSI_X: return "X"
+        case kVK_ANSI_Y: return "Y"
+        case kVK_ANSI_Z: return "Z"
+        case kVK_ANSI_0: return "0"
+        case kVK_ANSI_1: return "1"
+        case kVK_ANSI_2: return "2"
+        case kVK_ANSI_3: return "3"
+        case kVK_ANSI_4: return "4"
+        case kVK_ANSI_5: return "5"
+        case kVK_ANSI_6: return "6"
+        case kVK_ANSI_7: return "7"
+        case kVK_ANSI_8: return "8"
+        case kVK_ANSI_9: return "9"
+        case kVK_F1: return "F1"
+        case kVK_F2: return "F2"
+        case kVK_F3: return "F3"
+        case kVK_F4: return "F4"
+        case kVK_F5: return "F5"
+        case kVK_F6: return "F6"
+        case kVK_F7: return "F7"
+        case kVK_F8: return "F8"
+        case kVK_F9: return "F9"
+        case kVK_F10: return "F10"
+        case kVK_F11: return "F11"
+        case kVK_F12: return "F12"
+        case kVK_Space: return "Space"
+        case kVK_Return: return "Return"
+        case kVK_Escape: return "Esc"
+        case kVK_Tab: return "Tab"
+        default:
+            return "Key \(keyCode)"
+        }
+    }
+}
 
 /// Coordinates WindowTracker and CaptureEngine at the app level,
 /// independent of whether the MenuBarExtra panel is visible.
@@ -74,9 +621,33 @@ class AppDelegate: NSObject, NSApplicationDelegate, OSSystemExtensionRequestDele
     private var popover: NSPopover!
     private var coordinator: AppCoordinator?
     private var eventMonitor: Any?
+    private let autoFollowHotKeyManager = AutoFollowHotKeyManager()
+    private let toggleShareHotKeyManager = ToggleShareHotKeyManager()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         coordinator = AppCoordinator()
+        autoFollowHotKeyManager.onTriggered = { [weak self] in
+            guard let self, let tracker = self.coordinator?.windowTracker else { return }
+            tracker.autoFollowEnabled.toggle()
+            self.log.info("Auto-follow toggled via global hotkey: \(tracker.autoFollowEnabled ? "enabled" : "disabled")")
+        }
+        toggleShareHotKeyManager.onTriggered = { [weak self] in
+            guard let self, let coordinator = self.coordinator else { return }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if coordinator.captureEngine.isCapturing {
+                    await coordinator.captureEngine.userStop()
+                    self.log.info("Capture toggled via global hotkey: stopped")
+                } else if let window = coordinator.windowTracker.selectedWindow {
+                    await coordinator.captureEngine.startCapture(window: window)
+                    self.log.info("Capture toggled via global hotkey: started")
+                } else {
+                    self.log.info("Capture toggle hotkey ignored: no window selected")
+                }
+            }
+        }
+        autoFollowHotKeyManager.start()
+        toggleShareHotKeyManager.start()
 
         // Set up the popover
         popover = NSPopover()
@@ -85,6 +656,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, OSSystemExtensionRequestDele
         let rootView = ContentView()
             .environmentObject(coordinator!.windowTracker)
             .environmentObject(coordinator!.captureEngine)
+            .environmentObject(autoFollowHotKeyManager)
+            .environmentObject(toggleShareHotKeyManager)
         if let owc = coordinator!.outputWindowController {
             popover.contentViewController = NSHostingController(
                 rootView: rootView.environmentObject(owc)
@@ -103,6 +676,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, OSSystemExtensionRequestDele
         }
 
         activateCameraExtension()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        autoFollowHotKeyManager.stop()
+        toggleShareHotKeyManager.stop()
     }
 
     @objc private func togglePopover(_ sender: AnyObject?) {
