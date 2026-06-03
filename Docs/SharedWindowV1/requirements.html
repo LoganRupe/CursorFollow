@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shared Window V1 Requirements</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f7f8fa;
+      --panel: #ffffff;
+      --text: #1d2430;
+      --muted: #637083;
+      --border: #d8dee8;
+      --accent: #0f766e;
+      --accent-soft: #d9f3ef;
+      --code: #eef2f7;
+      --warn: #a16207;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101418;
+        --panel: #161c22;
+        --text: #ecf1f6;
+        --muted: #9aa7b5;
+        --border: #2b3540;
+        --accent: #2dd4bf;
+        --accent-soft: #123c38;
+        --code: #202832;
+        --warn: #facc15;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 40px 24px 72px;
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    nav a {
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      text-decoration: none;
+      background: var(--panel);
+    }
+
+    nav a[aria-current="page"] {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 2.2rem;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin-top: 34px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      font-size: 1.35rem;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin-top: 22px;
+      font-size: 1rem;
+      letter-spacing: 0;
+    }
+
+    p {
+      max-width: 800px;
+    }
+
+    ul, ol {
+      padding-left: 24px;
+    }
+
+    li {
+      margin: 7px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+      background: var(--panel);
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--code);
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: var(--code);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    .summary {
+      color: var(--muted);
+      font-size: 1.08rem;
+    }
+
+    .callout {
+      margin: 22px 0;
+      padding: 16px 18px;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .warning {
+      border-left-color: var(--warn);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <nav aria-label="Shared Window V1 docs">
+      <a href="index.html">Overview</a>
+      <a href="requirements.html" aria-current="page">Requirements</a>
+      <a href="plan.html">Plan</a>
+    </nav>
+
+    <header>
+      <h1>Shared Window V1 Requirements</h1>
+      <p class="summary">Define CursorFollow as a macOS utility that tracks a target window and renders it into a normal, shareable output window.</p>
+    </header>
+
+    <section class="callout">
+      <strong>Branch:</strong> <code>feature/shared-window-output</code><br>
+      <strong>Status:</strong> Planned<br>
+      <strong>Primary change:</strong> remove the virtual-camera requirement from the initial product path.
+    </section>
+
+    <section>
+      <h2>Objective</h2>
+      <p>CursorFollow should let a user share a single stable window in their conferencing app while CursorFollow automatically updates that window with the currently selected target window content.</p>
+      <p>The user experience should feel like: start CursorFollow, choose an output window in the conferencing app's screen-share picker, and let CursorFollow keep that output pointed at the right source.</p>
+    </section>
+
+    <section>
+      <h2>Why This Direction</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Previous camera path</th>
+            <th>Shared-window path</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Requires CoreMediaIO extension discovery, signing, app groups, and host-to-extension IPC.</td>
+            <td>Uses a normal app window and ScreenCaptureKit capture already owned by the host app.</td>
+          </tr>
+          <tr>
+            <td>Appears as a camera tile, which can conflict with user expectations and camera-client quirks.</td>
+            <td>Appears as a screen share, matching the actual interaction: sharing app/window content.</td>
+          </tr>
+          <tr>
+            <td>Higher setup burden and more OS-specific failure modes.</td>
+            <td>Lower distribution complexity and easier local debugging.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Functional Requirements</h2>
+      <ol>
+        <li>CursorFollow creates a visible macOS window named <code>CursorFollow Output</code> or equivalent.</li>
+        <li>The output window renders the selected target window's live content with low latency.</li>
+        <li>The output window is selectable in common conferencing screen-share pickers as a normal window.</li>
+        <li>The app can track either the frontmost eligible window or a manually selected target window.</li>
+        <li>The app excludes its own output and control windows from target selection to prevent recursive capture.</li>
+        <li>When the target window changes, disappears, minimizes, or moves to another Space, the output window remains stable and shows an understandable fallback state.</li>
+        <li>The user can pause/resume output without closing the share window.</li>
+        <li>The user can choose a basic fitting mode: fit, fill, or actual size.</li>
+        <li>The app surfaces missing Screen Recording or Accessibility permission states in the host UI.</li>
+        <li>The app preserves the output window identity across target switches so conferencing apps do not need the user to reselect a share source.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Non-Functional Requirements</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Requirement</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Latency</td>
+            <td>Target &lt;50 ms median from capture callback to visible output update.</td>
+          </tr>
+          <tr>
+            <td>Stability</td>
+            <td>No crash, runaway memory growth, or sustained CPU spike during a 30-minute continuous share session.</td>
+          </tr>
+          <tr>
+            <td>Target switching</td>
+            <td>Visible output recovers within 300 ms after a valid target switch.</td>
+          </tr>
+          <tr>
+            <td>Window identity</td>
+            <td>The output window should not be destroyed and recreated during normal target changes.</td>
+          </tr>
+          <tr>
+            <td>Distribution</td>
+            <td>No camera extension, PlugInKit registration, or CoreMediaIO entitlement path is required for V1.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Scope</h2>
+      <h3>In Scope</h3>
+      <ul>
+        <li>Output-window rendering for captured frames.</li>
+        <li>Target-window selection and auto-follow behavior.</li>
+        <li>Basic output controls: pause/resume, fit mode, window size presets.</li>
+        <li>Permission state detection and user-facing status.</li>
+        <li>Validation in at least two conferencing apps or browser-based meeting tools.</li>
+      </ul>
+
+      <h3>Out of Scope</h3>
+      <ul>
+        <li>Appearing as a camera source.</li>
+        <li>CoreMediaIO extension setup, PlugInKit discovery, or camera-client compatibility.</li>
+        <li>Remote control of conferencing app share pickers.</li>
+        <li>Audio capture or virtual microphone support.</li>
+        <li>Advanced compositing, overlays, transitions, or presenter layouts.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Permissions</h2>
+      <ul>
+        <li><strong>Screen Recording:</strong> required to capture other windows.</li>
+        <li><strong>Accessibility:</strong> recommended for reliable focused-window detection and window metadata.</li>
+        <li><strong>Camera:</strong> not required for Shared Window V1.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Key Edge Cases</h2>
+      <ul>
+        <li>Recursive capture if CursorFollow targets its own output window.</li>
+        <li>Target window becomes minimized, hidden, closed, or moved to a different Space.</li>
+        <li>Full-screen apps with Space boundaries and capture availability differences.</li>
+        <li>Conferencing apps that hide or deprioritize small, occluded, minimized, or transparent windows in share pickers.</li>
+        <li>Retina scaling and aspect-ratio mismatch between target and output window.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Acceptance Criteria</h2>
+      <ol>
+        <li>Launch CursorFollow and show a persistent output window.</li>
+        <li>Select or auto-follow a target window and see its live content in the output window.</li>
+        <li>Share the output window in at least one browser meeting tool and one native conferencing app.</li>
+        <li>Switch target windows without the conferencing app losing the shared source.</li>
+        <li>Close or minimize the target window and see a stable fallback state rather than a crash or frozen misleading frame.</li>
+        <li>Verify CursorFollow does not select its own output window as a target.</li>
+      </ol>
+    </section>
+
+    <section class="callout warning">
+      <strong>Product note:</strong> this approach creates a shareable window, not a camera source. The user still chooses that window from the conferencing app's screen-share UI.
+    </section>
+  </main>
+</body>
+</html>
