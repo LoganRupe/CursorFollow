@@ -8,7 +8,7 @@ Starting from scratch. The V1 implementation used the wrong Xcode product type (
 
 ```
 ┌─────────────────────────────────┐
-│  CursorFollowHost.app           │
+│  CursorFollowMac.app           │
 │  (Menu bar app)                 │
 │                                 │
 │  ┌───────────────────────────┐  │
@@ -44,15 +44,15 @@ Goal: Create a valid Xcode project with host app + camera extension that registe
 
 Tasks:
 
-1. Create new Xcode project `CursorFollowHost` (macOS App, SwiftUI).
+1. Create new Xcode project `CursorFollowMac` (macOS App, SwiftUI).
 2. Add target: **Camera Extension** (File → New → Target → Camera Extension).
    - Xcode's template automatically uses `com.apple.product-type.app-extension` and generates correct `NSExtension` plist entries.
    - **Do NOT** select "ExtensionKit Extension" template.
 3. Configure bundle IDs:
-   - Host: `io.github.loganrupe.CursorFollowHost`
-   - Extension: `io.github.loganrupe.CursorFollowHost.CameraExtension`
+   - Host: `io.github.loganrupe.CursorFollowMac`
+   - Extension: `io.github.loganrupe.CursorFollowMac.CameraExtension`
 4. Configure signing: Team YOURTEAMID, automatic.
-5. Add App Groups capability to both targets: `group.io.github.loganrupe.CursorFollowHost`.
+5. Add App Groups capability to both targets: `group.io.github.loganrupe.CursorFollowMac`.
 6. Verify Info.plist has `CMIOExtension.CMIOExtensionMachServiceName` and `NSExtension.NSExtensionPointIdentifier`.
 7. Build, deploy to `/Applications/`, launch.
 8. **Gate: `pluginkit -mDAD -p com.apple.cmio.registerassistantservice` must show the extension.**
@@ -116,9 +116,9 @@ Gate: 30-minute continuous test with no crashes, leaks, or frame stalls.
 
 ```
 XcodeHost/
-  CursorFollowHost/
-    CursorFollowHost.xcodeproj/
-    CursorFollowHost/          # Host app sources
+  CursorFollowMac/
+    CursorFollowMac.xcodeproj/
+    CursorFollowMac/          # Host app sources
       App.swift
       ContentView.swift
       MenuBarView.swift
@@ -126,7 +126,7 @@ XcodeHost/
       CaptureEngine.swift
       Settings.swift
       Info.plist
-      CursorFollowHost.entitlements
+      CursorFollowMac.entitlements
     CameraExtension/           # Extension target sources
       main.swift               # CMIOExtensionProvider.startService() + CFRunLoopRun()
       CameraProvider.swift     # CMIOExtensionProviderSource

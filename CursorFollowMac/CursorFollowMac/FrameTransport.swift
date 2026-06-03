@@ -1,6 +1,6 @@
 //
 //  FrameTransport.swift
-//  CursorFollowHost
+//  CursorFollowMac
 //
 //  Created by Logan Rupe on 20/5/2026.
 //
@@ -28,7 +28,7 @@ protocol FrameTransport: Sendable {
 /// - Darwin notifications signal frame availability to the extension.
 /// - The extension looks up the IOSurface by ID (published via notification state).
 final class SharedMemoryFrameTransport: FrameTransport, @unchecked Sendable {
-    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "FrameTransport")
+    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowMac", category: "FrameTransport")
 
     let surface: IOSurface
     private let width: Int
@@ -41,13 +41,13 @@ final class SharedMemoryFrameTransport: FrameTransport, @unchecked Sendable {
     private var frameNotifyToken: Int32 = -1
 
     /// App group identifier shared between host and extension.
-    static let appGroupID = "group.io.github.loganrupe.CursorFollowHost"
+    static let appGroupID = "group.io.github.loganrupe.CursorFollowMac"
 
     /// Darwin notification name for cross-process surface ID sharing.
-    static let surfaceNotificationName = "io.github.loganrupe.CursorFollowHost.surfaceID"
+    static let surfaceNotificationName = "io.github.loganrupe.CursorFollowMac.surfaceID"
 
     /// Darwin notification name posted on each new frame.
-    static let frameNotificationName = "io.github.loganrupe.CursorFollowHost.newFrame"
+    static let frameNotificationName = "io.github.loganrupe.CursorFollowMac.newFrame"
 
     init?(width: Int = 1920, height: Int = 1080) {
         self.width = width

@@ -1,6 +1,6 @@
 //
-//  CursorFollowHostApp.swift
-//  CursorFollowHost
+//  CursorFollowMacApp.swift
+//  CursorFollowMac
 //
 //  Created by Logan Rupe on 20/5/2026.
 //
@@ -31,7 +31,7 @@ final class AutoFollowHotKeyManager: ObservableObject {
 
     var onTriggered: (() -> Void)?
 
-    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "AutoFollowHotKeyManager")
+    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowMac", category: "AutoFollowHotKeyManager")
     private let defaults: UserDefaults
 
     private var keyCode: UInt32
@@ -214,7 +214,7 @@ final class AutoFollowHotKeyManager: ObservableObject {
 
         guard hotKeyID.signature == Self.hotKeySignature,
               hotKeyID.id == Self.hotKeyID else {
-            return noErr
+            return OSStatus(eventNotHandledErr)
         }
 
         onTriggered?()
@@ -317,7 +317,7 @@ final class ToggleShareHotKeyManager: ObservableObject {
 
     var onTriggered: (() -> Void)?
 
-    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "ToggleShareHotKeyManager")
+    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowMac", category: "ToggleShareHotKeyManager")
     private let defaults: UserDefaults
 
     private var keyCode: UInt32
@@ -500,7 +500,7 @@ final class ToggleShareHotKeyManager: ObservableObject {
 
         guard hotKeyID.signature == Self.hotKeySignature,
               hotKeyID.id == Self.hotKeyID else {
-            return noErr
+            return OSStatus(eventNotHandledErr)
         }
 
         onTriggered?()
@@ -645,7 +645,7 @@ final class AppCoordinator: ObservableObject {
 }
 
 @main
-struct CursorFollowHostApp: App {
+struct CursorFollowMacApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
 
     var body: some Scene {
@@ -654,7 +654,7 @@ struct CursorFollowHostApp: App {
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate, OSSystemExtensionRequestDelegate {
-    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "AppDelegate")
+    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowMac", category: "AppDelegate")
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
     private var coordinator: AppCoordinator?
@@ -732,7 +732,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, OSSystemExtensionRequestDele
     }
 
     func activateCameraExtension() {
-        let extensionID = "io.github.loganrupe.CursorFollowHost.CameraExtension"
+        let extensionID = "io.github.loganrupe.CursorFollowMac.CameraExtension"
         let request = OSSystemExtensionRequest.activationRequest(
             forExtensionWithIdentifier: extensionID,
             queue: .main

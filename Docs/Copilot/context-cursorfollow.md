@@ -13,7 +13,7 @@ CursorFollow is a macOS menu bar utility that tracks a target window and exposes
 ## Target Architecture
 
 ```
-CursorFollowHost.app
+CursorFollowMac.app
 ├── Host app (menu bar + tracking + capture + frame sender)
 └── Contents/PlugIns/CameraExtension.appex
     └── CMIO provider/device/stream (frame receiver → virtual camera)
@@ -58,9 +58,9 @@ CursorFollowHost.app
 ## Signing
 
 - Team: YOURTEAMID
-- Host bundle ID: `io.github.loganrupe.CursorFollowHost`
-- Extension bundle ID: `io.github.loganrupe.CursorFollowHost.CameraExtension`
-- App group: `group.io.github.loganrupe.CursorFollowHost`
+- Host bundle ID: `io.github.loganrupe.CursorFollowMac`
+- Extension bundle ID: `io.github.loganrupe.CursorFollowMac.CameraExtension`
+- App group: `group.io.github.loganrupe.CursorFollowMac`
 - Both targets: sandbox enabled, hardened runtime
 
 ## Build Notes

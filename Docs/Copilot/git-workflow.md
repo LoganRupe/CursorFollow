@@ -34,7 +34,7 @@ replace a running extension if the new build has a **higher** version number.
 
 ### Where to edit
 
-In `CursorFollowHost.xcodeproj/project.pbxproj`, update both the **Debug** and
+In `CursorFollowMac.xcodeproj/project.pbxproj`, update both the **Debug** and
 **Release** build configurations for the CameraExtension target:
 
 ```
@@ -45,12 +45,12 @@ In `CursorFollowHost.xcodeproj/project.pbxproj`, update both the **Debug** and
 ### Deploy sequence
 
 ```bash
-cd CursorFollowHost
-xcodebuild -project CursorFollowHost.xcodeproj -scheme CursorFollowHost -configuration Debug build
-killall CursorFollowHost 2>/dev/null; sleep 1
-rm -rf /Applications/CursorFollowHost.app
-cp -R ~/Library/Developer/Xcode/DerivedData/CursorFollowHost-*/Build/Products/Debug/CursorFollowHost.app /Applications/
-open /Applications/CursorFollowHost.app
+cd CursorFollowMac
+xcodebuild -project CursorFollowMac.xcodeproj -scheme CursorFollowMac -configuration Debug build
+killall CursorFollowMac 2>/dev/null; sleep 1
+rm -rf /Applications/CursorFollowMac.app
+cp -R ~/Library/Developer/Xcode/DerivedData/CursorFollowMac-*/Build/Products/Debug/CursorFollowMac.app /Applications/
+open /Applications/CursorFollowMac.app
 # Verify:
 systemextensionsctl list 2>&1 | grep loganrupe
 ```

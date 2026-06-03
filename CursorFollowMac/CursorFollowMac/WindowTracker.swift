@@ -1,6 +1,6 @@
 //
 //  WindowTracker.swift
-//  CursorFollowHost
+//  CursorFollowMac
 //
 //  Created by Logan Rupe on 20/5/2026.
 //
@@ -62,7 +62,7 @@ final class WindowTracker: ObservableObject {
         Set(UserDefaults.standard.stringArray(forKey: key) ?? [])
     }
 
-    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "WindowTracker")
+    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowMac", category: "WindowTracker")
 
     /// Bundle IDs to always exclude from the window list (system UI).
     private let systemExcludedBundleIDs: Set<String> = [
@@ -194,7 +194,7 @@ final class WindowTracker: ObservableObject {
         let bundleID = frontApp.bundleIdentifier ?? ""
 
         // Skip our own app and system apps
-        guard bundleID != "io.github.loganrupe.CursorFollowHost",
+        guard bundleID != "io.github.loganrupe.CursorFollowMac",
               !systemExcludedBundleIDs.contains(bundleID) else {
             return
         }
@@ -263,7 +263,7 @@ final class WindowTracker: ObservableObject {
         let bundleID = app.bundleIdentifier ?? ""
 
         // Don't follow our own app or system apps
-        guard bundleID != "io.github.loganrupe.CursorFollowHost",
+        guard bundleID != "io.github.loganrupe.CursorFollowMac",
               !systemExcludedBundleIDs.contains(bundleID) else {
             return
         }
@@ -310,7 +310,7 @@ final class WindowTracker: ObservableObject {
                 }
 
                 // Skip our own app
-                if bundleID == "io.github.loganrupe.CursorFollowHost" {
+                if bundleID == "io.github.loganrupe.CursorFollowMac" {
                     return nil
                 }
 

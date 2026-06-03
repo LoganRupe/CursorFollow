@@ -1,6 +1,6 @@
 //
 //  CaptureEngine.swift
-//  CursorFollowHost
+//  CursorFollowMac
 //
 //  Created by Logan Rupe on 20/5/2026.
 //
@@ -69,13 +69,13 @@ final class CaptureEngine: NSObject, ObservableObject {
     /// The shared IOSurface used for frame transport.
     var ioSurface: IOSurface? { frameTransport?.surface }
 
-    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "CaptureEngine")
+    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowMac", category: "CaptureEngine")
 
     private var stream: SCStream?
     private var streamOutput: CaptureStreamOutput?
     private let frameTransport: SharedMemoryFrameTransport?
 
-    private let captureQueue = DispatchQueue(label: "io.github.loganrupe.CursorFollowHost.capture", qos: .userInteractive)
+    private let captureQueue = DispatchQueue(label: "io.github.loganrupe.CursorFollowMac.capture", qos: .userInteractive)
 
     /// Target capture dimensions (updated per window).
     @Published private(set) var activeCaptureWidth: Int = 1920
@@ -237,7 +237,7 @@ final class CaptureEngine: NSObject, ObservableObject {
 private final class CaptureStreamOutput: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sendable {
     private let frameHandler: @Sendable (CMSampleBuffer) -> Void
     private let errorHandler: @Sendable (any Error) -> Void
-    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowHost", category: "CaptureStreamOutput")
+    private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowMac", category: "CaptureStreamOutput")
 
     init(frameHandler: @escaping @Sendable (CMSampleBuffer) -> Void,
          errorHandler: @escaping @Sendable (any Error) -> Void) {
