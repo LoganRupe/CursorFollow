@@ -375,6 +375,7 @@ struct ContentView: View {
         .sheet(isPresented: $isSettingsPresented) {
             SettingsModalView()
                 .environmentObject(appSettings)
+                .environmentObject(captureEngine)
                 .environmentObject(autoFollowHotKeyManager)
                 .environmentObject(toggleShareHotKeyManager)
                 .frame(width: 840, height: 650)
@@ -459,6 +460,7 @@ struct WindowRow: View {
 private struct SettingsModalView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appSettings: AppSettings
+    @EnvironmentObject private var captureEngine: CaptureEngine
     @EnvironmentObject private var autoFollowHotKeyManager: AutoFollowHotKeyManager
     @EnvironmentObject private var toggleShareHotKeyManager: ToggleShareHotKeyManager
 
@@ -511,6 +513,7 @@ private struct SettingsModalView: View {
         }
         .onAppear {
             appSettings.refreshStartOnLoginStatus()
+            selectedQuality = captureEngine.captureQuality
         }
         .onDisappear {
             stopShortcutCapture()
@@ -626,6 +629,7 @@ private struct SettingsModalView: View {
                     ForEach(CaptureQuality.allCases, id: \.self) { quality in
                         Button {
                             selectedQuality = quality
+                            captureEngine.setCaptureQuality(quality)
                         } label: {
                             Text(quality.label)
                                 .font(.system(size: 12, weight: .bold))
@@ -1001,23 +1005,6 @@ private struct SettingsModalView: View {
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5, execute: workItem)
-    }
-}
-
-private enum CaptureQuality: CaseIterable {
-    case balanced
-    case performant
-    case lowLatency
-
-    var label: String {
-        switch self {
-        case .balanced:
-            return "BALANCED"
-        case .performant:
-            return "PERFORMANT"
-        case .lowLatency:
-            return "LOW-LATENCY"
-        }
     }
 }
 
