@@ -802,8 +802,16 @@ private struct SettingsModalView: View {
                 }
 
                 HStack(spacing: 20) {
-                    aboutLink("DOCUMENTATION", icon: "doc.text")
-                    aboutLink("CHANGELOG", icon: "clock.arrow.circlepath")
+                    aboutLink(
+                        "DOCUMENTATION",
+                        icon: "doc.text",
+                        destination: "https://github.com/LoganRupe/CursorFollow-mac/src/branch/main/README.md"
+                    )
+                    aboutLink(
+                        "CHANGELOG",
+                        icon: "clock.arrow.circlepath",
+                        destination: "https://github.com/LoganRupe/CursorFollow-mac/src/branch/main/CHANGELOG.md"
+                    )
                 }
             }
             .frame(maxWidth: .infinity)
@@ -854,9 +862,12 @@ private struct SettingsModalView: View {
             .background(Color.white.opacity(0.11), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 
-    private func aboutLink(_ title: String, icon: String) -> some View {
+    private func aboutLink(_ title: String, icon: String, destination: String) -> some View {
         Button {
-            // Placeholder action.
+            guard let url = URL(string: destination) else {
+                return
+            }
+            NSWorkspace.shared.open(url)
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: icon)
