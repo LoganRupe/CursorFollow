@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CursorFollowWin Requirements</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f1117;
+      --panel: #171b24;
+      --panel-2: #1f2530;
+      --text: #f3f6fb;
+      --muted: #a8b1bf;
+      --line: #303848;
+      --accent: #6aa6ff;
+      --accent-2: #65d6a4;
+      --warn: #ffce6a;
+      --danger: #ff7b7b;
+      --shadow: 0 18px 55px rgba(0, 0, 0, 0.28);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    .page-header {
+      border-bottom: 1px solid var(--line);
+      background: #121721;
+    }
+
+    .content,
+    .header-inner {
+      width: min(1160px, calc(100vw - 40px));
+      margin: 0 auto;
+    }
+
+    .header-inner {
+      padding: 40px 0 28px;
+    }
+
+    .kicker {
+      margin: 0 0 8px;
+      color: var(--accent-2);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 12px;
+      font-size: clamp(2rem, 4vw, 3.65rem);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin-bottom: 14px;
+      font-size: 1.45rem;
+    }
+
+    h3 {
+      margin-bottom: 8px;
+      font-size: 1.02rem;
+    }
+
+    .summary {
+      max-width: 850px;
+      color: var(--muted);
+      font-size: 1.08rem;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .meta-card,
+    .section,
+    .callout {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .meta-card {
+      padding: 14px 16px;
+      border-radius: 8px;
+    }
+
+    .label {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .value {
+      font-weight: 700;
+    }
+
+    .content {
+      padding: 28px 0 56px;
+    }
+
+    .section {
+      margin: 18px 0;
+      padding: 24px;
+      border-radius: 8px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .three-col {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      padding: 16px;
+    }
+
+    .callout {
+      margin: 18px 0;
+      padding: 18px 20px;
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      background: #151d2a;
+    }
+
+    .callout.warning {
+      border-left-color: var(--warn);
+    }
+
+    .callout strong {
+      color: var(--text);
+    }
+
+    ul,
+    ol {
+      margin: 8px 0 0;
+      padding-left: 1.25rem;
+    }
+
+    li + li {
+      margin-top: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      overflow: hidden;
+      border-radius: 8px;
+    }
+
+    th,
+    td {
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      background: #202838;
+      color: var(--text);
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    td {
+      color: var(--muted);
+    }
+
+    code {
+      border: 1px solid #3a4558;
+      border-radius: 5px;
+      background: #101722;
+      color: #dbe8ff;
+      padding: 0.1rem 0.35rem;
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .tag {
+      border: 1px solid #39465c;
+      border-radius: 999px;
+      background: #192132;
+      color: #cbd6e6;
+      padding: 5px 10px;
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--accent-2);
+    }
+
+    .review-note {
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .mermaidless-diagram {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      font-size: 0.92rem;
+    }
+
+    .diagram-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .diagram-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      padding: 12px;
+      text-align: center;
+    }
+
+    .arrow {
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    @media (max-width: 820px) {
+      .content,
+      .header-inner {
+        width: min(100vw - 24px, 1160px);
+      }
+
+      .meta-grid,
+      .two-col,
+      .three-col,
+      .diagram-row {
+        grid-template-columns: 1fr;
+      }
+
+      .arrow {
+        text-align: center;
+      }
+
+      .section {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <div class="header-inner">
+      <p class="kicker">Feature Requirements</p>
+      <h1>CursorFollowWin</h1>
+      <p class="summary">
+        Build a Windows 11 equivalent of CursorFollow using C# and .NET, preserving feature parity and visual identity with the macOS app while using native Windows conventions for the system tray, capture APIs, settings, permissions, packaging, and virtual camera integration.
+      </p>
+      <div class="meta-grid" aria-label="Project metadata">
+        <div class="meta-card">
+          <span class="label">Target Platform</span>
+          <span class="value">Windows 11</span>
+        </div>
+        <div class="meta-card">
+          <span class="label">Language</span>
+          <span class="value">C# / .NET</span>
+        </div>
+        <div class="meta-card">
+          <span class="label">App Folder</span>
+          <span class="value"><code>CursorFollowWin</code></span>
+        </div>
+        <div class="meta-card">
+          <span class="label">Status</span>
+          <span class="value">Draft for dev review</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="section" id="objective">
+      <h2>Objective</h2>
+      <p>
+        CursorFollowWin must let Windows 11 users choose or automatically follow a target window, capture that window with low latency, preview the captured output, and expose it as a selectable virtual camera named <strong>CursorFollow Camera</strong> in apps such as Teams, Zoom, Slack, Google Meet, OBS, and browser-based conferencing tools.
+      </p>
+      <div class="tag-row" aria-label="Feature tags">
+        <span class="tag">System tray app</span>
+        <span class="tag">Virtual camera</span>
+        <span class="tag">Window capture</span>
+        <span class="tag">Auto-follow</span>
+        <span class="tag">Windows 11 visual parity</span>
+        <span class="tag">C# / .NET</span>
+      </div>
+    </div>
+
+    <div class="section" id="product-parity">
+      <h2>Mac Parity Baseline</h2>
+      <p>
+        The Windows app should feel like the same product moved to Windows, not a separate utility with different behavior. Terminology, control hierarchy, default settings, and camera naming should remain aligned with the macOS app unless Windows platform behavior requires a different implementation.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>macOS Behavior</th>
+            <th>Windows 11 Equivalent</th>
+            <th>Review Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Menu bar item opens the compact CursorFollow panel.</td>
+            <td>System tray icon opens a compact CursorFollow panel near the bottom-right taskbar area.</td>
+            <td>Panel should look very similar to the macOS panel while respecting Windows flyout placement and focus behavior.</td>
+          </tr>
+          <tr>
+            <td>Auto-follow cursor/frontmost app can be toggled.</td>
+            <td>Auto-follow tracks the active foreground window and, where practical, the window under the cursor.</td>
+            <td>Use Win32 foreground window and cursor hit-testing APIs; document limitations for elevated/UWP/protected windows.</td>
+          </tr>
+          <tr>
+            <td>All / Exclude / Include filtering controls which windows can be followed.</td>
+            <td>Same segmented filter modes, backed by executable/process identity and persisted settings.</td>
+            <td>Use stable identifiers such as package family name when available, otherwise executable path or process name.</td>
+          </tr>
+          <tr>
+            <td>Refresh rescans windows.</td>
+            <td>Refresh enumerates visible capturable windows and updates selection state without restarting the app.</td>
+            <td>Filtered system/tool windows should be hidden by default.</td>
+          </tr>
+          <tr>
+            <td>Start / Stop controls the capture feed.</td>
+            <td>Start / Stop controls Windows capture and virtual camera frame publishing.</td>
+            <td>Stopping capture should leave the virtual camera device available with a graceful idle/black/fallback frame.</td>
+          </tr>
+          <tr>
+            <td>Output preview window can be shown or hidden.</td>
+            <td>Output preview window renders the live captured frame and can be shown, hidden, resized, and optionally pinned on top.</td>
+            <td>Preview should be shareable through Windows screen/window sharing pickers.</td>
+          </tr>
+          <tr>
+            <td>Settings include login item, auto-share, hide when not sharing, pin on top, overlays, quality, and hotkeys.</td>
+            <td>Settings expose Windows equivalents for startup registration, auto-share, tray behavior, pin on top, overlays, quality, and global hotkeys.</td>
+            <td>Use Windows startup registration and global hotkey registration with clear conflict handling.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section" id="scope">
+      <h2>Scope</h2>
+      <div class="two-col">
+        <div class="card">
+          <h3>In Scope</h3>
+          <ul>
+            <li>Windows 11 desktop app in C# and .NET under <code>CursorFollowWin</code>.</li>
+            <li>System tray resident app with compact control panel and settings dialog.</li>
+            <li>Visible-window enumeration, manual target selection, and auto-follow behavior.</li>
+            <li>Window capture with cursor included by default.</li>
+            <li>Virtual camera output named <strong>CursorFollow Camera</strong>.</li>
+            <li>Live output preview window with optional overlays.</li>
+            <li>Persistent settings, app startup option, hotkeys, and troubleshooting logs.</li>
+            <li>Build, install, verify, and reset documentation for Windows developers.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Out of Scope</h3>
+          <ul>
+            <li>Windows 10 support unless required later by testing.</li>
+            <li>macOS implementation changes.</li>
+            <li>Linux support.</li>
+            <li>Cloud accounts, sync, licensing, or telemetry services.</li>
+            <li>Advanced visual effects, transitions, annotations, or compositing beyond parity.</li>
+            <li>Mobile, Xbox, HoloLens, or Store-only distribution requirements.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="architecture">
+      <h2>Architecture Overview</h2>
+      <p>
+        The implementation should be split so UI, window tracking, capture, frame transport, and camera output can be tested independently. The exact virtual camera mechanism is a key design decision and must be proven early with a minimal camera device before deep UI work proceeds.
+      </p>
+      <div class="mermaidless-diagram" aria-label="Architecture diagram">
+        <div class="diagram-row">
+          <div class="diagram-box">Tray Host<br><code>CursorFollowWin.exe</code></div>
+          <div class="arrow">to</div>
+          <div class="diagram-box">Window Tracker<br>Win32 / UI Automation</div>
+          <div class="arrow">to</div>
+          <div class="diagram-box">Capture Engine<br>Windows Graphics Capture</div>
+        </div>
+        <div class="diagram-row">
+          <div class="diagram-box">Settings + Hotkeys</div>
+          <div class="arrow">to</div>
+          <div class="diagram-box">Frame Transport<br>D3D11 texture / shared memory</div>
+          <div class="arrow">to</div>
+          <div class="diagram-box">Virtual Camera<br>Media Foundation / DirectShow path</div>
+        </div>
+      </div>
+      <div class="callout warning">
+        <strong>Phase 0 gate:</strong> Before building the full app, prove that a Windows virtual camera can register, appear in camera clients, and render generated test frames. Nothing else matters if conferencing apps cannot select the camera.
+      </div>
+    </div>
+
+    <div class="section" id="technology-decisions">
+      <h2>Technology Decisions to Validate</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Preferred Direction</th>
+            <th>Validation Gate</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>UI framework</td>
+            <td>C#/.NET desktop UI that can deliver a polished Windows 11 tray app. Candidate frameworks: WinUI 3, WPF with modern styling, or .NET MAUI only if tray/flyout behavior is proven.</td>
+            <td>Compact tray panel, settings dialog, dark theme, high-DPI rendering, and native notification-area behavior are working.</td>
+          </tr>
+          <tr>
+            <td>Window capture</td>
+            <td>Windows Graphics Capture with Direct3D 11 interop for low-latency window capture.</td>
+            <td>Captures a selected window at target frame rate, includes cursor, handles window resize, and does not capture protected content.</td>
+          </tr>
+          <tr>
+            <td>Window discovery</td>
+            <td>Win32 enumeration plus UI Automation where needed for names, app identity, and focus tracking.</td>
+            <td>Correctly lists normal app windows and filters system/tool windows across classic Win32, Electron, browser, and packaged apps.</td>
+          </tr>
+          <tr>
+            <td>Virtual camera</td>
+            <td>Media Foundation virtual camera if viable for Windows 11; fallback investigation for DirectShow-compatible camera clients if required.</td>
+            <td>Camera appears as <strong>CursorFollow Camera</strong> in Teams, Zoom, Slack, Chrome/Edge, OBS, and Windows Camera where supported.</td>
+          </tr>
+          <tr>
+            <td>Frame transport</td>
+            <td>Prefer GPU texture sharing between capture and camera output. Use CPU BGRA copy only if simpler and still meets latency/CPU targets.</td>
+            <td>End-to-end median latency stays below target during a 30-minute capture session.</td>
+          </tr>
+          <tr>
+            <td>Installer</td>
+            <td>Windows installer that registers the app, virtual camera components, startup option, and uninstall cleanup.</td>
+            <td>Fresh install, upgrade, and uninstall leave camera registration and settings in expected states.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section" id="functional-requirements">
+      <h2>Functional Requirements</h2>
+      <ol>
+        <li>The app installs into a <code>CursorFollowWin</code> product folder and launches as a Windows 11 desktop tray application.</li>
+        <li>The tray icon opens a compact panel with the same primary workflow as macOS: Auto-follow cursor, filter mode, window list, Refresh, Show/Hide output, status, and Start/Stop.</li>
+        <li>The app enumerates visible capturable windows, including Win32, Electron, browser, Office, and packaged app windows where Windows permits capture.</li>
+        <li>The app filters out desktop shell surfaces, system UI, tiny utility windows, CursorFollowWin itself, and known non-capturable windows by default.</li>
+        <li>The user can manually select a window when filter mode is All.</li>
+        <li>Exclude mode lets the user mark apps/windows that auto-follow should skip.</li>
+        <li>Include mode lets the user restrict auto-follow to an approved set of apps/windows.</li>
+        <li>Auto-follow switches capture target when the foreground window changes and respects the active filter mode.</li>
+        <li>Auto-follow debounces rapid target changes to avoid capture thrash.</li>
+        <li>Capture starts and stops from the tray panel without closing the app or unregistering the camera.</li>
+        <li>The output preview window renders the live captured frame, preserves aspect ratio, supports resizing, and can be pinned above other windows.</li>
+        <li>The virtual camera publishes a stable video stream named <strong>CursorFollow Camera</strong>.</li>
+        <li>The virtual camera remains selectable even when capture is idle, missing permission, or the target disappears, using a clear fallback frame state.</li>
+        <li>The settings dialog includes startup, auto-share on launch, hide when not sharing, pin output on top, capture quality, overlay display, and hotkey settings.</li>
+        <li>Global hotkeys support toggling auto-follow and toggling sharing, with visible conflict/error feedback.</li>
+        <li>The app persists settings per Windows user.</li>
+        <li>The app provides actionable error states for missing permissions, protected content, camera registration failure, capture failure, and hotkey conflicts.</li>
+      </ol>
+    </div>
+
+    <div class="section" id="ui-requirements">
+      <h2>UI Requirements</h2>
+      <div class="three-col">
+        <div class="card">
+          <h3>Tray Panel</h3>
+          <ul>
+            <li>Width and density should feel close to the macOS panel.</li>
+            <li>Header shows app name, camera icon, live badge when capturing, settings button, and quit/close affordance.</li>
+            <li>Window rows show title, owner app, resolution, selected state, and filter membership indicator.</li>
+            <li>Start and Stop use clear green/red treatment matching the macOS intent.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Windows Fit</h3>
+          <ul>
+            <li>Panel opens from the system tray/taskbar area, not the top of the screen.</li>
+            <li>Use Windows 11 typography, spacing, focus rings, shadows, and high-DPI behavior.</li>
+            <li>Respect light/dark mode if practical; dark mode can be the initial default for parity.</li>
+            <li>Keyboard navigation and screen reader labels must be present for controls.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Settings</h3>
+          <ul>
+            <li>Two-column layout on desktop-sized dialogs, collapsing cleanly if narrower.</li>
+            <li>General, Capture Quality, Hotkeys, Display, and About sections.</li>
+            <li>Save and Cancel behavior should allow discarded draft settings.</li>
+            <li>Mutually exclusive settings must explain disabled state, such as hide when not sharing vs pin on top.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="non-functional-requirements">
+      <h2>Non-Functional Requirements</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Requirement</th>
+            <th>Target</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Latency</td>
+            <td>Median capture-to-camera-output latency for live window content.</td>
+            <td>Less than 50 ms median on the development Windows 11 machine.</td>
+          </tr>
+          <tr>
+            <td>Switching</td>
+            <td>Target switch interruption when auto-follow changes windows.</td>
+            <td>Less than 300 ms visible interruption.</td>
+          </tr>
+          <tr>
+            <td>Frame rate</td>
+            <td>Balanced mode should prioritize smooth capture.</td>
+            <td>60 fps when source and machine support it; 30 fps performant fallback.</td>
+          </tr>
+          <tr>
+            <td>Resolution</td>
+            <td>Default virtual camera stream resolution.</td>
+            <td>1920x1080 BGRA or equivalent camera-client-compatible format.</td>
+          </tr>
+          <tr>
+            <td>Stability</td>
+            <td>Long-running capture session.</td>
+            <td>30 minutes with no crash, unbounded memory growth, or sustained CPU/GPU spike.</td>
+          </tr>
+          <tr>
+            <td>Accessibility</td>
+            <td>Controls are reachable and labeled.</td>
+            <td>Keyboard and screen-reader accessible for primary workflows.</td>
+          </tr>
+          <tr>
+            <td>Diagnostics</td>
+            <td>Logs identify capture, tracking, virtual camera, installer, and permission failures.</td>
+            <td>Actionable logs with component names and user-visible remediation where appropriate.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section" id="implementation-phases">
+      <h2>Implementation Phases</h2>
+      <div class="card">
+        <h3>Phase 0: Virtual Camera Feasibility</h3>
+        <ul>
+          <li>Create minimal Windows 11 camera device prototype named <strong>CursorFollow Camera</strong>.</li>
+          <li>Publish generated test frames at 1920x1080.</li>
+          <li>Verify camera selection in Teams, Zoom, Slack, Chrome/Edge, OBS, and Windows Camera where applicable.</li>
+          <li>Document chosen virtual camera API, registration model, installer implications, signing needs, and unsupported clients.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Phase 1: Project Skeleton and Tray UI</h3>
+        <ul>
+          <li>Create <code>CursorFollowWin</code> solution structure, build scripts, and baseline app.</li>
+          <li>Implement system tray icon, compact panel, settings dialog, persisted settings, and app startup registration.</li>
+          <li>Match macOS visual hierarchy and naming while using Windows 11 placement and interaction rules.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Phase 2: Window Tracking and Capture</h3>
+        <ul>
+          <li>Enumerate visible capturable windows with app identity and geometry.</li>
+          <li>Implement manual selection, filter modes, refresh, foreground-window auto-follow, cursor-under-window follow if viable, and debounce.</li>
+          <li>Capture selected window with Windows Graphics Capture and render the output preview.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Phase 3: Live Camera Pipeline</h3>
+        <ul>
+          <li>Bridge captured frames into the virtual camera output path.</li>
+          <li>Handle resize, aspect ratio, idle state, missing window, protected content, and camera-client open/close events.</li>
+          <li>Measure latency, CPU, GPU, dropped frames, and memory behavior.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Phase 4: Packaging and Hardening</h3>
+        <ul>
+          <li>Create installer, upgrade path, uninstall cleanup, code signing plan, and developer verification scripts.</li>
+          <li>Add reset/troubleshooting docs for camera registration, capture permission, hotkey conflicts, and stale devices.</li>
+          <li>Run 30-minute stability tests and camera-client compatibility matrix.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section" id="file-structure">
+      <h2>Target Folder Structure</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Path</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>CursorFollowWin/Requirements.html</code></td>
+            <td>This browser-reviewable requirements document.</td>
+          </tr>
+          <tr>
+            <td><code>CursorFollowWin/src/CursorFollowWin.App/</code></td>
+            <td>Tray host, UI shell, settings, hotkeys, and preview window.</td>
+          </tr>
+          <tr>
+            <td><code>CursorFollowWin/src/CursorFollowWin.Capture/</code></td>
+            <td>Window enumeration, tracking, filtering, and Windows Graphics Capture pipeline.</td>
+          </tr>
+          <tr>
+            <td><code>CursorFollowWin/src/CursorFollowWin.Camera/</code></td>
+            <td>Virtual camera registration and frame output integration.</td>
+          </tr>
+          <tr>
+            <td><code>CursorFollowWin/src/CursorFollowWin.Shared/</code></td>
+            <td>Shared contracts, settings models, diagnostics, and frame metadata.</td>
+          </tr>
+          <tr>
+            <td><code>CursorFollowWin/tests/</code></td>
+            <td>Unit, integration, and compatibility tests where automation is practical.</td>
+          </tr>
+          <tr>
+            <td><code>CursorFollowWin/docs/</code></td>
+            <td>Build, install, verify, reset, and compatibility documentation.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section" id="risks">
+      <h2>Risks and Open Questions</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Risk</th>
+            <th>Impact</th>
+            <th>Mitigation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Virtual camera API/client compatibility differs across Teams, Zoom, browser apps, OBS, and Windows Camera.</td>
+            <td>Camera may appear in some clients but not others.</td>
+            <td>Run Phase 0 first and maintain a compatibility matrix before committing to full architecture.</td>
+          </tr>
+          <tr>
+            <td>Some windows cannot be captured because of DRM, elevation boundaries, protected content, or OS restrictions.</td>
+            <td>User may see black output or missing windows.</td>
+            <td>Detect and explain protected/unavailable targets; keep virtual camera stable with fallback output.</td>
+          </tr>
+          <tr>
+            <td>GPU texture sharing into the camera stack may be complex.</td>
+            <td>CPU copy path could raise latency or CPU usage.</td>
+            <td>Prototype both minimal GPU and CPU paths; choose the simplest path that meets performance targets.</td>
+          </tr>
+          <tr>
+            <td>Windows startup, installer, and camera registration may need admin rights or signing.</td>
+            <td>Developer setup and user install flow could be brittle.</td>
+            <td>Document privilege requirements early and keep install/uninstall/reset commands repeatable.</td>
+          </tr>
+          <tr>
+            <td>Visual parity may conflict with native Windows expectations.</td>
+            <td>App may feel either non-native or unlike CursorFollowMac.</td>
+            <td>Prioritize product hierarchy and control names from macOS, but use Windows placement, focus, notification, and accessibility behavior.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section" id="verification">
+      <h2>Verification Checklist</h2>
+      <div class="two-col">
+        <div class="card">
+          <h3>Developer Verification</h3>
+          <ul>
+            <li><span class="status"><span class="dot"></span>Build</span> CursorFollowWin from a clean checkout on Windows 11.</li>
+            <li>Install the app and confirm the tray icon appears after launch.</li>
+            <li>Confirm <strong>CursorFollow Camera</strong> appears in supported camera clients.</li>
+            <li>Capture a selected window and verify the same content appears in preview and camera clients.</li>
+            <li>Switch active windows with auto-follow enabled and confirm the camera follows within the interruption target.</li>
+            <li>Stop capture and confirm camera clients do not crash or lose the device.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Acceptance Criteria</h3>
+          <ul>
+            <li>Feature parity is documented and implemented for the primary macOS workflows.</li>
+            <li>Tray panel and settings dialog look recognizably like CursorFollow while feeling appropriate on Windows 11.</li>
+            <li>Camera clients can select <strong>CursorFollow Camera</strong> and display live window content.</li>
+            <li>Missing permissions, unsupported windows, and target disappearance degrade gracefully.</li>
+            <li>Build, install, verify, reset, and uninstall steps are documented and repeatable.</li>
+            <li>Thirty-minute capture stability test passes without crash, major leak, or sustained performance spike.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="review-prompts">
+      <h2>Review Prompts</h2>
+      <p class="review-note">
+        Use these questions during development review to flush out hidden platform assumptions before implementation starts.
+      </p>
+      <ol>
+        <li>Which Windows virtual camera path gives the best compatibility across the exact target apps?</li>
+        <li>Should the first implementation optimize for fastest parity or lowest latency architecture?</li>
+        <li>Which UI framework best supports the tray flyout, Windows 11 styling, high-DPI preview, and developer velocity?</li>
+        <li>What install flow is acceptable during early development if camera registration needs admin approval?</li>
+        <li>How should the app communicate protected-content and elevated-window capture limits without feeling broken?</li>
+      </ol>
+    </div>
+  </div>
+</body>
+</html>
