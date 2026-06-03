@@ -602,6 +602,13 @@ final class AppCoordinator: ObservableObject {
 
         Task {
             await windowTracker.refreshWindows()
+
+            // Auto-share on start: begin capture immediately if the user opted in
+            if UserDefaults.standard.bool(forKey: "settings.autoShareOnStart"),
+               let window = windowTracker.selectedWindow ?? windowTracker.windows.first {
+                windowTracker.selectWindow(window)
+                await captureEngine.startCapture(window: window)
+            }
         }
     }
 }
