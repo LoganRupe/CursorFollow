@@ -78,6 +78,7 @@ public sealed partial class MainWindow : Window
     {
         _settings = settings;
         OutputPage?.SetOverlayVisible(settings.ShowOverlay);
+        OutputPage?.ApplyCaptureQuality(settings.CaptureQuality);
         SetTaskbarIconVisible(settings.ShowTaskbarIcon);
         SetTopMost(settings.PinOutputOnTop);
         ApplyOutputVisibilityPolicy();

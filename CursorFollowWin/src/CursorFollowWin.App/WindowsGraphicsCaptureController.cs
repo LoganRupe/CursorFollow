@@ -15,7 +15,6 @@ internal sealed class WindowsGraphicsCaptureController : IDisposable
 {
     public const string OutputWindowTitle = "CursorFollow Output";
 
-    private const int FrameBufferCount = 2;
     private static readonly Guid GraphicsCaptureItemInterfaceId = new("79C3F95B-31F7-4EC2-A464-632EF5D30760");
 
     private readonly CanvasDevice _device = new();
@@ -29,6 +28,13 @@ internal sealed class WindowsGraphicsCaptureController : IDisposable
     private int _frameProcessing;
     private bool _programmaticAccessGranted;
     private bool _disposed;
+
+    // Capture-quality knobs. Defaults match the "Balanced" setting so behavior is correct
+    // even if ApplyQuality is never called.
+    private int _frameBufferCount = 2;
+    private TimeSpan _minFrameInterval = TimeSpan.FromSeconds(1.0 / 60);
+    private DateTimeOffset _lastAcceptedFrame = DateTimeOffset.MinValue;
+    private CaptureQuality _quality = CaptureQuality.Balanced;
 
     public event Action<CapturedFrame>? FrameReady;
 
@@ -84,6 +90,44 @@ internal sealed class WindowsGraphicsCaptureController : IDisposable
         StopCapture(raiseStopped: false);
     }
 
+    /// <summary>
+    /// Applies a capture-quality preset. Buffer depth and the frame-rate cap change to trade
+    /// latency against CPU load. If a buffer-depth change is needed while a session is live,
+    /// the session is restarted on the same target.
+    /// </summary>
+    public void ApplyQuality(string quality)
+    {
+        var parsed = ParseQuality(quality);
+        var (bufferCount, minInterval) = QualitySettings(parsed);
+        var bufferChanged = bufferCount != _frameBufferCount;
+
+        _quality = parsed;
+        _frameBufferCount = bufferCount;
+        _minFrameInterval = minInterval;
+
+        if (bufferChanged && _item is { } current)
+        {
+            Start(current);
+        }
+    }
+
+    private static CaptureQuality ParseQuality(string quality) => quality switch
+    {
+        "Performance" => CaptureQuality.Performance,
+        "Low-Latency" => CaptureQuality.LowLatency,
+        _ => CaptureQuality.Balanced,
+    };
+
+    private static (int BufferCount, TimeSpan MinInterval) QualitySettings(CaptureQuality quality) => quality switch
+    {
+        // Low-latency: shallow buffer, no frame-rate cap (process every frame the source emits).
+        CaptureQuality.LowLatency => (2, TimeSpan.Zero),
+        // Performance: deeper buffer for smoothness, capped at 30 fps to reduce CPU/GPU load.
+        CaptureQuality.Performance => (3, TimeSpan.FromSeconds(1.0 / 30)),
+        // Balanced: shallow buffer, capped at 60 fps.
+        _ => (2, TimeSpan.FromSeconds(1.0 / 60)),
+    };
+
     public void Dispose()
     {
         if (_disposed)
@@ -104,11 +148,12 @@ internal sealed class WindowsGraphicsCaptureController : IDisposable
         _lastContentSize = EnsureValidSize(item.Size);
         _sequence = 0;
         _droppedFrames = 0;
+        _lastAcceptedFrame = DateTimeOffset.MinValue;
 
         _framePool = Direct3D11CaptureFramePool.CreateFreeThreaded(
             _device,
             DirectXPixelFormat.B8G8R8A8UIntNormalized,
-            FrameBufferCount,
+            _frameBufferCount,
             _lastContentSize);
 
         _session = _framePool.CreateCaptureSession(item);
@@ -141,9 +186,18 @@ internal sealed class WindowsGraphicsCaptureController : IDisposable
             if (contentSize.Width != _lastContentSize.Width || contentSize.Height != _lastContentSize.Height)
             {
                 _lastContentSize = contentSize;
-                sender.Recreate(_device, DirectXPixelFormat.B8G8R8A8UIntNormalized, FrameBufferCount, contentSize);
+                sender.Recreate(_device, DirectXPixelFormat.B8G8R8A8UIntNormalized, _frameBufferCount, contentSize);
             }
 
+            // Frame-rate cap for Balanced/Performance: drain the frame to keep the pool moving
+            // but skip the expensive copy/present. Not counted as a dropped frame, since this is
+            // intentional pacing rather than the renderer falling behind.
+            if (_minFrameInterval > TimeSpan.Zero && timestamp - _lastAcceptedFrame < _minFrameInterval)
+            {
+                return;
+            }
+
+            _lastAcceptedFrame = timestamp;
             var bitmap = await SoftwareBitmap.CreateCopyFromSurfaceAsync(frame.Surface);
             copyTimer.Stop();
             var displayBitmap = EnsureDisplayBitmap(bitmap);
@@ -284,6 +338,13 @@ internal sealed class WindowsGraphicsCaptureController : IDisposable
 
     [DllImport("combase.dll", ExactSpelling = true)]
     private static extern int WindowsDeleteString(IntPtr hstring);
+}
+
+internal enum CaptureQuality
+{
+    Balanced,
+    Performance,
+    LowLatency,
 }
 
 internal sealed record CapturedFrame(
