@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Graphics.Canvas;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -166,6 +167,14 @@ internal sealed class WindowsGraphicsCaptureController : IDisposable
         item.Closed += Item_Closed;
         _framePool.FrameArrived += FramePool_FrameArrived;
         _session.StartCapture();
+
+        AppLog.Capture.LogInformation(
+            "Capture started for '{Target}' at {Width}x{Height} (quality {Quality}, buffers {Buffers}).",
+            _targetName,
+            _lastContentSize.Width,
+            _lastContentSize.Height,
+            _quality,
+            _frameBufferCount);
     }
 
     private async void FramePool_FrameArrived(Direct3D11CaptureFramePool sender, object args)
@@ -206,6 +215,7 @@ internal sealed class WindowsGraphicsCaptureController : IDisposable
         }
         catch (Exception ex)
         {
+            AppLog.Capture.LogError(ex, "Frame processing failed for '{Target}'.", _targetName);
             CaptureFailed?.Invoke(ex);
         }
         finally
@@ -240,6 +250,7 @@ internal sealed class WindowsGraphicsCaptureController : IDisposable
 
         if (raiseStopped)
         {
+            AppLog.Capture.LogInformation("Capture stopped: {Reason}", reason);
             CaptureStopped?.Invoke(reason);
         }
     }
@@ -271,6 +282,7 @@ internal sealed class WindowsGraphicsCaptureController : IDisposable
         var access = await GraphicsCaptureAccess.RequestAccessAsync(GraphicsCaptureAccessKind.Programmatic);
         if (access != AppCapabilityAccessStatus.Allowed)
         {
+            AppLog.Capture.LogWarning("Programmatic capture access denied ({Access}).", access);
             throw new InvalidOperationException($"Programmatic window capture was not allowed ({access}). Use Select target if Windows blocks automatic capture for this app session.");
         }
 

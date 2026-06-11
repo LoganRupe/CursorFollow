@@ -45,7 +45,8 @@ internal static class SettingsStore
         try
         {
             var json = File.ReadAllText(SettingsPath);
-            Current = JsonSerializer.Deserialize(json, AppSettingsJsonContext.Default.AppSettings) ?? new AppSettings();
+            var loaded = JsonSerializer.Deserialize(json, AppSettingsJsonContext.Default.AppSettings) ?? new AppSettings();
+            Current = Normalize(loaded);
         }
         catch (JsonException)
         {
@@ -55,6 +56,26 @@ internal static class SettingsStore
         {
             Current = new AppSettings();
         }
+    }
+
+    // Settings files written before a field existed deserialize that field as null (System.Text.Json
+    // does not apply property initializers for absent members). Replace null/blank values with the
+    // current defaults so upgrading users keep working hotkeys, scaling, and filter lists.
+    private static AppSettings Normalize(AppSettings settings)
+    {
+        var defaults = new AppSettings();
+        return settings with
+        {
+            CaptureQuality = Fallback(settings.CaptureQuality, defaults.CaptureQuality),
+            OutputScaleMode = Fallback(settings.OutputScaleMode, defaults.OutputScaleMode),
+            AutoFollowHotkey = settings.AutoFollowHotkey ?? defaults.AutoFollowHotkey,
+            ToggleOutputHotkey = settings.ToggleOutputHotkey ?? defaults.ToggleOutputHotkey,
+            IncludeWindowIdentities = settings.IncludeWindowIdentities ?? defaults.IncludeWindowIdentities,
+            ExcludeWindowIdentities = settings.ExcludeWindowIdentities ?? defaults.ExcludeWindowIdentities,
+        };
+
+        static string Fallback(string? value, string fallback) =>
+            string.IsNullOrWhiteSpace(value) ? fallback : value;
     }
 
     public static void Save(AppSettings settings)

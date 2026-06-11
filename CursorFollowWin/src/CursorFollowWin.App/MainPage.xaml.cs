@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -200,6 +201,7 @@ public sealed partial class MainPage : Page
             return;
         }
 
+        AppLog.Output.LogWarning("Output entered fallback/error state: {Detail}", detail ?? "unspecified");
         StateText.Text = "Error / fallback";
         SetStatus(detail ?? "Error / fallback output");
         FallbackTitle.Text = "Fallback frame";
