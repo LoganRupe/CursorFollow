@@ -33,7 +33,7 @@ public sealed partial class SettingsWindow : Window
     private const int WindowHeight = 646;
     private const int AnchorGap = 8;
 
-    private readonly Action<AppSettings> _save;
+    private readonly Func<AppSettings, string?> _save;
     private readonly IntPtr _windowHandle;
     private readonly ToggleSwitch _startWithWindowsSwitch = new() { Header = "Start with Windows", Foreground = WhiteBrush };
     private readonly ToggleSwitch _autoShareSwitch = new() { Header = "Auto-share on launch", Foreground = WhiteBrush };
@@ -44,7 +44,11 @@ public sealed partial class SettingsWindow : Window
     private readonly Button _balancedQualityButton = new() { Content = "BALANCED" };
     private readonly Button _performanceQualityButton = new() { Content = "PERFORMANT" };
     private readonly Button _lowLatencyQualityButton = new() { Content = "LOW-LATENCY" };
+    private readonly HotkeyCaptureControl _autoFollowHotkey = new();
+    private readonly HotkeyCaptureControl _toggleOutputHotkey = new();
     private string _selectedQuality = "Balanced";
+    private TextBlock _statusText = null!;
+    private Ellipse _statusDot = null!;
 
     private static readonly SolidColorBrush WhiteBrush = new(Windows.UI.Color.FromArgb(255, 255, 255, 255));
     private static readonly SolidColorBrush MutedBrush = new(Windows.UI.Color.FromArgb(255, 174, 184, 200));
@@ -57,8 +61,9 @@ public sealed partial class SettingsWindow : Window
     private static readonly SolidColorBrush PrimaryButtonBrush = new(Windows.UI.Color.FromArgb(255, 184, 200, 255));
     private static readonly SolidColorBrush PrimaryButtonTextBrush = new(Windows.UI.Color.FromArgb(255, 18, 31, 61));
     private static readonly SolidColorBrush SegmentBackgroundBrush = new(Windows.UI.Color.FromArgb(255, 43, 47, 62));
+    private static readonly SolidColorBrush DangerBrush = new(Windows.UI.Color.FromArgb(255, 255, 123, 123));
 
-    public SettingsWindow(AppSettings settings, Action<AppSettings> save)
+    public SettingsWindow(AppSettings settings, Func<AppSettings, string?> save)
     {
         _save = save;
         _windowHandle = WindowNative.GetWindowHandle(this);
@@ -81,6 +86,8 @@ public sealed partial class SettingsWindow : Window
         _pinOutputSwitch.IsOn = settings.PinOutputOnTop;
         _showTaskbarIconSwitch.IsOn = settings.ShowTaskbarIcon;
         _showOverlaySwitch.IsOn = settings.ShowOverlay;
+        _autoFollowHotkey.Value = Hotkey.Parse(settings.AutoFollowHotkey);
+        _toggleOutputHotkey.Value = Hotkey.Parse(settings.ToggleOutputHotkey);
         SelectQuality(settings.CaptureQuality);
     }
 
@@ -99,7 +106,7 @@ public sealed partial class SettingsWindow : Window
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
         var current = SettingsStore.Current;
-        _save(new AppSettings
+        var conflict = _save(new AppSettings
         {
             StartWithWindows = _startWithWindowsSwitch.IsOn,
             AutoShareOnLaunch = _autoShareSwitch.IsOn,
@@ -111,9 +118,26 @@ public sealed partial class SettingsWindow : Window
             WindowFilterMode = current.WindowFilterMode,
             IncludeWindowIdentities = current.IncludeWindowIdentities,
             ExcludeWindowIdentities = current.ExcludeWindowIdentities,
+            AutoFollowHotkey = _autoFollowHotkey.Value.Format(),
+            ToggleOutputHotkey = _toggleOutputHotkey.Value.Format(),
         });
 
+        // Settings are saved either way; a conflict only means Windows refused to bind the
+        // hotkey. Keep the dialog open so the user can pick a different combination.
+        if (conflict is not null)
+        {
+            ShowStatus(conflict, isError: true);
+            return;
+        }
+
+        ShowStatus("SYSTEM READY", isError: false);
         HideWindow();
+    }
+
+    private void ShowStatus(string text, bool isError)
+    {
+        _statusText.Text = text;
+        _statusDot.Fill = isError ? DangerBrush : PrimaryButtonBrush;
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e)
@@ -205,9 +229,9 @@ public sealed partial class SettingsWindow : Window
 
         rightColumn.Children.Add(CreateSectionLabel("HOTKEYS"));
         rightColumn.Children.Add(CreateCard(
-            CreateHotkeyRow("Toggle Auto-follow", "Global system shortcut", "Opt", "F"),
+            CreateHotkeyRow("Toggle Auto-follow", "Click, then press a shortcut", _autoFollowHotkey),
             CreateDivider(),
-            CreateHotkeyRow("Toggle Output", "Global system shortcut", "Opt", "S")));
+            CreateHotkeyRow("Toggle Output", "Click, then press a shortcut", _toggleOutputHotkey)));
 
         rightColumn.Children.Add(CreateSectionLabel("DISPLAY"));
         rightColumn.Children.Add(CreateCard(
@@ -241,21 +265,24 @@ public sealed partial class SettingsWindow : Window
             Spacing = 8,
             VerticalAlignment = VerticalAlignment.Center,
         };
-        status.Children.Add(new Ellipse
+        _statusDot = new Ellipse
         {
             Width = 8,
             Height = 8,
             Fill = PrimaryButtonBrush,
             VerticalAlignment = VerticalAlignment.Center,
-        });
-        status.Children.Add(new TextBlock
+        };
+        status.Children.Add(_statusDot);
+        _statusText = new TextBlock
         {
             Text = "SYSTEM READY",
             Foreground = WhiteBrush,
             FontSize = 12,
             FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
             VerticalAlignment = VerticalAlignment.Center,
-        });
+            TextWrapping = TextWrapping.Wrap,
+        };
+        status.Children.Add(_statusText);
         footer.Children.Add(status);
 
         var buttons = new StackPanel
@@ -367,12 +394,10 @@ public sealed partial class SettingsWindow : Window
         return segment;
     }
 
-    private static Grid CreateHotkeyRow(string title, string subtitle, string modifier, string key)
+    private static Grid CreateHotkeyRow(string title, string subtitle, HotkeyCaptureControl control)
     {
         var row = new Grid { MinHeight = 42, ColumnSpacing = 10 };
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
         var text = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
@@ -392,21 +417,8 @@ public sealed partial class SettingsWindow : Window
         });
         row.Children.Add(text);
 
-        var modifierCap = CreateKeyCap(modifier);
-        Grid.SetColumn(modifierCap, 1);
-        row.Children.Add(modifierCap);
-        var plus = new TextBlock
-        {
-            Text = "+",
-            Foreground = WhiteBrush,
-            FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-        Grid.SetColumn(plus, 2);
-        row.Children.Add(plus);
-        var keyCap = CreateKeyCap(key);
-        Grid.SetColumn(keyCap, 3);
-        row.Children.Add(keyCap);
+        Grid.SetColumn(control, 1);
+        row.Children.Add(control);
         return row;
     }
 
@@ -457,27 +469,6 @@ public sealed partial class SettingsWindow : Window
             FontSize = 12,
             FontWeight = Microsoft.UI.Text.FontWeights.Bold,
             IsHitTestVisible = false,
-        };
-    }
-
-    private static Border CreateKeyCap(string text)
-    {
-        return new Border
-        {
-            MinWidth = 32,
-            Height = 28,
-            Padding = new Thickness(8, 0, 8, 0),
-            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 56, 60, 78)),
-            CornerRadius = new CornerRadius(6),
-            Child = new TextBlock
-            {
-                Text = text,
-                Foreground = WhiteBrush,
-                FontSize = 13,
-                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-            },
         };
     }
 
