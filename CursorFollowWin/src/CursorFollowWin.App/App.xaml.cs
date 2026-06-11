@@ -32,6 +32,7 @@ public partial class App : Application
         }
 
         SettingsStore.Load();
+        StartupRegistration.Apply(SettingsStore.Current.StartWithWindows);
 
         _outputWindow = new MainWindow(SettingsStore.Current);
         _outputWindow.ApplySettings(SettingsStore.Current);
@@ -126,6 +127,7 @@ public partial class App : Application
     private string? SaveSettings(AppSettings settings)
     {
         SettingsStore.Save(settings);
+        StartupRegistration.Apply(settings.StartWithWindows);
         _outputWindow?.ApplySettings(settings);
         _settingsWindow?.ApplySettings(settings);
         _panelWindow?.RefreshFromOutput();
