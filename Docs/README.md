@@ -47,7 +47,7 @@ Use `Prompts/_session-template.md` as the starting point.
 
 ## High-Risk Areas
 
-- Screen Recording and Accessibility permissions
+- Screen Recording permission
 - Output window visibility and share-picker discoverability
 - Avoiding recursive capture of CursorFollow's own output window
 - Window switching edge cases (full-screen, Spaces, minimized windows)
