@@ -1,6 +1,6 @@
 # CursorFollow (macOS)
 
-A macOS menu bar utility that captures an app window and publishes it as a virtual camera feed via a CoreMediaIO camera extension. Use it in Zoom, Slack, Google Meet, OBS, and other camera-enabled apps.
+A macOS menu bar utility that captures a target window and renders it into a stable window named **CursorFollow Output**. Share that output window from Zoom, Google Meet, Slack Huddles, Teams, OBS, or any app with a window-share picker.
 
 ## Table of Contents
 
@@ -15,26 +15,26 @@ A macOS menu bar utility that captures an app window and publishes it as a virtu
 
 ## Overview
 
-CursorFollow runs in your menu bar and publishes a virtual camera named **CursorFollow Camera**. It can follow your active window automatically, or let you lock to a specific window manually.
+CursorFollow runs in your menu bar and keeps **CursorFollow Output** pointed at the window you want to share. It can follow the frontmost eligible window automatically, or let you lock to a specific window manually.
 
 ## Quick Start
 
 1. Launch `CursorFollowMac.app`.
 2. When prompted, allow:
    - **Screen Recording** (required for window capture)
-   - **System Extension** approval in System Settings
 3. Open the CursorFollow menu bar panel.
-4. Pick a target window from the list (or keep **Auto-follow cursor** enabled).
-5. Click **Start**.
-6. In your video app, select **CursorFollow Camera** as your camera source.
+4. Pick a target window from the list, or set **Target Mode** to **Auto**.
+5. Click **Resume** if output is paused.
+6. In your meeting app, share the window named **CursorFollow Output**.
 
 ## Usage
 
-- **Auto-follow cursor**: Automatically tracks the app/window you are actively using.
+- **Target Mode**: Use **Auto** to track the active eligible window, or **Manual** to keep the selected target.
 - **Filter mode**: Use **All / Exclude / Include** to control which windows appear as capture targets.
+- **Output scaling**: Choose **Fit**, **Fill**, or **Actual** for the shared output window.
 - **Refresh**: Re-scan active windows if the list looks stale or incomplete.
-- **Show**: Bring the output preview window to the front.
-- **Start / Stop**: Start or stop virtual camera output.
+- **Show / Hide**: Bring the persistent output window forward or hide it.
+- **Resume / Pause**: Start or pause output without changing the share-source window identity.
 
 ## Screenshots
 
@@ -49,7 +49,6 @@ CursorFollow runs in your menu bar and publishes a virtual camera named **Cursor
 ## Permissions
 
 - **Screen Recording**: Required for ScreenCaptureKit window capture.
-- **System Extension**: Approve in System Settings → Privacy & Security when prompted.
 
 ## Troubleshooting
 
@@ -57,32 +56,29 @@ CursorFollow runs in your menu bar and publishes a virtual camera named **Cursor
 
 1. Quit your video app (Zoom/Meet/Slack/OBS) and quit CursorFollow.
 2. In **System Settings → Privacy & Security → Screen Recording**, verify CursorFollow is enabled.
-3. In **System Settings → Privacy & Security**, confirm the system extension is approved.
-4. Reopen CursorFollow, click **Refresh**, select the target window, then click **Start**.
-5. Reopen your video app and reselect **CursorFollow Camera** as the camera source.
+3. Reopen CursorFollow, click **Refresh**, select the target window, then click **Resume**.
+4. Reopen your meeting app and reselect **CursorFollow Output** as the shared window.
 
 ### Permission paths by macOS version
 
 - **macOS 13 Ventura / 14 Sonoma / 15 Sequoia**
     - Screen capture access: **System Settings → Privacy & Security → Screen Recording**
-    - System extension approval: **System Settings → Privacy & Security** (look for the allow prompt near the bottom after first launch)
 
-### CursorFollow Camera does not appear in Zoom/Meet/Slack
+### CursorFollow Output does not appear in Zoom/Meet/Slack/Teams
 
-- Ensure CursorFollow is running and capture is started.
-- Confirm **System Extension** approval in System Settings → Privacy & Security.
-- Quit and reopen the video app after first-time extension approval.
-- In the video app's camera selector, choose **CursorFollow Camera** explicitly (some apps stay on the previous camera device).
+- Ensure CursorFollow is running and **CursorFollow Output** is visible.
+- Use the meeting app's **Share Screen** or **Share Window** picker, not the camera selector.
+- If the picker was already open, close and reopen the picker after showing the output window.
 
 ### Output is black or frozen
 
 - Confirm **Screen Recording** permission is enabled for CursorFollow in System Settings → Privacy & Security → Screen Recording.
 - Click **Refresh**, then reselect the target window.
-- Stop and restart capture from the menu bar panel.
+- Pause and resume output from the menu bar panel.
 
 ### Wrong window is being captured
 
-- Disable **Auto-follow cursor** and manually select a specific window.
+- Set **Target Mode** to **Manual** and select a specific window.
 - Use **Include** mode to limit capture targets to approved windows.
 
 ### Capture feels choppy or high CPU

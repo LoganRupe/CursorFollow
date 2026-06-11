@@ -59,7 +59,7 @@ CursorFollowMac.app
 ## Permissions
 
 - Screen Recording: mandatory for capture.
-- Accessibility: improves focused-window detection reliability.
+- Accessibility: not part of the current Shared Window V1 permission flow unless a future implementation adds AX APIs.
 - Camera permission: not required for Shared Window V1.
 
 ## Signing

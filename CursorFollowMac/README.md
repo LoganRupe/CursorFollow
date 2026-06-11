@@ -1,6 +1,6 @@
 # CursorFollowMac
 
-macOS host app and CoreMediaIO camera extension project for CursorFollow.
+macOS host app for CursorFollow's shared-window workflow. The historical CameraExtension target remains in the project, but Shared Window V1 renders into the host-owned `CursorFollow Output` window.
 
 ## Quick Build
 
