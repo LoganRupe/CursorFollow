@@ -307,7 +307,7 @@
       <p class="kicker">Feature Requirements</p>
       <h1>CursorFollowWin</h1>
       <p class="summary">
-        Build a Windows 11 equivalent of CursorFollow using C# and .NET, preserving feature parity and visual identity with the macOS app while using native Windows conventions for the system tray, capture APIs, settings, permissions, packaging, and virtual camera integration.
+        Build a Windows 11 equivalent of CursorFollow using C# and .NET, preserving the target-window tracking workflow while using native Windows conventions for the system tray, capture APIs, output-window sharing, settings, permissions, and packaging.
       </p>
       <div class="meta-grid" aria-label="Project metadata">
         <div class="meta-card">
@@ -324,7 +324,7 @@
         </div>
         <div class="meta-card">
           <span class="label">Status</span>
-          <span class="value">Draft for dev review</span>
+          <span class="value">Phase 3.5 gap analysis</span>
         </div>
       </div>
     </div>
@@ -334,11 +334,11 @@
     <div class="section" id="objective">
       <h2>Objective</h2>
       <p>
-        CursorFollowWin must let Windows 11 users choose or automatically follow a target window, capture that window with low latency, preview the captured output, and expose it as a selectable virtual camera named <strong>CursorFollow Camera</strong> in apps such as Teams, Zoom, Slack, Google Meet, OBS, and browser-based conferencing tools.
+        CursorFollowWin must let Windows 11 users choose or automatically follow a target window, capture that window with low latency, and render it into a normal shareable output window. The intended meeting workflow is that users keep their real webcam selected while sharing the CursorFollow output window in apps such as Teams, Zoom, Slack, Google Meet, OBS, and browser-based conferencing tools.
       </p>
       <div class="tag-row" aria-label="Feature tags">
         <span class="tag">System tray app</span>
-        <span class="tag">Virtual camera</span>
+        <span class="tag">Shareable output window</span>
         <span class="tag">Window capture</span>
         <span class="tag">Auto-follow</span>
         <span class="tag">Windows 11 visual parity</span>
@@ -349,7 +349,7 @@
     <div class="section" id="product-parity">
       <h2>Mac Parity Baseline</h2>
       <p>
-        The Windows app should feel like the same product moved to Windows, not a separate utility with different behavior. Terminology, control hierarchy, default settings, and camera naming should remain aligned with the macOS app unless Windows platform behavior requires a different implementation.
+        The Windows app should feel like the same product moved to Windows, not a separate utility with different behavior. Terminology, control hierarchy, default settings, and target-window tracking should remain aligned with the macOS app unless Windows platform behavior requires a different implementation. The delivery surface differs intentionally: Windows prioritizes a shareable output window so the user's real webcam can stay active during calls.
       </p>
       <table>
         <thead>
@@ -382,12 +382,12 @@
           </tr>
           <tr>
             <td>Start / Stop controls the capture feed.</td>
-            <td>Start / Stop controls Windows capture and virtual camera frame publishing.</td>
-            <td>Stopping capture should leave the virtual camera device available with a graceful idle/black/fallback frame.</td>
+            <td>Start / Stop controls Windows capture and output-window frame publishing.</td>
+            <td>Stopping capture should leave the output window available with a graceful idle/black/fallback frame when visible.</td>
           </tr>
           <tr>
-            <td>Output preview window can be shown or hidden.</td>
-            <td>Output preview window renders the live captured frame and can be shown, hidden, resized, and optionally pinned on top.</td>
+            <td>Output window can be shown or hidden.</td>
+            <td>Output window renders the live captured frame and can be shown, hidden, resized, and optionally pinned on top.</td>
             <td>Preview should be shareable through Windows screen/window sharing pickers.</td>
           </tr>
           <tr>
@@ -409,8 +409,8 @@
             <li>System tray resident app with compact control panel and settings dialog.</li>
             <li>Visible-window enumeration, manual target selection, and auto-follow behavior.</li>
             <li>Window capture with cursor included by default.</li>
-            <li>Virtual camera output named <strong>CursorFollow Camera</strong>.</li>
-            <li>Live output preview window with optional overlays.</li>
+            <li>Live shareable output window with optional overlays.</li>
+            <li>Meeting-app window sharing workflow while the user's real webcam remains selected.</li>
             <li>Persistent settings, app startup option, hotkeys, and troubleshooting logs.</li>
             <li>Build, install, verify, and reset documentation for Windows developers.</li>
           </ul>
@@ -432,7 +432,7 @@
     <div class="section" id="architecture">
       <h2>Architecture Overview</h2>
       <p>
-        The implementation should be split so UI, window tracking, capture, frame transport, and camera output can be tested independently. The exact virtual camera mechanism is a key design decision and must be proven early with a minimal camera device before deep UI work proceeds.
+        The implementation should be split so UI, window tracking, capture, frame transport, and output-window rendering can be tested independently. The exact output rendering path is a key design decision and must be proven early with a minimal shareable window before deep UI work proceeds.
       </p>
       <div class="mermaidless-diagram" aria-label="Architecture diagram">
         <div class="diagram-row">
@@ -447,11 +447,11 @@
           <div class="arrow">to</div>
           <div class="diagram-box">Frame Transport<br>D3D11 texture / shared memory</div>
           <div class="arrow">to</div>
-          <div class="diagram-box">Virtual Camera<br>Media Foundation / DirectShow path</div>
+          <div class="diagram-box">Output Window<br>WinUI / Win2D / D3D path</div>
         </div>
       </div>
       <div class="callout warning">
-        <strong>Phase 0 gate:</strong> Before building the full app, prove that a Windows virtual camera can register, appear in camera clients, and render generated test frames. Nothing else matters if conferencing apps cannot select the camera.
+        <strong>Phase 0 gate:</strong> Before building the full app, prove that a normal CursorFollow output window can render frames, stay shareable in meeting-app window pickers, and let the user keep their real webcam active. Virtual camera work is optional/later unless explicitly requested.
       </div>
     </div>
 
@@ -482,19 +482,19 @@
             <td>Correctly lists normal app windows and filters system/tool windows across classic Win32, Electron, browser, and packaged apps.</td>
           </tr>
           <tr>
-            <td>Virtual camera</td>
-            <td>Media Foundation virtual camera if viable for Windows 11; fallback investigation for DirectShow-compatible camera clients if required.</td>
-            <td>Camera appears as <strong>CursorFollow Camera</strong> in Teams, Zoom, Slack, Chrome/Edge, OBS, and Windows Camera where supported.</td>
+            <td>Output window</td>
+            <td>WinUI/Win2D or Direct3D-backed output surface that renders the captured target as a normal shareable window.</td>
+            <td>Teams, Zoom, Slack, Google Meet/Chrome, Edge, and OBS can share the CursorFollow output window while a real webcam remains selected.</td>
           </tr>
           <tr>
             <td>Frame transport</td>
-            <td>Prefer GPU texture sharing between capture and camera output. Use CPU BGRA copy only if simpler and still meets latency/CPU targets.</td>
+            <td>Prefer GPU texture sharing between capture and output-window rendering. Use CPU BGRA copy only if simpler and still meets latency/CPU targets.</td>
             <td>End-to-end median latency stays below target during a 30-minute capture session.</td>
           </tr>
           <tr>
             <td>Installer</td>
-            <td>Windows installer that registers the app, virtual camera components, startup option, and uninstall cleanup.</td>
-            <td>Fresh install, upgrade, and uninstall leave camera registration and settings in expected states.</td>
+            <td>Windows installer that registers the app, startup option, and uninstall cleanup.</td>
+            <td>Fresh install, upgrade, and uninstall leave app files, startup registration, settings, and logs in expected states.</td>
           </tr>
         </tbody>
       </table>
@@ -512,14 +512,14 @@
         <li>Include mode lets the user restrict auto-follow to an approved set of apps/windows.</li>
         <li>Auto-follow switches capture target when the foreground window changes and respects the active filter mode.</li>
         <li>Auto-follow debounces rapid target changes to avoid capture thrash.</li>
-        <li>Capture starts and stops from the tray panel without closing the app or unregistering the camera.</li>
-        <li>The output preview window renders the live captured frame, preserves aspect ratio, supports resizing, and can be pinned above other windows.</li>
-        <li>The virtual camera publishes a stable video stream named <strong>CursorFollow Camera</strong>.</li>
-        <li>The virtual camera remains selectable even when capture is idle, missing permission, or the target disappears, using a clear fallback frame state.</li>
+        <li>Capture starts and stops from the tray panel without closing the app or destroying the output window.</li>
+        <li>The output window renders the live captured frame, preserves aspect ratio, supports resizing, and can be pinned above other windows.</li>
+        <li>The output window is intentionally shareable through meeting-app window pickers while the user's real webcam remains active.</li>
+        <li>The output window remains stable when capture is idle, missing permission, or the target disappears, using a clear fallback frame state.</li>
         <li>The settings dialog includes startup, auto-share on launch, hide when not sharing, pin output on top, capture quality, overlay display, and hotkey settings.</li>
         <li>Global hotkeys support toggling auto-follow and toggling sharing, with visible conflict/error feedback.</li>
         <li>The app persists settings per Windows user.</li>
-        <li>The app provides actionable error states for missing permissions, protected content, camera registration failure, capture failure, and hotkey conflicts.</li>
+        <li>The app provides actionable error states for missing permissions, protected content, output rendering failure, capture failure, and hotkey conflicts.</li>
       </ol>
     </div>
 
@@ -569,7 +569,7 @@
         <tbody>
           <tr>
             <td>Latency</td>
-            <td>Median capture-to-camera-output latency for live window content.</td>
+            <td>Median capture-to-output-window latency for live window content.</td>
             <td>Less than 50 ms median on the development Windows 11 machine.</td>
           </tr>
           <tr>
@@ -584,8 +584,8 @@
           </tr>
           <tr>
             <td>Resolution</td>
-            <td>Default virtual camera stream resolution.</td>
-            <td>1920x1080 BGRA or equivalent camera-client-compatible format.</td>
+            <td>Default output-window size and scaling behavior.</td>
+            <td>Start near 960x540 for generated/test output, preserve captured aspect ratio, and support crisp resizing.</td>
           </tr>
           <tr>
             <td>Stability</td>
@@ -599,7 +599,7 @@
           </tr>
           <tr>
             <td>Diagnostics</td>
-            <td>Logs identify capture, tracking, virtual camera, installer, and permission failures.</td>
+            <td>Logs identify capture, tracking, output rendering, installer, and permission failures.</td>
             <td>Actionable logs with component names and user-visible remediation where appropriate.</td>
           </tr>
         </tbody>
@@ -609,12 +609,12 @@
     <div class="section" id="implementation-phases">
       <h2>Implementation Phases</h2>
       <div class="card">
-        <h3>Phase 0: Virtual Camera Feasibility</h3>
+        <h3>Phase 0: Shareable Output Window Feasibility</h3>
         <ul>
-          <li>Create minimal Windows 11 camera device prototype named <strong>CursorFollow Camera</strong>.</li>
-          <li>Publish generated test frames at 1920x1080.</li>
-          <li>Verify camera selection in Teams, Zoom, Slack, Chrome/Edge, OBS, and Windows Camera where applicable.</li>
-          <li>Document chosen virtual camera API, registration model, installer implications, signing needs, and unsupported clients.</li>
+          <li>Create a minimal Windows 11 app that renders generated frames into a normal CursorFollow output window.</li>
+          <li>Verify the output window appears in Teams, Zoom, Slack, Google Meet/Chrome, Edge, and OBS window-sharing pickers.</li>
+          <li>Confirm a real webcam can remain selected while sharing the CursorFollow output window.</li>
+          <li>Document chosen rendering path, output-window behavior, installer implications, and unsupported clients.</li>
         </ul>
       </div>
       <div class="card">
@@ -634,10 +634,10 @@
         </ul>
       </div>
       <div class="card">
-        <h3>Phase 3: Live Camera Pipeline</h3>
+        <h3>Phase 3: Live Output Pipeline</h3>
         <ul>
-          <li>Bridge captured frames into the virtual camera output path.</li>
-          <li>Handle resize, aspect ratio, idle state, missing window, protected content, and camera-client open/close events.</li>
+          <li>Bridge captured frames into the output-window rendering path.</li>
+          <li>Handle resize, aspect ratio, idle state, missing window, protected content, hide/show, and pin-on-top behavior.</li>
           <li>Measure latency, CPU, GPU, dropped frames, and memory behavior.</li>
         </ul>
       </div>
@@ -645,9 +645,146 @@
         <h3>Phase 4: Packaging and Hardening</h3>
         <ul>
           <li>Create installer, upgrade path, uninstall cleanup, code signing plan, and developer verification scripts.</li>
-          <li>Add reset/troubleshooting docs for camera registration, capture permission, hotkey conflicts, and stale devices.</li>
-          <li>Run 30-minute stability tests and camera-client compatibility matrix.</li>
+          <li>Add reset/troubleshooting docs for capture permission, output-window sharing, hotkey conflicts, and protected/elevated windows.</li>
+          <li>Run 30-minute stability tests and meeting-app window-sharing compatibility matrix.</li>
         </ul>
+      </div>
+    </div>
+
+    <div class="section" id="phase-3-5-gap-analysis">
+      <h2>Phase 3.5: Gap Analysis (Copilot &rarr; Claude Handoff)</h2>
+      <div class="callout warning">
+        <strong>Agent handoff.</strong> Phases 0&ndash;3 were implemented under GitHub Copilot. This phase marks the switch from Copilot to Claude as the implementation agent. Before continuing to Phase 4, Claude performed an independent audit of the actual code in <code>CursorFollowWin/src/CursorFollowWin.App/</code> against this requirements document. Phase 3 was reported complete, but several Phase&nbsp;1&ndash;3 requirements are only partially implemented, stubbed as UI mockups, or missing. Phase&nbsp;3.5 exists to close those gaps before packaging and hardening.
+      </div>
+
+      <h3 style="margin-top:18px;">Audit Legend</h3>
+      <div class="tag-row" aria-label="Status legend">
+        <span class="tag">Done = implemented and exercised</span>
+        <span class="tag">Partial = present but incomplete</span>
+        <span class="tag">Stub = UI exists, no behavior</span>
+        <span class="tag">Missing = not implemented</span>
+      </div>
+
+      <h3 style="margin-top:22px;">Verified Complete (Phases 0&ndash;3)</h3>
+      <div class="card">
+        <ul>
+          <li>Tray-resident app: <code>Shell_NotifyIcon</code> icon, compact panel near the tray, single-instance guard.</li>
+          <li>Window capture via Windows Graphics Capture &mdash; both the system picker and direct HWND interop (<code>IGraphicsCaptureItemInterop</code>).</li>
+          <li>Win32 window enumeration with system/tool/cloaked/tiny/self filtering and refresh diagnostics.</li>
+          <li>Filter modes All / Exclude / Include, persisted with stable app identity (package family name &rarr; exe path &rarr; process name).</li>
+          <li>Auto-follow: window-under-cursor then foreground fallback, 350&nbsp;ms debounce, shared <code>TargetFollowService</code>.</li>
+          <li>Output window: aspect-preserving resize, pin-on-top, show/hide, hide-when-not-sharing, taskbar-icon toggle, self-capture rejection, graceful idle/target-closed/error fallback frames.</li>
+          <li>In-app telemetry overlay: frame size, estimated fps, copy latency, render latency, dropped frames.</li>
+          <li>Per-user JSON settings at <code>%LocalAppData%\CursorFollowWin\settings.json</code> with draft Save/Cancel in the settings dialog.</li>
+        </ul>
+      </div>
+
+      <h3 style="margin-top:22px;">Identified Gaps</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Requirement</th>
+            <th>Status</th>
+            <th>Actual State in Code</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Global hotkeys</td>
+            <td>FR15, Settings/Hotkeys</td>
+            <td><strong>Stub</strong></td>
+            <td>Settings renders static, non-interactive key caps labeled <code>Opt + F</code> / <code>Opt + S</code> &mdash; the macOS Option modifier, a parity bug on Windows. No <code>RegisterHotKey</code>, no remapping, no conflict/error feedback.</td>
+          </tr>
+          <tr>
+            <td>Start with Windows</td>
+            <td>FR14, Phase 1</td>
+            <td><strong>Stub</strong></td>
+            <td><code>StartWithWindows</code> persists, but nothing writes a <code>Run</code> key or <code>StartupTask</code>; the toggle has no effect.</td>
+          </tr>
+          <tr>
+            <td>Capture quality</td>
+            <td>FR14, NFR frame rate</td>
+            <td><strong>Stub</strong></td>
+            <td>Balanced / Performance / Low-Latency persists but never reaches capture. Buffer count is hardcoded to 2 and there is no fps cap or quality branch in the capture controller.</td>
+          </tr>
+          <tr>
+            <td>Output scaling FIT/FILL/ACTUAL</td>
+            <td>UI / Display</td>
+            <td><strong>Stub</strong></td>
+            <td>Display-only buttons (<code>IsHitTestVisible = false</code>, ACTUAL hardcoded active). Not wired to the renderer and not present in <code>AppSettings</code>.</td>
+          </tr>
+          <tr>
+            <td>About section</td>
+            <td>UI / Settings</td>
+            <td><strong>Partial</strong></td>
+            <td>Renders an icon only. No Documentation / Changelog links or version info (macOS app exposes these).</td>
+          </tr>
+          <tr>
+            <td>Mutually exclusive settings</td>
+            <td>UI / Settings</td>
+            <td><strong>Missing</strong></td>
+            <td>"Hide when not sharing" vs "Pin output on top" are independent toggles. No disabled-state explanation as the requirement specifies.</td>
+          </tr>
+          <tr>
+            <td>Diagnostics / logging</td>
+            <td>FR17, NFR diagnostics</td>
+            <td><strong>Missing</strong></td>
+            <td>No <code>Microsoft.Extensions.Logging</code> and no rolling log under <code>%LocalAppData%\CursorFollowWin\Logs</code>. Failures surface only as transient in-window status text.</td>
+          </tr>
+          <tr>
+            <td>Accessibility</td>
+            <td>UI / NFR accessibility</td>
+            <td><strong>Missing</strong></td>
+            <td>Programmatically built controls carry no <code>AutomationProperties</code> names; keyboard navigation and screen-reader labeling are unverified.</td>
+          </tr>
+          <tr>
+            <td>Project structure</td>
+            <td>Architecture, Folder Structure</td>
+            <td><strong>Missing</strong></td>
+            <td>Everything lives in <code>CursorFollowWin.App</code>. The required <code>.Capture</code>, <code>.Output</code>, and <code>.Shared</code> projects, <code>tests/</code>, and <code>installer/</code> do not exist.</td>
+          </tr>
+          <tr>
+            <td>Automated tests</td>
+            <td>Folder Structure, Testing</td>
+            <td><strong>Missing</strong></td>
+            <td>No xUnit projects. Win32 access is not behind interfaces, so tracking/filtering/settings logic cannot be tested with fakes yet.</td>
+          </tr>
+          <tr>
+            <td>Frame transport / latency</td>
+            <td>NFR latency, Frame transport</td>
+            <td><strong>Partial</strong></td>
+            <td>Still CPU <code>SoftwareBitmap.CreateCopyFromSurfaceAsync</code>. GPU texture sharing unproven; &lt;50&nbsp;ms median latency is estimated in-app, never measured end-to-end.</td>
+          </tr>
+          <tr>
+            <td>Compatibility matrix</td>
+            <td>Phase 0 gate, Verification</td>
+            <td><strong>Partial</strong></td>
+            <td>Only Slack is verified. Teams, Zoom, Google Meet/Chrome, Edge, and OBS remain "Not tested".</td>
+          </tr>
+          <tr>
+            <td>Stability validation</td>
+            <td>NFR stability</td>
+            <td><strong>Missing</strong></td>
+            <td>The 30-minute capture stability test (no crash / leak / sustained spike) has not been run.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top:22px;">Phase 3.5 Close-Out Plan</h3>
+      <p class="review-note">Ordered to land user-visible parity and safety first, then the structural and verification debt that Phase 4 depends on.</p>
+      <ol>
+        <li><strong>Global hotkeys (real):</strong> implement <code>RegisterHotKey</code> for toggle-auto-follow and toggle-sharing, make the key caps editable, persist bindings, surface conflicts, and replace the <code>Opt</code> labels with Windows modifiers.</li>
+        <li><strong>Start with Windows:</strong> register/unregister startup on save (Run key or approved startup path) and reconcile on launch.</li>
+        <li><strong>Capture quality wiring:</strong> map Balanced / Performance / Low-Latency to concrete fps caps and buffer/pacing behavior in the capture controller.</li>
+        <li><strong>Settings honesty:</strong> wire or remove FIT/FILL/ACTUAL output scaling, populate the About section (version + Documentation/Changelog links), and add the mutually-exclusive disabled-state explanation.</li>
+        <li><strong>Diagnostics:</strong> add <code>Microsoft.Extensions.Logging</code> with a rolling file sink and component categories (App, WindowTracker, Capture, Output, Hotkeys); route existing error states through it.</li>
+        <li><strong>Accessibility pass:</strong> add <code>AutomationProperties</code> names and verify keyboard/screen-reader reachability for panel and settings.</li>
+        <li><strong>Structural refactor:</strong> extract <code>.Capture</code> / <code>.Output</code> / <code>.Shared</code> projects behind interfaces; stand up <code>tests/</code> with xUnit covering tracking, filtering, and settings.</li>
+        <li><strong>Verification:</strong> measure real capture-to-output latency, fill the meeting-app compatibility matrix, and run the 30-minute stability test. Decide GPU vs CPU transport from the measured numbers.</li>
+      </ol>
+      <div class="callout">
+        <strong>Exit criteria.</strong> Phase 3.5 is complete when every Phase&nbsp;1&ndash;3 functional and UI requirement is either implemented (not stubbed) or explicitly deferred with a written rationale, diagnostics and accessibility exist, the project is split with a passing test project, and the latency/compatibility/stability numbers are recorded. Then Phase 4 (packaging and hardening) can begin.
       </div>
     </div>
 
@@ -667,15 +804,15 @@
           </tr>
           <tr>
             <td><code>CursorFollowWin/src/CursorFollowWin.App/</code></td>
-            <td>Tray host, UI shell, settings, hotkeys, and preview window.</td>
+            <td>Tray host, UI shell, settings, hotkeys, and output window.</td>
           </tr>
           <tr>
             <td><code>CursorFollowWin/src/CursorFollowWin.Capture/</code></td>
             <td>Window enumeration, tracking, filtering, and Windows Graphics Capture pipeline.</td>
           </tr>
           <tr>
-            <td><code>CursorFollowWin/src/CursorFollowWin.Camera/</code></td>
-            <td>Virtual camera registration and frame output integration.</td>
+            <td><code>CursorFollowWin/src/CursorFollowWin.Output/</code></td>
+            <td>Output-window rendering, overlays, sizing, and sharing behavior.</td>
           </tr>
           <tr>
             <td><code>CursorFollowWin/src/CursorFollowWin.Shared/</code></td>
@@ -705,24 +842,24 @@
         </thead>
         <tbody>
           <tr>
-            <td>Virtual camera API/client compatibility differs across Teams, Zoom, browser apps, OBS, and Windows Camera.</td>
-            <td>Camera may appear in some clients but not others.</td>
-            <td>Run Phase 0 first and maintain a compatibility matrix before committing to full architecture.</td>
+            <td>Meeting apps differ in how they enumerate, crop, and retain shared windows.</td>
+            <td>The output window may appear inconsistently, lose sharing on hide/minimize, or scale poorly.</td>
+            <td>Run Phase 0 first and maintain a window-sharing compatibility matrix before committing to full architecture.</td>
           </tr>
           <tr>
             <td>Some windows cannot be captured because of DRM, elevation boundaries, protected content, or OS restrictions.</td>
             <td>User may see black output or missing windows.</td>
-            <td>Detect and explain protected/unavailable targets; keep virtual camera stable with fallback output.</td>
+            <td>Detect and explain protected/unavailable targets; keep the output window stable with fallback output.</td>
           </tr>
           <tr>
-            <td>GPU texture sharing into the camera stack may be complex.</td>
+            <td>GPU texture sharing into the output renderer may be complex.</td>
             <td>CPU copy path could raise latency or CPU usage.</td>
             <td>Prototype both minimal GPU and CPU paths; choose the simplest path that meets performance targets.</td>
           </tr>
           <tr>
-            <td>Windows startup, installer, and camera registration may need admin rights or signing.</td>
+            <td>Windows startup and installer behavior may need signing or careful per-user setup.</td>
             <td>Developer setup and user install flow could be brittle.</td>
-            <td>Document privilege requirements early and keep install/uninstall/reset commands repeatable.</td>
+            <td>Document privilege requirements early and keep install/uninstall/reset commands repeatable. Avoid camera registration in the first Windows path.</td>
           </tr>
           <tr>
             <td>Visual parity may conflict with native Windows expectations.</td>
@@ -741,10 +878,11 @@
           <ul>
             <li><span class="status"><span class="dot"></span>Build</span> CursorFollowWin from a clean checkout on Windows 11.</li>
             <li>Install the app and confirm the tray icon appears after launch.</li>
-            <li>Confirm <strong>CursorFollow Camera</strong> appears in supported camera clients.</li>
-            <li>Capture a selected window and verify the same content appears in preview and camera clients.</li>
-            <li>Switch active windows with auto-follow enabled and confirm the camera follows within the interruption target.</li>
-            <li>Stop capture and confirm camera clients do not crash or lose the device.</li>
+            <li>Confirm the CursorFollow output window appears in supported meeting-app window-sharing pickers.</li>
+            <li>Confirm a real webcam can remain selected while the CursorFollow output window is shared.</li>
+            <li>Capture a selected window and verify the same content appears in the output window and meeting-app share preview.</li>
+            <li>Switch active windows with auto-follow enabled and confirm the output follows within the interruption target.</li>
+            <li>Stop capture and confirm the output window shows a graceful idle state.</li>
           </ul>
         </div>
         <div class="card">
@@ -752,7 +890,7 @@
           <ul>
             <li>Feature parity is documented and implemented for the primary macOS workflows.</li>
             <li>Tray panel and settings dialog look recognizably like CursorFollow while feeling appropriate on Windows 11.</li>
-            <li>Camera clients can select <strong>CursorFollow Camera</strong> and display live window content.</li>
+            <li>Meeting apps can share the CursorFollow output window and display live window content while the user's real webcam remains active.</li>
             <li>Missing permissions, unsupported windows, and target disappearance degrade gracefully.</li>
             <li>Build, install, verify, reset, and uninstall steps are documented and repeatable.</li>
             <li>Thirty-minute capture stability test passes without crash, major leak, or sustained performance spike.</li>
@@ -767,10 +905,10 @@
         Use these questions during development review to flush out hidden platform assumptions before implementation starts.
       </p>
       <ol>
-        <li>Which Windows virtual camera path gives the best compatibility across the exact target apps?</li>
-        <li>Should the first implementation optimize for fastest parity or lowest latency architecture?</li>
+        <li>Which Windows output-window rendering path gives the best compatibility across the exact target apps?</li>
+        <li>Should the first implementation optimize for fastest usable share-window workflow or lowest latency architecture?</li>
         <li>Which UI framework best supports the tray flyout, Windows 11 styling, high-DPI preview, and developer velocity?</li>
-        <li>What install flow is acceptable during early development if camera registration needs admin approval?</li>
+        <li>What install flow is acceptable during early development if startup registration or signing needs extra setup?</li>
         <li>How should the app communicate protected-content and elevated-window capture limits without feeling broken?</li>
       </ol>
     </div>
