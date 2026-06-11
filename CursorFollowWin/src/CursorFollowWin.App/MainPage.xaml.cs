@@ -101,6 +101,11 @@ public sealed partial class MainPage : Page
         TelemetryOverlay.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    public void ApplyCaptureQuality(string quality)
+    {
+        _captureController.ApplyQuality(quality);
+    }
+
     public void DisposeCapture()
     {
         _captureController.Dispose();
