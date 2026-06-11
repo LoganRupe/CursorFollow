@@ -7,19 +7,46 @@
 
 import AppKit
 import Combine
-import CoreVideo
 import IOSurface
 import SwiftUI
 import os.log
 
-/// Manages a borderless NSWindow that renders captured frames in real-time.
-/// This window is shareable via Slack's "Share Screen → Window" picker.
+enum OutputWindowState: Equatable {
+    case noTarget
+    case missingPermissions(String?)
+    case paused(String?)
+    case targetUnavailable(String?)
+    case waitingForFrames(String?)
+    case live(String?)
+}
+
+enum OutputPresentationMode: String, CaseIterable {
+    case fit
+    case fill
+    case actualSize
+
+    var label: String {
+        switch self {
+        case .fit:
+            return "FIT"
+        case .fill:
+            return "FILL"
+        case .actualSize:
+            return "ACTUAL"
+        }
+    }
+}
+
+/// Manages the stable NSWindow that renders captured frames in real-time.
+/// This window is shareable via conferencing window-share pickers.
 @MainActor
-final class OutputWindowController: ObservableObject {
+final class OutputWindowController: NSObject, ObservableObject {
     @Published private(set) var isVisible = false
+    @Published private(set) var outputState: OutputWindowState = .noTarget
     @Published var alwaysOnTop = false { didSet { applyWindowLevel() } }
     @Published var showResolution = false { didSet { updateOverlayIfNeeded() } }
     @Published var showFrameCount = false { didSet { updateOverlayIfNeeded() } }
+    @Published var presentationMode: OutputPresentationMode = .fit { didSet { applyPresentationMode() } }
     @Published private(set) var resolutionText = ""
     @Published private(set) var currentFPS: Double = 0
 
@@ -28,27 +55,28 @@ final class OutputWindowController: ObservableObject {
     private var surfaceView: SurfaceLayerView?
     private var overlayHostingView: NSView?
     private var frameRefreshCount: UInt64 = 0
-    private var displayLink: CVDisplayLink?
     private var fpsFrameCount: UInt64 = 0
     private var fpsTimer: Timer?
+    private var activeTargetTitle: String?
 
     /// The IOSurface to render. Set before showing the window.
     private let surface: IOSurface
 
     init(surface: IOSurface) {
         self.surface = surface
+        super.init()
         log.info("OutputWindowController initialized with surfaceID=\(surface.surfaceID)")
     }
 
     deinit {
-        if let link = displayLink {
-            CVDisplayLinkStop(link)
-        }
         NotificationCenter.default.removeObserver(self)
     }
 
     /// The current content size for the output window.
     private var contentSize = NSSize(width: 960, height: 540)
+
+    /// The current captured pixel dimensions used by the renderer.
+    private var currentCaptureSize = NSSize(width: 1920, height: 1080)
 
     /// The IOSurface total dimensions (constant).
     private let surfaceWidth: CGFloat = 1920
@@ -57,14 +85,36 @@ final class OutputWindowController: ObservableObject {
     /// Current crop rect for the layer (stored so it can be applied when window is first shown).
     private var currentContentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
 
-    /// Update the output window size and crop to match the capture dimensions.
-    /// Called after capture starts/switches with the actual config dimensions.
-    func updateForCapture(windowFrame: CGRect, captureWidth: Int, captureHeight: Int) {
-        guard captureWidth > 0, captureHeight > 0 else { return }
+    func setNoTarget() {
+        activeTargetTitle = nil
+        outputState = .noTarget
+        resolutionText = ""
+    }
 
-        // Window size matches the captured content's aspect ratio
-        let newSize = NSSize(width: CGFloat(captureWidth), height: CGFloat(captureHeight))
-        contentSize = newSize
+    func setMissingPermissions(_ message: String? = nil) {
+        outputState = .missingPermissions(message)
+    }
+
+    func setPaused(targetTitle: String? = nil) {
+        activeTargetTitle = targetTitle ?? activeTargetTitle
+        outputState = .paused(activeTargetTitle)
+    }
+
+    func setTargetUnavailable(_ message: String? = nil) {
+        outputState = .targetUnavailable(message)
+    }
+
+    func prepareForCapture(targetTitle: String? = nil) {
+        activeTargetTitle = targetTitle ?? activeTargetTitle
+        outputState = .waitingForFrames(activeTargetTitle)
+    }
+
+    /// Update the output renderer crop to match the capture dimensions.
+    /// Called after capture starts/switches with the actual config dimensions.
+    func updateForCapture(windowFrame: CGRect, captureWidth: Int, captureHeight: Int, captureScale: CGFloat, targetTitle: String? = nil) {
+        guard captureWidth > 0, captureHeight > 0 else { return }
+        activeTargetTitle = targetTitle ?? activeTargetTitle
+        currentCaptureSize = NSSize(width: CGFloat(captureWidth), height: CGFloat(captureHeight))
 
         // Crop the layer to show only the portion of the IOSurface that has pixels.
         // y-origin is flipped: CA content coords have y=0 at bottom, but our pixel
@@ -72,21 +122,24 @@ final class OutputWindowController: ObservableObject {
         let cropW = min(CGFloat(captureWidth) / surfaceWidth, 1.0)
         let cropH = min(CGFloat(captureHeight) / surfaceHeight, 1.0)
         currentContentsRect = CGRect(x: 0, y: 1.0 - cropH, width: cropW, height: cropH)
-        surfaceView?.layer?.contentsRect = currentContentsRect
+        surfaceView?.setCaptureSize(NSSize(width: captureWidth, height: captureHeight), contentsRect: currentContentsRect)
         resolutionText = "\(captureWidth)×\(captureHeight)"
 
-        if let window {
-            window.contentAspectRatio = newSize
-            window.setContentSize(newSize)
+        if presentationMode == .actualSize {
+            resizeWindowToActualSize()
         }
+
+        outputState = .waitingForFrames(activeTargetTitle)
         log.info("Output window updated: capture=\(captureWidth)x\(captureHeight), contentsRect=(\(cropW), \(cropH))")
     }
 
     func show() {
         if let window {
+            if window.isMiniaturized {
+                window.deminiaturize(nil)
+            }
             window.orderFrontRegardless()
             isVisible = true
-            startDisplayLink()
             return
         }
 
@@ -97,24 +150,24 @@ final class OutputWindowController: ObservableObject {
             defer: false
         )
         window.title = "CursorFollow Output"
-        window.titlebarAppearsTransparent = true
-        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = false
+        window.titleVisibility = .visible
         window.isMovableByWindowBackground = true
         window.backgroundColor = .black
-        window.contentAspectRatio = contentSize
         window.isReleasedWhenClosed = false
         window.sharingType = .readOnly
         window.level = alwaysOnTop ? .floating : .normal
         window.collectionBehavior = [.fullScreenNone, .managed]
+        window.delegate = self
 
         let view = SurfaceLayerView(surface: surface)
         view.frame = NSRect(origin: .zero, size: contentSize)
         view.autoresizingMask = [.width, .height]
-        view.layer?.contentsRect = currentContentsRect
+        view.presentationMode = presentationMode
+        view.setCaptureSize(currentCaptureSize, contentsRect: currentContentsRect)
         window.contentView = view
 
-        // Overlay (top-left metrics)
-        let hosting = PassthroughHostingView(rootView: OverlayView(controller: self))
+        let hosting = PassthroughHostingView(rootView: OutputWindowOverlayView(controller: self))
         hosting.frame = NSRect(origin: .zero, size: contentSize)
         hosting.autoresizingMask = [.width, .height]
         view.addSubview(hosting)
@@ -129,7 +182,6 @@ final class OutputWindowController: ObservableObject {
         self.surfaceView = view
         self.overlayHostingView = hosting
         self.isVisible = true
-        startDisplayLink()
         startFPSTimer()
         log.info("Output window shown")
     }
@@ -137,7 +189,6 @@ final class OutputWindowController: ObservableObject {
     func hide() {
         window?.orderOut(nil)
         isVisible = false
-        stopDisplayLink()
         stopFPSTimer()
         log.info("Output window hidden")
     }
@@ -156,6 +207,23 @@ final class OutputWindowController: ObservableObject {
 
     private func updateOverlayIfNeeded() {
         // No-op: SwiftUI view reacts to @Published changes automatically.
+    }
+
+    private func applyPresentationMode() {
+        surfaceView?.presentationMode = presentationMode
+        if presentationMode == .actualSize {
+            resizeWindowToActualSize()
+        }
+    }
+
+    private func resizeWindowToActualSize() {
+        guard let window else { return }
+        let backingScale = max(window.backingScaleFactor, 1.0)
+        let actualSize = NSSize(
+            width: max(currentCaptureSize.width / backingScale, 1),
+            height: max(currentCaptureSize.height / backingScale, 1)
+        )
+        window.setContentSize(actualSize)
     }
 
     // MARK: - FPS Timer
@@ -178,59 +246,31 @@ final class OutputWindowController: ObservableObject {
         currentFPS = 0
     }
 
-    // MARK: - Display Link
-
-    private func startDisplayLink() {
-        guard displayLink == nil else { return }
-
-        var link: CVDisplayLink?
-        CVDisplayLinkCreateWithActiveCGDisplays(&link)
-        guard let link else {
-            log.error("Failed to create CVDisplayLink")
-            return
-        }
-
-        let callback: CVDisplayLinkOutputCallback = { _, _, _, _, _, _ -> CVReturn in
-            // Trigger a main-thread refresh on every vsync
-            DispatchQueue.main.async {
-                // Posted as notification-less; actual refresh happens below
-                NotificationCenter.default.post(name: .outputWindowRefresh, object: nil)
-            }
-            return kCVReturnSuccess
-        }
-
-        CVDisplayLinkSetOutputCallback(link, callback, nil)
-        CVDisplayLinkStart(link)
-        self.displayLink = link
-
-        // Observe refresh notifications
-        NotificationCenter.default.addObserver(
-            forName: .outputWindowRefresh,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.surfaceView?.refreshSurface()
-            }
-        }
-
-        log.info("Display link started")
-    }
-
-    private func stopDisplayLink() {
-        guard let link = displayLink else { return }
-        CVDisplayLinkStop(link)
-        displayLink = nil
-        NotificationCenter.default.removeObserver(self, name: .outputWindowRefresh, object: nil)
-        log.info("Display link stopped")
-    }
-
     /// Called from the capture queue when a new frame is available on the IOSurface.
     /// Increments the per-second FPS counter used by the overlay.
     nonisolated func notifyFrameReady() {
         DispatchQueue.main.async { [weak self] in
-            self?.fpsFrameCount += 1
+            guard let self else { return }
+            self.fpsFrameCount += 1
+            self.markFrameReady()
+            self.surfaceView?.refreshSurface()
         }
+    }
+
+    private func markFrameReady() {
+        switch outputState {
+        case .live:
+            break
+        default:
+            outputState = .live(activeTargetTitle)
+        }
+    }
+}
+
+extension OutputWindowController: NSWindowDelegate {
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        hide()
+        return false
     }
 }
 
@@ -241,16 +281,27 @@ final class OutputWindowController: ObservableObject {
 /// with the layer's contents — we manage it directly.
 private final class SurfaceLayerView: NSView {
     private let surface: IOSurface
+    private let contentLayer = CALayer()
+    private var captureSize = NSSize(width: 1920, height: 1080)
+    private var currentContentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
+
+    var presentationMode: OutputPresentationMode = .fit {
+        didSet { needsLayout = true }
+    }
 
     init(surface: IOSurface) {
         self.surface = surface
         super.init(frame: .zero)
 
-        // Create the hosting layer
         let hostingLayer = CALayer()
-        hostingLayer.contents = surface
-        hostingLayer.contentsGravity = .resize
         hostingLayer.backgroundColor = NSColor.black.cgColor
+        hostingLayer.masksToBounds = true
+
+        contentLayer.contents = surface
+        contentLayer.contentsGravity = .resize
+        contentLayer.backgroundColor = NSColor.black.cgColor
+        contentLayer.contentsRect = currentContentsRect
+        hostingLayer.addSublayer(contentLayer)
 
         // Setting self.layer BEFORE wantsLayer = true creates a layer-hosting view.
         // AppKit won't touch the layer's contents — we own it entirely.
@@ -267,6 +318,14 @@ private final class SurfaceLayerView: NSView {
         super.layout()
         // Layer-hosting views don't auto-resize the layer — sync it manually.
         layer?.frame = bounds
+        layoutContentLayer()
+    }
+
+    func setCaptureSize(_ size: NSSize, contentsRect: CGRect) {
+        captureSize = NSSize(width: max(size.width, 1), height: max(size.height, 1))
+        currentContentsRect = contentsRect
+        contentLayer.contentsRect = contentsRect
+        needsLayout = true
     }
 
     /// Re-assign the IOSurface as layer contents to force Core Animation
@@ -274,9 +333,31 @@ private final class SurfaceLayerView: NSView {
     func refreshSurface() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        layer?.contents = nil
-        layer?.contents = surface
+        contentLayer.contents = nil
+        contentLayer.contents = surface
         CATransaction.commit()
+    }
+
+    private func layoutContentLayer() {
+        guard bounds.width > 0, bounds.height > 0 else { return }
+
+        let scale: CGFloat
+        switch presentationMode {
+        case .fit:
+            scale = min(bounds.width / captureSize.width, bounds.height / captureSize.height)
+        case .fill:
+            scale = max(bounds.width / captureSize.width, bounds.height / captureSize.height)
+        case .actualSize:
+            scale = 1.0 / max(window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 1.0, 1.0)
+        }
+
+        let displaySize = NSSize(width: captureSize.width * scale, height: captureSize.height * scale)
+        contentLayer.frame = CGRect(
+            x: (bounds.width - displaySize.width) / 2,
+            y: (bounds.height - displaySize.height) / 2,
+            width: displaySize.width,
+            height: displaySize.height
+        )
     }
 
     override var isOpaque: Bool { true }
@@ -294,10 +375,47 @@ private final class PassthroughHostingView<Content: View>: NSHostingView<Content
     }
 }
 
-private struct OverlayView: View {
+private struct OutputWindowOverlayView: View {
     @ObservedObject var controller: OutputWindowController
 
     var body: some View {
+        ZStack {
+            fallbackView
+
+            metricsView
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private var fallbackView: some View {
+        if let presentation = fallbackPresentation {
+            VStack(spacing: 12) {
+                Image(systemName: presentation.icon)
+                    .font(.system(size: 38, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.82))
+
+                VStack(spacing: 5) {
+                    Text(presentation.title)
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(.white)
+                    Text(presentation.message)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.72))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(28)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(.black.opacity(0.74))
+        }
+    }
+
+    @ViewBuilder
+    private var metricsView: some View {
         let hasContent = (controller.showResolution && !controller.resolutionText.isEmpty)
             || controller.showFrameCount
         if hasContent {
@@ -315,13 +433,44 @@ private struct OverlayView: View {
             .padding(.vertical, 4)
             .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
             .padding(10)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+    }
+
+    private var fallbackPresentation: (icon: String, title: String, message: String)? {
+        switch controller.outputState {
+        case .live:
+            return nil
+        case .noTarget:
+            return (
+                "rectangle.dashed",
+                "No Target Selected",
+                "Choose a window in CursorFollow to start sharing."
+            )
+        case .missingPermissions(let detail):
+            return (
+                "lock.rectangle",
+                "Screen Recording Needed",
+                detail ?? "Grant Screen Recording permission in System Settings, then refresh the window list."
+            )
+        case .paused(let targetTitle):
+            return (
+                "pause.circle",
+                "Output Paused",
+                targetTitle.map { "Ready to resume \($0)." } ?? "Start capture when you are ready."
+            )
+        case .targetUnavailable(let detail):
+            return (
+                "exclamationmark.triangle",
+                "Target Unavailable",
+                detail ?? "The selected window disappeared, minimized, or moved to another Space."
+            )
+        case .waitingForFrames(let targetTitle):
+            return (
+                "rectangle.2.swap",
+                "Preparing Output",
+                targetTitle.map { "Waiting for the first frame from \($0)." } ?? "Waiting for the first captured frame."
+            )
         }
     }
 }
 
-// MARK: - Notification Names
-
-private extension Notification.Name {
-    static let outputWindowRefresh = Notification.Name("io.github.loganrupe.CursorFollowMac.outputWindowRefresh")
-}

@@ -42,6 +42,8 @@ enum FilterMode: String, CaseIterable {
 @MainActor
 final class WindowTracker: ObservableObject {
     @Published private(set) var windows: [TrackedWindow] = []
+    @Published private(set) var permissionError: String?
+    @Published private(set) var targetUnavailableMessage: String?
     @Published var selectedWindow: TrackedWindow?
     @Published var autoFollowEnabled = true
     @Published var filterMode: FilterMode = .all {
@@ -65,11 +67,22 @@ final class WindowTracker: ObservableObject {
     private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowMac", category: "WindowTracker")
 
     /// Bundle IDs to always exclude from the window list (system UI).
-    private let systemExcludedBundleIDs: Set<String> = [
+    private nonisolated static let systemExcludedBundleIDs: Set<String> = [
         "com.apple.controlcenter",
         "com.apple.notificationcenterui",
         "com.apple.WindowManager",
     ]
+
+    private nonisolated static let cursorFollowBundleID = "io.github.loganrupe.CursorFollowMac"
+
+    nonisolated static func isAlwaysExcludedBundleID(_ bundleID: String?) -> Bool {
+        guard let bundleID else { return false }
+        return bundleID == cursorFollowBundleID || systemExcludedBundleIDs.contains(bundleID)
+    }
+
+    nonisolated static func targetUnavailableMessage(for title: String) -> String {
+        "\(title) disappeared, minimized, or moved to another Space."
+    }
 
     /// Minimum window size to include (filters tiny overlay/utility windows).
     private let minimumWindowSize = CGSize(width: 100, height: 100)
@@ -193,9 +206,8 @@ final class WindowTracker: ObservableObject {
         guard let frontApp = NSWorkspace.shared.frontmostApplication else { return }
         let bundleID = frontApp.bundleIdentifier ?? ""
 
-        // Skip our own app and system apps
-        guard bundleID != "io.github.loganrupe.CursorFollowMac",
-              !systemExcludedBundleIDs.contains(bundleID) else {
+                // Skip our own app and system apps
+                guard !Self.isAlwaysExcludedBundleID(bundleID) else {
             return
         }
 
@@ -262,9 +274,8 @@ final class WindowTracker: ObservableObject {
 
         let bundleID = app.bundleIdentifier ?? ""
 
-        // Don't follow our own app or system apps
-        guard bundleID != "io.github.loganrupe.CursorFollowMac",
-              !systemExcludedBundleIDs.contains(bundleID) else {
+                // Don't follow our own app or system apps
+                guard !Self.isAlwaysExcludedBundleID(bundleID) else {
             return
         }
 
@@ -304,13 +315,8 @@ final class WindowTracker: ObservableObject {
             let filtered = content.windows.compactMap { window -> TrackedWindow? in
                 let bundleID = window.owningApplication?.bundleIdentifier
 
-                // Skip windows from system apps
-                if let bundleID, systemExcludedBundleIDs.contains(bundleID) {
-                    return nil
-                }
-
-                // Skip our own app
-                if bundleID == "io.github.loganrupe.CursorFollowMac" {
+                // Skip windows from CursorFollow itself and system apps.
+                if Self.isAlwaysExcludedBundleID(bundleID) {
                     return nil
                 }
 
@@ -337,21 +343,30 @@ final class WindowTracker: ObservableObject {
             }
 
             self.windows = filtered
+            self.permissionError = nil
             log.info("Refreshed window list: \(filtered.count) windows available")
 
-            // If selected window disappeared, clear selection
+            // If selected window disappeared, clear selection and publish why so
+            // the stable output window can show a recovery state instead of idle.
             if let selected = selectedWindow,
                !filtered.contains(where: { $0.id == selected.id }) {
                 log.warning("Selected window (ID: \(selected.id)) no longer available")
+                targetUnavailableMessage = Self.targetUnavailableMessage(for: selected.title)
                 selectedWindow = nil
+            } else if selectedWindow != nil {
+                targetUnavailableMessage = nil
             }
         } catch {
             log.error("Failed to enumerate windows: \(error.localizedDescription)")
             windows = []
+            selectedWindow = nil
+            targetUnavailableMessage = nil
+            permissionError = error.localizedDescription
         }
     }
 
     func selectWindow(_ window: TrackedWindow) {
+        targetUnavailableMessage = nil
         selectedWindow = window
         log.info("Selected window: '\(window.title)' (ID: \(window.id), app: \(window.ownerName))")
     }
