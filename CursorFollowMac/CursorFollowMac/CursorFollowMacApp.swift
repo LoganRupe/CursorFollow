@@ -7,7 +7,6 @@
 
 import SwiftUI
 import Combine
-import SystemExtensions
 import Carbon
 import os.log
 
@@ -595,15 +594,23 @@ final class AppCoordinator: ObservableObject {
     let windowTracker = WindowTracker()
     let captureEngine = CaptureEngine()
     let outputWindowController: OutputWindowController?
-    private var cancellable: AnyCancellable?
+    private var cancellables = Set<AnyCancellable>()
 
     init() {
         // Set up output window with the shared IOSurface
         if let surface = captureEngine.ioSurface {
             let owc = OutputWindowController(surface: surface)
+            let outputPreferences = AppSettings.savedOutputPreferences()
+            owc.alwaysOnTop = outputPreferences.pinOutputOnTop
+            owc.showResolution = outputPreferences.showResolution
+            owc.showFrameCount = outputPreferences.showFrameCount
+            owc.presentationMode = outputPreferences.presentationMode
             self.outputWindowController = owc
             captureEngine.onFrameDelivered = { [weak owc] in
                 owc?.notifyFrameReady()
+            }
+            if !outputPreferences.hideWhenNotSharing {
+                owc.show()
             }
         } else {
             self.outputWindowController = nil
@@ -611,36 +618,120 @@ final class AppCoordinator: ObservableObject {
 
         windowTracker.startObservingFrontApp()
 
-        cancellable = windowTracker.$selectedWindow
+        windowTracker.$selectedWindow
             .dropFirst()
             .sink { [weak self] newWindow in
-                guard let self, let window = newWindow else { return }
+                guard let self else { return }
+                guard let window = newWindow else {
+                    if let message = self.windowTracker.targetUnavailableMessage {
+                        self.outputWindowController?.setTargetUnavailable(message)
+                        if self.captureEngine.isCapturing {
+                            Task { @MainActor [weak self] in
+                                await self?.captureEngine.stopCapture()
+                            }
+                        }
+                    } else {
+                        self.outputWindowController?.setNoTarget()
+                    }
+                    return
+                }
+
+                self.outputWindowController?.prepareForCapture(targetTitle: window.title)
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     if self.captureEngine.isCapturing {
                         await self.captureEngine.switchTarget(to: window)
                     } else if self.windowTracker.autoFollowEnabled && !self.captureEngine.userStopped {
                         await self.captureEngine.startCapture(window: window)
+                    } else {
+                        self.outputWindowController?.setPaused(targetTitle: window.title)
                     }
-                    // Update output window after capture starts (dimensions now set)
-                    self.outputWindowController?.updateForCapture(
-                        windowFrame: window.frame,
-                        captureWidth: self.captureEngine.activeCaptureWidth,
-                        captureHeight: self.captureEngine.activeCaptureHeight
-                    )
+                    self.updateOutputWindowForCurrentCapture()
                 }
             }
+            .store(in: &cancellables)
+
+        captureEngine.$isCapturing
+            .dropFirst()
+            .sink { [weak self] isCapturing in
+                guard let self else { return }
+                if isCapturing {
+                    self.updateOutputWindowForCurrentCapture()
+                } else if let message = self.windowTracker.targetUnavailableMessage {
+                    self.outputWindowController?.setTargetUnavailable(message)
+                } else if self.windowTracker.selectedWindow == nil {
+                    self.outputWindowController?.setNoTarget()
+                } else if self.captureEngine.lastError == nil {
+                    self.outputWindowController?.setPaused(targetTitle: self.windowTracker.selectedWindow?.title)
+                }
+            }
+            .store(in: &cancellables)
+
+        windowTracker.$targetUnavailableMessage
+            .compactMap { $0 }
+            .sink { [weak self] message in
+                self?.outputWindowController?.setTargetUnavailable(message)
+            }
+            .store(in: &cancellables)
+
+        captureEngine.$lastError
+            .compactMap { $0 }
+            .sink { [weak self] error in
+                guard let self else { return }
+                if Self.isPermissionError(error) {
+                    self.outputWindowController?.setMissingPermissions(error)
+                } else {
+                    self.outputWindowController?.setTargetUnavailable(error)
+                }
+            }
+            .store(in: &cancellables)
+
+        windowTracker.$permissionError
+            .compactMap { $0 }
+            .sink { [weak self] error in
+                self?.outputWindowController?.setMissingPermissions(error)
+            }
+            .store(in: &cancellables)
 
         Task {
             await windowTracker.refreshWindows()
+
+            if windowTracker.permissionError != nil {
+                return
+            }
+
+            if windowTracker.selectedWindow == nil {
+                outputWindowController?.setNoTarget()
+            }
 
             // Auto-share on start: begin capture immediately if the user opted in
             if UserDefaults.standard.bool(forKey: "settings.autoShareOnStart"),
                let window = windowTracker.selectedWindow ?? windowTracker.windows.first {
                 windowTracker.selectWindow(window)
                 await captureEngine.startCapture(window: window)
+                updateOutputWindowForCurrentCapture()
             }
         }
+    }
+
+    private func updateOutputWindowForCurrentCapture() {
+        guard captureEngine.isCapturing,
+              let selectedWindow = windowTracker.selectedWindow else { return }
+
+        outputWindowController?.updateForCapture(
+            windowFrame: selectedWindow.frame,
+            captureWidth: captureEngine.activeCaptureWidth,
+            captureHeight: captureEngine.activeCaptureHeight,
+            captureScale: captureEngine.activeCaptureScale,
+            targetTitle: selectedWindow.title
+        )
+    }
+
+    private static func isPermissionError(_ message: String) -> Bool {
+        let lowercased = message.lowercased()
+        return lowercased.contains("permission")
+            || lowercased.contains("not authorized")
+            || lowercased.contains("denied")
     }
 }
 
@@ -653,7 +744,7 @@ struct CursorFollowMacApp: App {
     }
 }
 
-class AppDelegate: NSObject, NSApplicationDelegate, OSSystemExtensionRequestDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate {
     private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowMac", category: "AppDelegate")
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
@@ -689,7 +780,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, OSSystemExtensionRequestDele
 
         // Set up the popover
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 252, height: 456)
+        popover.contentSize = NSSize(width: 308, height: 552)
         popover.behavior = .transient
         let rootView = ContentView()
             .environmentObject(coordinator!.windowTracker)
@@ -712,8 +803,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, OSSystemExtensionRequestDele
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             button.target = self
         }
-
-        activateCameraExtension()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -731,40 +820,4 @@ class AppDelegate: NSObject, NSApplicationDelegate, OSSystemExtensionRequestDele
         }
     }
 
-    func activateCameraExtension() {
-        let extensionID = "io.github.loganrupe.CursorFollowMac.CameraExtension"
-        let request = OSSystemExtensionRequest.activationRequest(
-            forExtensionWithIdentifier: extensionID,
-            queue: .main
-        )
-        request.delegate = self
-        OSSystemExtensionManager.shared.submitRequest(request)
-        log.info("Submitted activation request for \(extensionID)")
-    }
-
-    // MARK: - OSSystemExtensionRequestDelegate
-
-    func request(_ request: OSSystemExtensionRequest, actionForReplacingExtension existing: OSSystemExtensionProperties, withExtension ext: OSSystemExtensionProperties) -> OSSystemExtensionRequest.ReplacementAction {
-        log.info("Replacing existing extension \(existing.bundleIdentifier) v\(existing.bundleShortVersion) with v\(ext.bundleShortVersion)")
-        return .replace
-    }
-
-    func requestNeedsUserApproval(_ request: OSSystemExtensionRequest) {
-        log.warning("System extension requires user approval")
-    }
-
-    func request(_ request: OSSystemExtensionRequest, didFinishWithResult result: OSSystemExtensionRequest.Result) {
-        switch result {
-        case .completed:
-            log.info("Camera extension activated successfully")
-        case .willCompleteAfterReboot:
-            log.info("Camera extension will activate after reboot")
-        @unknown default:
-            log.warning("Unknown activation result: \(String(describing: result))")
-        }
-    }
-
-    func request(_ request: OSSystemExtensionRequest, didFailWithError error: any Error) {
-        log.error("Camera extension activation failed: \(error.localizedDescription)")
-    }
 }

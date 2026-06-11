@@ -12,21 +12,18 @@ import IOSurface
 import os.log
 import notify
 
-/// Protocol for frame transport between the host app and the camera extension.
-/// Phase 2: Publishes frames to shared memory in the app group container.
-/// Phase 3: Extension will read from the same shared location.
+/// Protocol for publishing captured frames into the host renderer surface.
 protocol FrameTransport: Sendable {
     func publishFrame(pixelBuffer: CVPixelBuffer, timestamp: CMTime)
     func stop()
 }
 
-/// Transports captured frames to the camera extension via a shared IOSurface
-/// in the app group container. The host writes frame data; the extension reads.
+/// Publishes captured frames to a shared IOSurface that the host output window renders.
 ///
 /// Transport mechanism:
-/// - A shared IOSurface (1920×1080 BGRA) acts as the frame buffer.
-/// - Darwin notifications signal frame availability to the extension.
-/// - The extension looks up the IOSurface by ID (published via notification state).
+/// - A shared IOSurface (1920x1080 BGRA) acts as the frame buffer.
+/// - The host output window reads the surface directly after each capture callback.
+/// - Darwin notification hooks remain available for the historical extension path.
 final class SharedMemoryFrameTransport: FrameTransport, @unchecked Sendable {
     private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowMac", category: "FrameTransport")
 
@@ -40,7 +37,7 @@ final class SharedMemoryFrameTransport: FrameTransport, @unchecked Sendable {
     private var notifyToken: Int32 = -1
     private var frameNotifyToken: Int32 = -1
 
-    /// App group identifier shared between host and extension.
+    /// App group identifier retained for historical extension compatibility.
     static let appGroupID = "group.io.github.loganrupe.CursorFollowMac"
 
     /// Darwin notification name for cross-process surface ID sharing.
@@ -53,7 +50,7 @@ final class SharedMemoryFrameTransport: FrameTransport, @unchecked Sendable {
         self.width = width
         self.height = height
 
-        // Create shared IOSurface (isGlobal allows cross-process lookup by the camera extension)
+        // Create shared IOSurface. isGlobal preserves compatibility with the historical extension path.
         let properties: [IOSurfacePropertyKey: Any] = [
             .width: width,
             .height: height,
@@ -168,12 +165,12 @@ final class SharedMemoryFrameTransport: FrameTransport, @unchecked Sendable {
         surface.unlock(options: [], seed: nil)
     }
 
-    /// The IOSurface seed, needed by the extension to look up this surface.
+    /// The IOSurface seed for consumers that need to verify surface changes.
     var surfaceSeed: UInt32 {
         surface.seed
     }
 
-    /// The IOSurface ID for cross-process lookup.
+    /// The IOSurface ID for diagnostics and compatibility consumers.
     var surfaceID: IOSurfaceID {
         surface.surfaceID
     }

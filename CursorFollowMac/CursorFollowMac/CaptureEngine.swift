@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import AppKit
 import ScreenCaptureKit
 import CoreMedia
 import os.log
@@ -50,8 +51,8 @@ enum CaptureQuality: String, CaseIterable {
     }
 }
 
-/// Captures a target window using ScreenCaptureKit and delivers frames
-/// to the FrameTransport for consumption by the camera extension.
+/// Captures a target window using ScreenCaptureKit and publishes frames
+/// into the host-owned IOSurface rendered by CursorFollow Output.
 @MainActor
 final class CaptureEngine: NSObject, ObservableObject {
     @Published private(set) var isCapturing = false
@@ -80,6 +81,7 @@ final class CaptureEngine: NSObject, ObservableObject {
     /// Target capture dimensions (updated per window).
     @Published private(set) var activeCaptureWidth: Int = 1920
     @Published private(set) var activeCaptureHeight: Int = 1080
+    @Published private(set) var activeCaptureScale: CGFloat = 1.0
     let maxCaptureWidth = 1920
     let maxCaptureHeight = 1080
 
@@ -130,13 +132,17 @@ final class CaptureEngine: NSObject, ObservableObject {
 
             // Calculate dimensions that preserve the window's aspect ratio
             // while fitting within the IOSurface bounds (1920x1080).
-            let windowW = window.frame.width
-            let windowH = window.frame.height
-            let scale = min(CGFloat(maxCaptureWidth) / windowW, CGFloat(maxCaptureHeight) / windowH, 1.0)
-            let captureW = Int(windowW * scale)
-            let captureH = Int(windowH * scale)
+            let pointPixelScale = Self.backingScaleFactor(for: window.frame)
+            let windowW = max(window.frame.width, 1)
+            let windowH = max(window.frame.height, 1)
+            let sourcePixelW = windowW * pointPixelScale
+            let sourcePixelH = windowH * pointPixelScale
+            let surfaceScale = min(CGFloat(maxCaptureWidth) / sourcePixelW, CGFloat(maxCaptureHeight) / sourcePixelH, 1.0)
+            let captureW = max(Int(sourcePixelW * surfaceScale), 1)
+            let captureH = max(Int(sourcePixelH * surfaceScale), 1)
             self.activeCaptureWidth = captureW
             self.activeCaptureHeight = captureH
+            self.activeCaptureScale = pointPixelScale * surfaceScale
 
             let config = SCStreamConfiguration()
             config.width = captureW
@@ -180,7 +186,7 @@ final class CaptureEngine: NSObject, ObservableObject {
             self.lastError = nil
             self.frameCount = 0
 
-            log.info("Started capture of window '\(window.title)' (ID: \(window.id)) at \(captureW)x\(captureH)@\(frameRate)fps, quality=\(self.captureQuality.rawValue, privacy: .public), queueDepth=\(config.queueDepth) (source: \(Int(windowW))x\(Int(windowH)))")
+            log.info("Started capture of window '\(window.title)' (ID: \(window.id)) at \(captureW)x\(captureH)@\(frameRate)fps, quality=\(self.captureQuality.rawValue, privacy: .public), queueDepth=\(config.queueDepth), captureScale=\(self.activeCaptureScale) (source: \(Int(windowW))x\(Int(windowH))pt)")
         } catch {
             log.error("Failed to start capture: \(error.localizedDescription)")
             self.lastError = error.localizedDescription
@@ -226,6 +232,24 @@ final class CaptureEngine: NSObject, ObservableObject {
     func handleStreamError(_ error: any Error) {
         self.isCapturing = false
         self.lastError = error.localizedDescription
+    }
+
+    private static func backingScaleFactor(for frame: CGRect) -> CGFloat {
+        let intersections = NSScreen.screens.map { screen in
+            (screen: screen, area: screen.frame.intersection(frame).area)
+        }
+        if let bestScreen = intersections.max(by: { $0.area < $1.area })?.screen,
+           intersections.contains(where: { $0.area > 0 }) {
+            return bestScreen.backingScaleFactor
+        }
+        return NSScreen.main?.backingScaleFactor ?? 1.0
+    }
+}
+
+private extension CGRect {
+    var area: CGFloat {
+        guard !isNull, !isEmpty else { return 0 }
+        return width * height
     }
 }
 
