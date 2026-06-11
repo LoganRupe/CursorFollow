@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="CursorFollowWin_App.PanelWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:CursorFollowWin_App"
+    Title="CursorFollow">
+    <Border Width="274"
+            Height="494"
+            Background="#111820"
+            BorderBrush="#111820"
+            BorderThickness="0"
+            CornerRadius="0">
+        <Border.Resources>
+            <Style x:Key="PanelButtonStyle"
+                    TargetType="Button">
+                <Setter Property="MinWidth"
+                        Value="0"/>
+                <Setter Property="MinHeight"
+                        Value="0"/>
+                <Setter Property="Padding"
+                        Value="8,5"/>
+                <Setter Property="FontSize"
+                        Value="12"/>
+                <Setter Property="FontWeight"
+                        Value="SemiBold"/>
+                <Setter Property="CornerRadius"
+                        Value="6"/>
+                <Setter Property="Background"
+                        Value="#2B3646"/>
+                <Setter Property="Foreground"
+                        Value="#E8EDF5"/>
+                <Setter Property="BorderBrush"
+                        Value="Transparent"/>
+                <Setter Property="BorderThickness"
+                        Value="0"/>
+            </Style>
+            <Style x:Key="IconButtonStyle"
+                    TargetType="Button"
+                    BasedOn="{StaticResource PanelButtonStyle}">
+                <Setter Property="Width"
+                        Value="28"/>
+                <Setter Property="Height"
+                        Value="28"/>
+                <Setter Property="Padding"
+                        Value="0"/>
+            </Style>
+            <Style x:Key="SegmentButtonStyle"
+                    TargetType="Button"
+                    BasedOn="{StaticResource PanelButtonStyle}">
+                <Setter Property="Height"
+                        Value="23"/>
+                <Setter Property="Padding"
+                        Value="11,2"/>
+                <Setter Property="FontSize"
+                        Value="11"/>
+            </Style>
+        </Border.Resources>
+        <Grid Padding="12,11,12,10"
+              RowSpacing="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="72"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="216"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="44"/>
+            </Grid.RowDefinitions>
+
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal"
+                        Spacing="7">
+                    <FontIcon FontFamily="Segoe Fluent Icons"
+                              FontSize="15"
+                              Foreground="#1E9BFF"
+                              Glyph="&#xE722;"/>
+                    <TextBlock VerticalAlignment="Center"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="#EEF3FA"
+                               Text="CursorFollow"/>
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Style="{StaticResource IconButtonStyle}"
+                        Click="SettingsButton_Click"
+                        ToolTipService.ToolTip="Settings">
+                    <FontIcon FontFamily="Segoe Fluent Icons"
+                            FontSize="13"
+                            Glyph="&#xE713;"/>
+                </Button>
+                <Button Grid.Column="2"
+                        Style="{StaticResource IconButtonStyle}"
+                        Click="QuitButton_Click"
+                        ToolTipService.ToolTip="Quit">
+                    <FontIcon FontFamily="Segoe Fluent Icons"
+                            FontSize="12"
+                            Glyph="&#xE711;"/>
+                </Button>
+            </Grid>
+
+            <Border Grid.Row="1"
+                    Padding="10"
+                    Background="#1A2430"
+                    BorderBrush="#263747"
+                    BorderThickness="1"
+                    CornerRadius="7">
+                <Grid RowSpacing="9">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal"
+                            Spacing="6">
+                        <FontIcon FontFamily="Segoe Fluent Icons"
+                                  FontSize="10"
+                                  Foreground="#7F8B9A"
+                                  Glyph="&#xE7C1;"/>
+                        <TextBlock FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="#AEB8C8"
+                                   Text="TARGET MODE"/>
+                    </StackPanel>
+                    <Border Grid.Row="1"
+                            HorizontalAlignment="Left"
+                            Background="#303B49"
+                            CornerRadius="6">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="54"/>
+                                <ColumnDefinition Width="66"/>
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="AutoFollowModeButton"
+                                    Style="{StaticResource SegmentButtonStyle}"
+                                    Background="#1E9BFF"
+                                    Click="AutoFollowModeButton_Click"
+                                    Content="Auto"/>
+                            <Button Grid.Column="1"
+                                    x:Name="ManualModeButton"
+                                    Style="{StaticResource SegmentButtonStyle}"
+                                    Click="ManualModeButton_Click"
+                                    Content="Manual"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="2"
+                    ColumnSpacing="9">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock VerticalAlignment="Center"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           Foreground="#AEB8C8"
+                           Text="FILTER"/>
+                <Border Grid.Column="1"
+                        HorizontalAlignment="Right"
+                        Background="#303B49"
+                        CornerRadius="6">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="46"/>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="58"/>
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="AllFilterButton"
+                                Style="{StaticResource SegmentButtonStyle}"
+                                Click="AllFilterButton_Click"
+                                Content="All"/>
+                        <Button Grid.Column="1"
+                                x:Name="ExcludeFilterButton"
+                                Style="{StaticResource SegmentButtonStyle}"
+                                Click="ExcludeFilterButton_Click"
+                                Content="Exclude"/>
+                        <Button Grid.Column="2"
+                                x:Name="IncludeFilterButton"
+                                Style="{StaticResource SegmentButtonStyle}"
+                                Click="IncludeFilterButton_Click"
+                                Content="Include"/>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Border Grid.Row="3"
+                    Padding="6,4"
+                    Background="#1D2835"
+                    BorderBrush="#405066"
+                    BorderThickness="1"
+                    CornerRadius="7">
+                <ListView x:Name="WindowListView"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          IsItemClickEnabled="True"
+                          ItemClick="WindowListView_ItemClick"
+                          SelectionChanged="WindowListView_SelectionChanged">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="MinHeight"
+                                    Value="52"/>
+                            <Setter Property="Padding"
+                                    Value="0"/>
+                            <Setter Property="Margin"
+                                    Value="0,1"/>
+                            <Setter Property="CornerRadius"
+                                    Value="6"/>
+                            <Setter Property="HorizontalContentAlignment"
+                                    Value="Stretch"/>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Padding="4,5"
+                                    ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="20"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <FontIcon Width="18"
+                                          VerticalAlignment="Center"
+                                          FontFamily="Segoe Fluent Icons"
+                                          FontSize="11"
+                                          Foreground="{Binding MarkerBrush}"
+                                          Glyph="{Binding MarkerGlyph}"/>
+                                <StackPanel Grid.Column="1"
+                                        Spacing="1">
+                                    <TextBlock FontSize="13"
+                                               FontWeight="SemiBold"
+                                               Foreground="#F0F4FA"
+                                               Text="{Binding Title}"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock FontSize="11"
+                                               Foreground="#A7B1C0"
+                                               Text="{Binding AppName}"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="2"
+                                           Margin="4,0,0,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="10"
+                                           FontWeight="SemiBold"
+                                           Foreground="#657386"
+                                           Text="{Binding SizeLabel}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Border>
+
+            <Grid Grid.Row="4"
+                    ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button Style="{StaticResource PanelButtonStyle}"
+                        Click="RefreshButton_Click"
+                        ToolTipService.ToolTip="Refresh windows">
+                    <StackPanel Orientation="Horizontal"
+                            Spacing="5">
+                        <FontIcon FontFamily="Segoe Fluent Icons"
+                                FontSize="12"
+                                Glyph="&#xE72C;"/>
+                        <TextBlock Text="Refresh"/>
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="1"
+                        x:Name="OutputButton"
+                        Style="{StaticResource PanelButtonStyle}"
+                        ToolTipService.ToolTip="Show or hide output"
+                        Click="OutputButton_Click"/>
+            </Grid>
+
+            <Border Grid.Row="5"
+                    Padding="9,7"
+                    Background="#253140"
+                    CornerRadius="7">
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal"
+                            Spacing="6">
+                        <Ellipse Width="8"
+                                 Height="8"
+                                 VerticalAlignment="Center"
+                                 Fill="#9AA6B7"/>
+                        <StackPanel>
+                            <TextBlock x:Name="LiveBadgeText"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="#EAF0F7"
+                                       Text="Idle"/>
+                            <TextBlock x:Name="FilterStatusText"
+                                       MaxWidth="126"
+                                       FontSize="10"
+                                       Foreground="#7F8A9B"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <Button Grid.Column="1"
+                            x:Name="StartButton"
+                            Style="{StaticResource PanelButtonStyle}"
+                            Background="#143E2B"
+                            Foreground="#39E982"
+                            Click="StartButton_Click">
+                        <StackPanel Orientation="Horizontal"
+                                Spacing="5">
+                            <FontIcon FontFamily="Segoe Fluent Icons"
+                                    FontSize="12"
+                                    Glyph="&#xF5B0;"/>
+                            <TextBlock x:Name="StartButtonText"
+                                    Text="Resume"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <Button x:Name="StopButton"
+                    Visibility="Collapsed"
+                    Click="StopButton_Click"/>
+            <Button x:Name="IncludeButton"
+                    Visibility="Collapsed"
+                    Click="IncludeButton_Click"/>
+            <Button x:Name="ExcludeButton"
+                    Visibility="Collapsed"
+                    Click="ExcludeButton_Click"/>
+            <TextBlock x:Name="TargetText"
+                    Visibility="Collapsed"/>
+            <TextBlock x:Name="StatusText"
+                    Visibility="Collapsed"/>
+            <TextBlock x:Name="WindowCountText"
+                    Visibility="Collapsed"/>
+        </Grid>
+    </Border>
+</Window>
