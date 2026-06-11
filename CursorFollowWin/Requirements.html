@@ -783,6 +783,62 @@
         <li><strong>Structural refactor:</strong> extract <code>.Capture</code> / <code>.Output</code> / <code>.Shared</code> projects behind interfaces; stand up <code>tests/</code> with xUnit covering tracking, filtering, and settings.</li>
         <li><strong>Verification:</strong> measure real capture-to-output latency, fill the meeting-app compatibility matrix, and run the 30-minute stability test. Decide GPU vs CPU transport from the measured numbers.</li>
       </ol>
+
+      <h3 style="margin-top:22px;">Resolved in This Session</h3>
+      <p class="review-note">Close-out items worked top to bottom, each built and committed separately.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Global hotkeys</td>
+            <td><strong>Done</strong></td>
+            <td>Real <code>RegisterHotKey</code> bindings, editable capture control, persisted, conflict reporting, Windows modifier labels.</td>
+          </tr>
+          <tr>
+            <td>Start with Windows</td>
+            <td><strong>Done</strong></td>
+            <td>Per-user Run key written/removed and reconciled on launch. Verified via registry inspection.</td>
+          </tr>
+          <tr>
+            <td>Capture quality</td>
+            <td><strong>Done</strong></td>
+            <td>Presets drive buffer depth and a 60/30 fps cap. Runtime fps effect still to be measured under live capture.</td>
+          </tr>
+          <tr>
+            <td>Settings honesty</td>
+            <td><strong>Done</strong></td>
+            <td>Output scaling Fit/Fill/Actual drives the renderer and persists; About shows version + Documentation/Changelog links; Pin vs Hide are mutually exclusive with an explanation.</td>
+          </tr>
+          <tr>
+            <td>Diagnostics / logging</td>
+            <td><strong>Done</strong></td>
+            <td>Microsoft.Extensions.Logging with a daily-rolling file sink and component categories; error states routed through it.</td>
+          </tr>
+          <tr>
+            <td>Accessibility</td>
+            <td><strong>Done (names)</strong></td>
+            <td>AutomationProperties names on panel/settings controls. Full keyboard + screen-reader sweep still pending manual NVDA/Narrator testing.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout warning">
+        <strong>Two bugs the work surfaced.</strong> (1) The handed-off "completed Phase&nbsp;3" code did not compile: <code>WindowRefreshDiagnostics</code> was undefined and <code>TrackedWindow</code> was missing the <code>PackageFamilyName</code> member its constructor used. (2) Settings files written before a field existed deserialized that field as <code>null</code> (System.Text.Json does not run property initializers for absent members), so on upgrade the global hotkeys silently never registered and scaling/filter values were lost. <code>SettingsStore.Load</code> now normalizes missing values to defaults. The logging item is what exposed bug&nbsp;2.
+      </div>
+
+      <h3 style="margin-top:22px;">Remaining Before Phase 4</h3>
+      <ul>
+        <li><strong>Structural refactor:</strong> split <code>.Capture</code> / <code>.Output</code> / <code>.Shared</code> behind interfaces and stand up a test project. (Next item; warrants its own review.)</li>
+        <li><strong>Automated tests:</strong> xUnit coverage for tracking, filtering, settings, and hotkey parsing.</li>
+        <li><strong>Verification:</strong> real capture-to-output latency, meeting-app compatibility matrix, 30-minute stability run, and the GPU-vs-CPU transport decision.</li>
+      </ul>
+
       <div class="callout">
         <strong>Exit criteria.</strong> Phase 3.5 is complete when every Phase&nbsp;1&ndash;3 functional and UI requirement is either implemented (not stubbed) or explicitly deferred with a written rationale, diagnostics and accessibility exist, the project is split with a passing test project, and the latency/compatibility/stability numbers are recorded. Then Phase 4 (packaging and hardening) can begin.
       </div>
