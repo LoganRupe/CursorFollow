@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
@@ -376,6 +377,7 @@ public sealed partial class SettingsWindow : Window
         });
         row.Children.Add(text);
 
+        AutomationProperties.SetName(toggle, title);
         Grid.SetColumn(toggle, 1);
         row.Children.Add(toggle);
         return row;
@@ -400,6 +402,7 @@ public sealed partial class SettingsWindow : Window
         text.Children.Add(subtitle);
         row.Children.Add(text);
 
+        AutomationProperties.SetName(toggle, title);
         Grid.SetColumn(toggle, 1);
         row.Children.Add(toggle);
         return row;
@@ -510,6 +513,7 @@ public sealed partial class SettingsWindow : Window
         });
         row.Children.Add(text);
 
+        AutomationProperties.SetName(control, title + " shortcut");
         Grid.SetColumn(control, 1);
         row.Children.Add(control);
         return row;
