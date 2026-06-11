@@ -46,7 +46,14 @@ public sealed partial class SettingsWindow : Window
     private readonly Button _lowLatencyQualityButton = new() { Content = "LOW-LATENCY" };
     private readonly HotkeyCaptureControl _autoFollowHotkey = new();
     private readonly HotkeyCaptureControl _toggleOutputHotkey = new();
+    private readonly Button _fitScaleButton = new();
+    private readonly Button _fillScaleButton = new();
+    private readonly Button _actualScaleButton = new();
+    private readonly TextBlock _hideWhenNotSharingSubtitle = CreateSubtitleBlock("Hide the output window while paused");
+    private readonly TextBlock _pinOutputSubtitle = CreateSubtitleBlock("Keep output window above other windows");
     private string _selectedQuality = "Balanced";
+    private string _selectedScaleMode = "Fit";
+    private bool _syncingExclusiveToggles;
     private TextBlock _statusText = null!;
     private Ellipse _statusDot = null!;
 
@@ -82,13 +89,21 @@ public sealed partial class SettingsWindow : Window
     {
         _startWithWindowsSwitch.IsOn = settings.StartWithWindows;
         _autoShareSwitch.IsOn = settings.AutoShareOnLaunch;
+
+        // Set the mutually exclusive toggles under the sync guard so their Toggled handlers
+        // don't fight each other, then reconcile enabled/explanation state once.
+        _syncingExclusiveToggles = true;
         _hideWhenNotSharingSwitch.IsOn = settings.HideWhenNotSharing;
-        _pinOutputSwitch.IsOn = settings.PinOutputOnTop;
+        _pinOutputSwitch.IsOn = settings.PinOutputOnTop && !settings.HideWhenNotSharing;
+        _syncingExclusiveToggles = false;
+        UpdateExclusiveToggleState();
+
         _showTaskbarIconSwitch.IsOn = settings.ShowTaskbarIcon;
         _showOverlaySwitch.IsOn = settings.ShowOverlay;
         _autoFollowHotkey.Value = Hotkey.Parse(settings.AutoFollowHotkey);
         _toggleOutputHotkey.Value = Hotkey.Parse(settings.ToggleOutputHotkey);
         SelectQuality(settings.CaptureQuality);
+        SelectScaleMode(settings.OutputScaleMode);
     }
 
     public void ApplySettings(AppSettings settings)
@@ -115,6 +130,7 @@ public sealed partial class SettingsWindow : Window
             ShowTaskbarIcon = _showTaskbarIconSwitch.IsOn,
             ShowOverlay = _showOverlaySwitch.IsOn,
             CaptureQuality = SelectedQuality(),
+            OutputScaleMode = _selectedScaleMode,
             WindowFilterMode = current.WindowFilterMode,
             IncludeWindowIdentities = current.IncludeWindowIdentities,
             ExcludeWindowIdentities = current.ExcludeWindowIdentities,
@@ -153,6 +169,9 @@ public sealed partial class SettingsWindow : Window
         ConfigureSwitch(_pinOutputSwitch);
         ConfigureSwitch(_showTaskbarIconSwitch);
         ConfigureSwitch(_showOverlaySwitch);
+
+        _pinOutputSwitch.Toggled += PinOutputSwitch_Toggled;
+        _hideWhenNotSharingSwitch.Toggled += HideWhenNotSharingSwitch_Toggled;
 
         var root = new Grid
         {
@@ -206,9 +225,9 @@ public sealed partial class SettingsWindow : Window
             CreateDivider(),
             CreateSettingRow("Resume output on launch", "Resume output when a target is available", _autoShareSwitch),
             CreateDivider(),
-            CreateSettingRow("Hide when not sharing", "Hide the output window while paused", _hideWhenNotSharingSwitch),
+            CreateSettingRow("Hide when not sharing", _hideWhenNotSharingSubtitle, _hideWhenNotSharingSwitch),
             CreateDivider(),
-            CreateSettingRow("Pin output on top", "Keep output window above other windows", _pinOutputSwitch)));
+            CreateSettingRow("Pin output on top", _pinOutputSubtitle, _pinOutputSwitch)));
 
         leftColumn.Children.Add(CreateSectionLabel("CAPTURE QUALITY"));
         leftColumn.Children.Add(CreateCard(
@@ -242,16 +261,7 @@ public sealed partial class SettingsWindow : Window
             CreateSettingRow("Show app in taskbar", "Keep CursorFollow windows visible in the taskbar", _showTaskbarIconSwitch)));
 
         rightColumn.Children.Add(CreateSectionLabel("ABOUT"));
-        rightColumn.Children.Add(CreateCard(
-            new FontIcon
-            {
-                FontFamily = new FontFamily("Segoe Fluent Icons"),
-                Glyph = "\uE722",
-                FontSize = 38,
-                Foreground = MutedBrush,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(0, 4, 0, 4),
-            }));
+        rightColumn.Children.Add(CreateCard(CreateAboutContent()));
 
         var footer = new Grid { Margin = new Thickness(0, 14, 0, 0) };
         Grid.SetRow(footer, 2);
@@ -371,6 +381,89 @@ public sealed partial class SettingsWindow : Window
         return row;
     }
 
+    // Overload that takes a pre-built subtitle so callers can mutate the explanation text
+    // later (used by the mutually exclusive Pin / Hide toggles).
+    private static Grid CreateSettingRow(string title, TextBlock subtitle, ToggleSwitch toggle)
+    {
+        var row = new Grid { MinHeight = 44, ColumnSpacing = 12 };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var text = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
+        text.Children.Add(new TextBlock
+        {
+            Text = title,
+            Foreground = WhiteBrush,
+            FontSize = 16,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+        });
+        text.Children.Add(subtitle);
+        row.Children.Add(text);
+
+        Grid.SetColumn(toggle, 1);
+        row.Children.Add(toggle);
+        return row;
+    }
+
+    private static TextBlock CreateSubtitleBlock(string text) => new()
+    {
+        Text = text,
+        Foreground = MutedBrush,
+        FontSize = 13,
+        FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+        TextWrapping = TextWrapping.Wrap,
+    };
+
+    private void PinOutputSwitch_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_syncingExclusiveToggles)
+        {
+            return;
+        }
+
+        if (_pinOutputSwitch.IsOn)
+        {
+            _syncingExclusiveToggles = true;
+            _hideWhenNotSharingSwitch.IsOn = false;
+            _syncingExclusiveToggles = false;
+        }
+
+        UpdateExclusiveToggleState();
+    }
+
+    private void HideWhenNotSharingSwitch_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_syncingExclusiveToggles)
+        {
+            return;
+        }
+
+        if (_hideWhenNotSharingSwitch.IsOn)
+        {
+            _syncingExclusiveToggles = true;
+            _pinOutputSwitch.IsOn = false;
+            _syncingExclusiveToggles = false;
+        }
+
+        UpdateExclusiveToggleState();
+    }
+
+    // "Hide when not sharing" and "Pin output on top" are mutually exclusive: pinning means the
+    // output should stay visible on top, which contradicts hiding it when idle. Disable and
+    // explain whichever option is blocked by the other.
+    private void UpdateExclusiveToggleState()
+    {
+        _hideWhenNotSharingSwitch.IsEnabled = !_pinOutputSwitch.IsOn;
+        _pinOutputSwitch.IsEnabled = !_hideWhenNotSharingSwitch.IsOn;
+
+        _hideWhenNotSharingSubtitle.Text = _pinOutputSwitch.IsOn
+            ? "Disabled while output is pinned on top"
+            : "Hide the output window while paused";
+        _pinOutputSubtitle.Text = _hideWhenNotSharingSwitch.IsOn
+            ? "Disabled while “Hide when not sharing” is on"
+            : "Keep output window above other windows";
+    }
+
     private Grid CreateQualitySegment()
     {
         var segment = new Grid
@@ -422,7 +515,7 @@ public sealed partial class SettingsWindow : Window
         return row;
     }
 
-    private static Grid CreateOutputScalingBlock()
+    private Grid CreateOutputScalingBlock()
     {
         var root = new Grid { RowSpacing = 9 };
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -443,33 +536,89 @@ public sealed partial class SettingsWindow : Window
         segment.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         segment.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         segment.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        segment.Children.Add(CreateStaticSegmentButton("FIT", false));
-        var fill = CreateStaticSegmentButton("FILL", false);
-        Grid.SetColumn(fill, 1);
-        segment.Children.Add(fill);
-        var actual = CreateStaticSegmentButton("ACTUAL", true);
-        Grid.SetColumn(actual, 2);
-        segment.Children.Add(actual);
+
+        ConfigureScaleButton(_fitScaleButton, "Fit");
+        ConfigureScaleButton(_fillScaleButton, "Fill");
+        ConfigureScaleButton(_actualScaleButton, "Actual");
+        segment.Children.Add(_fitScaleButton);
+        Grid.SetColumn(_fillScaleButton, 1);
+        segment.Children.Add(_fillScaleButton);
+        Grid.SetColumn(_actualScaleButton, 2);
+        segment.Children.Add(_actualScaleButton);
+
         Grid.SetRow(segment, 1);
         root.Children.Add(segment);
         return root;
     }
 
-    private static Button CreateStaticSegmentButton(string label, bool isActive)
+    private void ConfigureScaleButton(Button button, string value)
     {
-        return new Button
+        button.Content = value.ToUpperInvariant();
+        button.HorizontalAlignment = HorizontalAlignment.Stretch;
+        button.VerticalAlignment = VerticalAlignment.Stretch;
+        button.BorderThickness = new Thickness(0);
+        button.FontSize = 12;
+        button.FontWeight = Microsoft.UI.Text.FontWeights.Bold;
+        button.Click += (_, _) => SelectScaleMode(value);
+    }
+
+    private void SelectScaleMode(string mode)
+    {
+        _selectedScaleMode = mode switch
         {
-            Content = label,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Stretch,
-            Background = isActive ? AccentBrush : SegmentBackgroundBrush,
-            Foreground = WhiteBrush,
-            BorderBrush = isActive ? AccentBrush : SegmentBackgroundBrush,
-            BorderThickness = new Thickness(0),
-            FontSize = 12,
-            FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-            IsHitTestVisible = false,
+            "Fill" => "Fill",
+            "Actual" => "Actual",
+            _ => "Fit",
         };
+
+        UpdateQualityButton(_fitScaleButton, _selectedScaleMode == "Fit");
+        UpdateQualityButton(_fillScaleButton, _selectedScaleMode == "Fill");
+        UpdateQualityButton(_actualScaleButton, _selectedScaleMode == "Actual");
+    }
+
+    private static UIElement CreateAboutContent()
+    {
+        var stack = new StackPanel { Spacing = 6 };
+        stack.Children.Add(new TextBlock
+        {
+            Text = "CursorFollowWin",
+            Foreground = WhiteBrush,
+            FontSize = 16,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+        });
+        stack.Children.Add(new TextBlock
+        {
+            Text = $"Version {AppVersion()}",
+            Foreground = MutedBrush,
+            FontSize = 13,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+        });
+
+        var links = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 4,
+            Margin = new Thickness(0, 2, 0, 0),
+        };
+        links.Children.Add(CreateLinkButton("Documentation", "https://github.com/LoganRupe/CursorFollow/src/branch/main/README.md"));
+        links.Children.Add(CreateLinkButton("Changelog", "https://github.com/LoganRupe/CursorFollow/src/branch/main/CHANGELOG.md"));
+        stack.Children.Add(links);
+        return stack;
+    }
+
+    private static HyperlinkButton CreateLinkButton(string text, string url) => new()
+    {
+        Content = text,
+        NavigateUri = new Uri(url),
+        Padding = new Thickness(2, 0, 2, 0),
+        FontSize = 13,
+        FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+    };
+
+    private static string AppVersion()
+    {
+        var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+        return version is null ? "1.0" : $"{version.Major}.{version.Minor}";
     }
 
     private static Button CreateFooterButton(string text, Brush background, Brush foreground)

@@ -12,6 +12,7 @@ public sealed record AppSettings
     public bool ShowTaskbarIcon { get; init; }
     public bool ShowOverlay { get; init; } = true;
     public string CaptureQuality { get; init; } = "Balanced";
+    public string OutputScaleMode { get; init; } = "Fit";
     public WindowFilterMode WindowFilterMode { get; init; } = WindowFilterMode.All;
     public string[] IncludeWindowIdentities { get; init; } = Array.Empty<string>();
     public string[] ExcludeWindowIdentities { get; init; } = Array.Empty<string>();

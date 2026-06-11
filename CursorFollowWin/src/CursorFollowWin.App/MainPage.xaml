@@ -22,7 +22,7 @@
             BorderBrush="#2B3445"
             BorderThickness="1"
             CornerRadius="4">
-            <Viewbox Stretch="Uniform">
+            <Viewbox x:Name="OutputViewbox" Stretch="Uniform">
                 <Grid x:Name="FrameSurface"
                       Width="1280"
                       Height="720"
