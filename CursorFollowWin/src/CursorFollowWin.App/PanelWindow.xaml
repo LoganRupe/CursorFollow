@@ -87,6 +87,7 @@
                 </StackPanel>
                 <Button Grid.Column="1"
                         Style="{StaticResource IconButtonStyle}"
+                        AutomationProperties.Name="Settings"
                         Click="SettingsButton_Click"
                         ToolTipService.ToolTip="Settings">
                     <FontIcon FontFamily="Segoe Fluent Icons"
@@ -95,6 +96,7 @@
                 </Button>
                 <Button Grid.Column="2"
                         Style="{StaticResource IconButtonStyle}"
+                        AutomationProperties.Name="Quit"
                         Click="QuitButton_Click"
                         ToolTipService.ToolTip="Quit">
                     <FontIcon FontFamily="Segoe Fluent Icons"
@@ -197,6 +199,7 @@
                 <ListView x:Name="WindowListView"
                           Background="Transparent"
                           BorderThickness="0"
+                          AutomationProperties.Name="Capturable windows"
                           IsItemClickEnabled="True"
                           ItemClick="WindowListView_ItemClick"
                           SelectionChanged="WindowListView_SelectionChanged">
@@ -274,6 +277,7 @@
                 <Button Grid.Column="1"
                         x:Name="OutputButton"
                         Style="{StaticResource PanelButtonStyle}"
+                        AutomationProperties.Name="Show or hide output"
                         ToolTipService.ToolTip="Show or hide output"
                         Click="OutputButton_Click"/>
             </Grid>
