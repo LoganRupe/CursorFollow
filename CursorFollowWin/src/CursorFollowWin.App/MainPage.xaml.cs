@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System.Globalization;
 using Windows.Graphics.Imaging;
@@ -104,6 +105,18 @@ public sealed partial class MainPage : Page
     public void ApplyCaptureQuality(string quality)
     {
         _captureController.ApplyQuality(quality);
+    }
+
+    public void ApplyOutputScaleMode(string scaleMode)
+    {
+        // The output Border has a corner radius, which clips the Viewbox child, so
+        // Fill/Actual content that overflows the window is cropped to the frame.
+        OutputViewbox.Stretch = scaleMode switch
+        {
+            "Fill" => Stretch.UniformToFill,
+            "Actual" => Stretch.None,
+            _ => Stretch.Uniform, // Fit
+        };
     }
 
     public void DisposeCapture()
