@@ -12,6 +12,7 @@ public partial class App : Application
     private MainWindow? _outputWindow;
     private TargetFollowService? _targetFollowService;
     private TrayIconService? _trayIcon;
+    private HotkeyService? _hotkeyService;
     private PanelWindow? _panelWindow;
     private SettingsWindow? _settingsWindow;
 
@@ -48,6 +49,43 @@ public partial class App : Application
             HideOutputWindow,
             ShowSettings,
             ExitApplication);
+
+        _hotkeyService = new HotkeyService(ToggleAutoFollow, ToggleOutput);
+        ApplyHotkeys(SettingsStore.Current);
+    }
+
+    private void ToggleAutoFollow()
+    {
+        if (_targetFollowService is null)
+        {
+            return;
+        }
+
+        _targetFollowService.SetEnabled(!_targetFollowService.IsEnabled);
+    }
+
+    private void ToggleOutput()
+    {
+        if (_outputWindow is null)
+        {
+            return;
+        }
+
+        if (_outputWindow.IsOutputVisible)
+        {
+            _outputWindow.HideOutput();
+        }
+        else
+        {
+            _outputWindow.ShowOutput();
+        }
+    }
+
+    private string? ApplyHotkeys(AppSettings settings)
+    {
+        return _hotkeyService?.ApplyBindings(
+            Hotkey.Parse(settings.AutoFollowHotkey),
+            Hotkey.Parse(settings.ToggleOutputHotkey));
     }
 
     private void ShowPanel()
@@ -85,16 +123,18 @@ public partial class App : Application
         _settingsWindow.ShowNear(_panelWindow?.CurrentBounds());
     }
 
-    private void SaveSettings(AppSettings settings)
+    private string? SaveSettings(AppSettings settings)
     {
         SettingsStore.Save(settings);
         _outputWindow?.ApplySettings(settings);
         _settingsWindow?.ApplySettings(settings);
         _panelWindow?.RefreshFromOutput();
+        return ApplyHotkeys(settings);
     }
 
     private void ExitApplication()
     {
+        _hotkeyService?.Dispose();
         _trayIcon?.Dispose();
         _outputWindow?.DisposeCapture();
         _singleInstanceMutex?.Dispose();

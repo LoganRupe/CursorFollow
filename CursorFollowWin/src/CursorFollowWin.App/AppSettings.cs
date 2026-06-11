@@ -15,6 +15,8 @@ public sealed record AppSettings
     public WindowFilterMode WindowFilterMode { get; init; } = WindowFilterMode.All;
     public string[] IncludeWindowIdentities { get; init; } = Array.Empty<string>();
     public string[] ExcludeWindowIdentities { get; init; } = Array.Empty<string>();
+    public string AutoFollowHotkey { get; init; } = "Ctrl+Alt+F";
+    public string ToggleOutputHotkey { get; init; } = "Ctrl+Alt+S";
 }
 
 [JsonSourceGenerationOptions(WriteIndented = true)]
