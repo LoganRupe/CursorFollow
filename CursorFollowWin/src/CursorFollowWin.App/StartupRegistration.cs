@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 
 namespace CursorFollowWin_App;
@@ -34,16 +35,19 @@ internal static class StartupRegistration
                 if (!string.IsNullOrEmpty(executablePath))
                 {
                     key.SetValue(ValueName, $"\"{executablePath}\"");
+                    AppLog.Startup.LogInformation("Registered start-with-Windows: {Path}", executablePath);
                 }
             }
             else
             {
                 key.DeleteValue(ValueName, throwOnMissingValue: false);
+                AppLog.Startup.LogInformation("Removed start-with-Windows registration.");
             }
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or System.Security.SecurityException)
         {
             // Best-effort: the toggle is persisted in settings regardless of registry success.
+            AppLog.Startup.LogWarning(ex, "Failed to update start-with-Windows registration.");
         }
     }
 }

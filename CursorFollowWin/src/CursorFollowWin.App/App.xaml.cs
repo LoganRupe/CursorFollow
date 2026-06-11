@@ -1,4 +1,5 @@
-﻿using Microsoft.UI.Xaml;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.UI.Xaml;
 using System.Runtime.InteropServices;
 
 namespace CursorFollowWin_App;
@@ -19,18 +20,26 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
+        UnhandledException += (_, e) =>
+        {
+            AppLog.App.LogError(e.Exception, "Unhandled exception: {Message}", e.Message);
+        };
     }
 
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
+        AppLog.Initialize();
+
         _singleInstanceMutex = new Mutex(true, SingleInstanceMutexName, out var isFirstInstance);
         if (!isFirstInstance)
         {
+            AppLog.App.LogInformation("Another instance is already running; activating it and exiting.");
             ActivateExistingInstance();
             Current.Exit();
             return;
         }
 
+        AppLog.App.LogInformation("CursorFollowWin starting.");
         SettingsStore.Load();
         StartupRegistration.Apply(SettingsStore.Current.StartWithWindows);
 
@@ -44,6 +53,7 @@ public partial class App : Application
             _targetFollowService.Start();
         }
 
+        AppLog.App.LogInformation("Creating tray icon.");
         _trayIcon = new TrayIconService(
             ShowPanel,
             ShowOutputWindow,
@@ -51,8 +61,10 @@ public partial class App : Application
             ShowSettings,
             ExitApplication);
 
+        AppLog.App.LogInformation("Registering hotkeys.");
         _hotkeyService = new HotkeyService(ToggleAutoFollow, ToggleOutput);
         ApplyHotkeys(SettingsStore.Current);
+        AppLog.App.LogInformation("Startup complete.");
     }
 
     private void ToggleAutoFollow()
@@ -84,9 +96,21 @@ public partial class App : Application
 
     private string? ApplyHotkeys(AppSettings settings)
     {
-        return _hotkeyService?.ApplyBindings(
+        AppLog.Hotkeys.LogInformation(
+            "Applying hotkeys from settings: auto-follow='{AutoFollow}', output='{Output}'.",
+            settings.AutoFollowHotkey,
+            settings.ToggleOutputHotkey);
+
+        var conflict = _hotkeyService?.ApplyBindings(
             Hotkey.Parse(settings.AutoFollowHotkey),
             Hotkey.Parse(settings.ToggleOutputHotkey));
+
+        if (conflict is not null)
+        {
+            AppLog.Hotkeys.LogWarning("Hotkey binding conflict: {Conflict}", conflict);
+        }
+
+        return conflict;
     }
 
     private void ShowPanel()
@@ -136,10 +160,12 @@ public partial class App : Application
 
     private void ExitApplication()
     {
+        AppLog.App.LogInformation("CursorFollowWin exiting.");
         _hotkeyService?.Dispose();
         _trayIcon?.Dispose();
         _outputWindow?.DisposeCapture();
         _singleInstanceMutex?.Dispose();
+        AppLog.Shutdown();
         Current.Exit();
     }
 

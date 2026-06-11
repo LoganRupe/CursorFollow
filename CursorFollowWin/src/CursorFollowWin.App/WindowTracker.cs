@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -77,6 +78,8 @@ internal sealed class WindowTracker
             omitted == 0
                 ? $"{windows.Count} capturable windows found"
                 : $"{windows.Count} shown, {omitted} hidden or filtered ({FormatTopOmissions()})");
+
+        AppLog.WindowTracker.LogInformation("Window refresh: {Summary}", LastRefreshDiagnostics.Summary);
 
         return windows
             .OrderBy(window => window.AppName, StringComparer.CurrentCultureIgnoreCase)

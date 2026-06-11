@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 
 namespace CursorFollowWin_App;
@@ -77,15 +78,18 @@ internal sealed class HotkeyService : IDisposable
         // An empty/invalid binding is "nothing to register" rather than a conflict.
         if (!hotkey.IsValid)
         {
+            AppLog.Hotkeys.LogInformation("No valid binding for hotkey id {Id}; leaving it unregistered.", id);
             return true;
         }
 
         if (RegisterHotKey(_messageWindow, id, (uint)hotkey.Modifiers | ModNoRepeat, hotkey.VirtualKey))
         {
             _registeredIds.Add(id);
+            AppLog.Hotkeys.LogInformation("Registered hotkey {Hotkey} (id {Id}).", hotkey.Format(), id);
             return true;
         }
 
+        AppLog.Hotkeys.LogWarning("Failed to register hotkey {Hotkey} (id {Id}); already in use.", hotkey.Format(), id);
         return false;
     }
 
