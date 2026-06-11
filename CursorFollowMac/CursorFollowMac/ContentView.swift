@@ -9,25 +9,59 @@
 @MainActor
 final class AppSettings: ObservableObject {
     @Published private(set) var startOnLoginEnabled = false
+    @Published private(set) var showInDockEnabled = false
     @Published private(set) var autoShareOnStart = false
     @Published private(set) var hideWhenNotSharingEnabled = false
     @Published private(set) var pinOutputOnTopEnabled = false
     @Published private(set) var showResolution = false
     @Published private(set) var showFrameCount = false
+    @Published private(set) var outputPresentationMode: OutputPresentationMode
 
     private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowMac", category: "AppSettings")
     private let defaults: UserDefaults
 
     private enum Keys {
+        static let showInDockEnabled = "settings.showInDockEnabled"
         static let autoShareOnStart = "settings.autoShareOnStart"
         static let hideWhenNotSharingEnabled = "settings.hideWhenNotSharingEnabled"
         static let pinOutputOnTopEnabled = "settings.pinOutputOnTopEnabled"
         static let showResolution = "settings.showResolution"
         static let showFrameCount = "settings.showFrameCount"
+        static let outputPresentationMode = "settings.outputPresentationMode"
+    }
+
+    nonisolated static func savedOutputPresentationMode(defaults: UserDefaults = .standard) -> OutputPresentationMode {
+        guard let rawMode = defaults.string(forKey: Keys.outputPresentationMode),
+              let mode = OutputPresentationMode(rawValue: rawMode) else {
+            return .fit
+        }
+        return mode
+    }
+
+    nonisolated static func savedOutputPreferences(defaults: UserDefaults = .standard) -> (
+        hideWhenNotSharing: Bool,
+        pinOutputOnTop: Bool,
+        showResolution: Bool,
+        showFrameCount: Bool,
+        presentationMode: OutputPresentationMode
+    ) {
+        (
+            hideWhenNotSharing: defaults.bool(forKey: Keys.hideWhenNotSharingEnabled),
+            pinOutputOnTop: defaults.bool(forKey: Keys.pinOutputOnTopEnabled),
+            showResolution: defaults.bool(forKey: Keys.showResolution),
+            showFrameCount: defaults.bool(forKey: Keys.showFrameCount),
+            presentationMode: savedOutputPresentationMode(defaults: defaults)
+        )
     }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        outputPresentationMode = Self.savedOutputPresentationMode(defaults: defaults)
+        if defaults.string(forKey: Keys.outputPresentationMode) == nil {
+            defaults.set(OutputPresentationMode.fit.rawValue, forKey: Keys.outputPresentationMode)
+        }
+        showInDockEnabled = defaults.bool(forKey: Keys.showInDockEnabled)
+        Self.applyDockVisibility(showInDockEnabled)
         autoShareOnStart = defaults.bool(forKey: Keys.autoShareOnStart)
         hideWhenNotSharingEnabled = defaults.bool(forKey: Keys.hideWhenNotSharingEnabled)
         pinOutputOnTopEnabled = defaults.bool(forKey: Keys.pinOutputOnTopEnabled)
@@ -56,6 +90,19 @@ final class AppSettings: ObservableObject {
         startOnLoginEnabled = Self.isEnabled(status: SMAppService.mainApp.status)
     }
 
+    func setShowInDock(_ enabled: Bool) {
+        showInDockEnabled = enabled
+        defaults.set(enabled, forKey: Keys.showInDockEnabled)
+        Self.applyDockVisibility(enabled)
+    }
+
+    /// Shows or hides the app's Dock icon (the macOS equivalent of the taskbar).
+    /// The app ships as an `LSUIElement` agent, so `.accessory` keeps it out of the
+    /// Dock while `.regular` adds it.
+    private static func applyDockVisibility(_ enabled: Bool) {
+        NSApp.setActivationPolicy(enabled ? .regular : .accessory)
+    }
+
     func setAutoShareOnStart(_ enabled: Bool) {
         autoShareOnStart = enabled
         defaults.set(enabled, forKey: Keys.autoShareOnStart)
@@ -79,6 +126,11 @@ final class AppSettings: ObservableObject {
     func setShowFrameCount(_ enabled: Bool) {
         showFrameCount = enabled
         defaults.set(enabled, forKey: Keys.showFrameCount)
+    }
+
+    func setOutputPresentationMode(_ mode: OutputPresentationMode) {
+        outputPresentationMode = mode
+        defaults.set(mode.rawValue, forKey: Keys.outputPresentationMode)
     }
 
     private static func isEnabled(status: SMAppService.Status) -> Bool {
@@ -154,19 +206,25 @@ struct ContentView: View {
             Divider()
                 .overlay(Color.white.opacity(0.12))
 
-            // Auto-follow toggle
-            HStack(spacing: 8) {
-                Image(systemName: "cursorarrow.motionlines")
-                    .foregroundStyle(.secondary)
-                    .font(.footnote)
-                    .frame(width: 12)
-                Text("Auto-follow cursor")
-                    .font(.title3.weight(.semibold))
-                Spacer(minLength: 8)
-                Toggle("", isOn: $windowTracker.autoFollowEnabled)
-                    .labelsHidden()
-                .toggleStyle(.switch)
-                .controlSize(.regular)
+            // Target mode
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "cursorarrow.motionlines")
+                        .foregroundStyle(.secondary)
+                        .font(.footnote)
+                        .frame(width: 12)
+                    Text("TARGET MODE")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 8)
+                }
+
+                Picker("Target mode", selection: targetModeBinding) {
+                    Text("Auto").tag(true)
+                    Text("Manual").tag(false)
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
@@ -204,10 +262,22 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                     Text("No windows available")
                         .foregroundStyle(.secondary)
-                    Text("Grant Screen Recording permission in System Settings → Privacy & Security")
+                    Text(windowTracker.permissionError == nil
+                        ? "Open or unminimize a window, then refresh."
+                        : "Grant Screen Recording permission in System Settings > Privacy & Security.")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .multilineTextAlignment(.center)
+
+                    if windowTracker.permissionError != nil {
+                        Button {
+                            openScreenRecordingSettings()
+                        } label: {
+                            Label("Open Screen Recording", systemImage: "gearshape")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .buttonStyle(.bordered)
+                    }
                 }
                 .frame(maxWidth: .infinity, minHeight: 210)
                 .padding(.horizontal, 8)
@@ -272,7 +342,7 @@ struct ContentView: View {
                     outputWindowController.toggle()
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: "rectangle.on.rectangle")
+                        Image(systemName: outputWindowController.isVisible ? "rectangle.slash" : "rectangle.on.rectangle")
                             .frame(width: 12, alignment: .center)
                         Text(outputWindowController.isVisible ? "Hide" : "Show")
                     }
@@ -306,22 +376,22 @@ struct ContentView: View {
                     Button {
                         Task { await captureEngine.userStop() }
                     } label: {
-                        Label("Stop", systemImage: "video.slash.fill")
+                        Label("Pause", systemImage: "pause.fill")
                             .font(.system(size: 14, weight: .bold))
                             .frame(minHeight: 28)
                     }
-                    .help("Stop capture")
+                    .help("Pause output without closing the shared window")
                     .tint(.red)
                 } else {
                     Button {
                         guard let window = windowTracker.selectedWindow else { return }
                         Task { await captureEngine.startCapture(window: window) }
                     } label: {
-                        Label("Start", systemImage: "video.fill")
+                        Label("Resume", systemImage: "play.fill")
                             .font(.system(size: 14, weight: .bold))
                             .frame(minHeight: 28)
                     }
-                    .help("Start capture")
+                    .help("Resume output")
                     .disabled(windowTracker.selectedWindow == nil)
                     .tint(.green)
                 }
@@ -342,12 +412,19 @@ struct ContentView: View {
                     Text(error)
                         .font(.caption)
                         .foregroundStyle(.red)
+                    if capturePermissionError != nil {
+                        Spacer(minLength: 4)
+                        Button("Open") {
+                            openScreenRecordingSettings()
+                        }
+                        .font(.caption.weight(.semibold))
+                    }
                 }
                 .padding(.horizontal, 8)
             }
         }
         .padding(12)
-        .frame(width: 308, height: 572)
+        .frame(width: 308, height: 552)
         .onChange(of: windowTracker.autoFollowEnabled) { _, enabled in
             if enabled {
                 windowTracker.startObservingFrontApp()
@@ -359,6 +436,7 @@ struct ContentView: View {
             outputWindowController.alwaysOnTop = appSettings.pinOutputOnTopEnabled
             outputWindowController.showResolution = appSettings.showResolution
             outputWindowController.showFrameCount = appSettings.showFrameCount
+            outputWindowController.presentationMode = appSettings.outputPresentationMode
         }
         .onChange(of: appSettings.pinOutputOnTopEnabled) { _, enabled in
             outputWindowController.alwaysOnTop = enabled
@@ -368,6 +446,9 @@ struct ContentView: View {
         }
         .onChange(of: appSettings.showFrameCount) { _, enabled in
             outputWindowController.showFrameCount = enabled
+        }
+        .onChange(of: appSettings.outputPresentationMode) { _, mode in
+            outputWindowController.presentationMode = mode
         }
         .onChange(of: appSettings.hideWhenNotSharingEnabled) { _, enabled in
             if enabled && !captureEngine.isCapturing {
@@ -403,6 +484,27 @@ struct ContentView: View {
                 .padding(.vertical, 3)
                 .background(.red, in: Capsule())
         }
+    }
+
+    private var targetModeBinding: Binding<Bool> {
+        Binding(
+            get: { windowTracker.autoFollowEnabled },
+            set: { windowTracker.autoFollowEnabled = $0 }
+        )
+    }
+
+    private var capturePermissionError: String? {
+        guard let error = captureEngine.lastError else { return nil }
+        let lowercased = error.lowercased()
+        guard lowercased.contains("permission") || lowercased.contains("not authorized") || lowercased.contains("denied") else {
+            return nil
+        }
+        return error
+    }
+
+    private func openScreenRecordingSettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") else { return }
+        NSWorkspace.shared.open(url)
     }
 
     private var mainPanelCardBackground: some ShapeStyle {
@@ -482,11 +584,13 @@ private struct SettingsModalView: View {
     @State private var autoFollowClearStatusWorkItem: DispatchWorkItem?
     @State private var toggleShareClearStatusWorkItem: DispatchWorkItem?
     @State private var draftStartOnLoginEnabled = false
+    @State private var draftShowInDockEnabled = false
     @State private var draftAutoShareOnStart = false
     @State private var draftHideWhenNotSharingEnabled = false
     @State private var draftPinOutputOnTopEnabled = false
     @State private var draftShowResolution = false
     @State private var draftShowFrameCount = false
+    @State private var draftOutputPresentationMode: OutputPresentationMode = .fit
     @State private var initialCaptureQuality: CaptureQuality = .balanced
     @State private var initialAutoFollowShortcut: HotKeyShortcut?
     @State private var initialToggleShareShortcut: HotKeyShortcut?
@@ -565,8 +669,14 @@ private struct SettingsModalView: View {
                 )
                 Divider().overlay(Color.white.opacity(0.06))
                 SettingsToggleRow(
-                    title: "Automatically share on start",
-                    subtitle: "Begin capture immediately on launch",
+                    title: "Show in Dock",
+                    subtitle: "Show the CursorFollow icon in the Dock",
+                    isOn: $draftShowInDockEnabled
+                )
+                Divider().overlay(Color.white.opacity(0.06))
+                SettingsToggleRow(
+                    title: "Resume output on launch",
+                    subtitle: "Resume output when a target is available",
                     isOn: $draftAutoShareOnStart
                 )
                 Divider().overlay(Color.white.opacity(0.06))
@@ -574,7 +684,7 @@ private struct SettingsModalView: View {
                     title: "Hide when not sharing",
                     subtitle: draftPinOutputOnTopEnabled && !draftHideWhenNotSharingEnabled
                         ? "Disabled while Pin output on top is enabled"
-                        : "Automatically minimize to dock",
+                        : "Hide the output window while paused",
                     isOn: hideWhenNotSharingBinding,
                     isDisabled: draftPinOutputOnTopEnabled && !draftHideWhenNotSharingEnabled
                 )
@@ -730,7 +840,7 @@ private struct SettingsModalView: View {
 
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Toggle Sharing")
+                        Text("Toggle Output")
                             .font(.system(size: 26 / 2, weight: .semibold))
                             .foregroundStyle(.white)
                         Text("Global system shortcut")
@@ -769,7 +879,7 @@ private struct SettingsModalView: View {
                 .padding(.vertical, 2)
 
                 if activeHotkeyCapture == .toggleShare {
-                    Text("Press the new Toggle Sharing shortcut now (must include Control, Option, Shift, or Command).")
+                    Text("Press the new Toggle Output shortcut now (must include Control, Option, Shift, or Command).")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(Color(red: 0.67, green: 0.80, blue: 1.0))
                         .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .top)), removal: .opacity))
@@ -802,6 +912,35 @@ private struct SettingsModalView: View {
     private var displaySection: some View {
         SettingsCard(title: "DISPLAY") {
             VStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Output scaling")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+
+                    HStack(spacing: 6) {
+                        ForEach(OutputPresentationMode.allCases, id: \.self) { mode in
+                            Button {
+                                draftOutputPresentationMode = mode
+                            } label: {
+                                Text(mode.label)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(mode == draftOutputPresentationMode ? .white : Color.white.opacity(0.7))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                            .fill(mode == draftOutputPresentationMode ? Color(red: 0.09, green: 0.43, blue: 0.95) : Color.clear)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(4)
+                    .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+                .padding(.vertical, 10)
+                Divider().overlay(Color.white.opacity(0.06))
+
                 SettingsToggleRow(
                     title: "Show resolution",
                     subtitle: "Display resolution on output window",
@@ -932,11 +1071,13 @@ private struct SettingsModalView: View {
         appSettings.refreshStartOnLoginStatus()
 
         draftStartOnLoginEnabled = appSettings.startOnLoginEnabled
+        draftShowInDockEnabled = appSettings.showInDockEnabled
         draftAutoShareOnStart = appSettings.autoShareOnStart
         draftHideWhenNotSharingEnabled = appSettings.hideWhenNotSharingEnabled
         draftPinOutputOnTopEnabled = appSettings.pinOutputOnTopEnabled
         draftShowResolution = appSettings.showResolution
         draftShowFrameCount = appSettings.showFrameCount
+        draftOutputPresentationMode = appSettings.outputPresentationMode
 
         initialCaptureQuality = captureEngine.captureQuality
         selectedQuality = initialCaptureQuality
@@ -953,11 +1094,13 @@ private struct SettingsModalView: View {
         stopShortcutCapture()
 
         appSettings.setStartOnLogin(draftStartOnLoginEnabled)
+        appSettings.setShowInDock(draftShowInDockEnabled)
         appSettings.setAutoShareOnStart(draftAutoShareOnStart)
         appSettings.setHideWhenNotSharing(draftHideWhenNotSharingEnabled)
         appSettings.setPinOutputOnTop(draftPinOutputOnTopEnabled)
         appSettings.setShowResolution(draftShowResolution)
         appSettings.setShowFrameCount(draftShowFrameCount)
+        appSettings.setOutputPresentationMode(draftOutputPresentationMode)
         captureEngine.setCaptureQuality(selectedQuality)
 
         didSaveChanges = true
