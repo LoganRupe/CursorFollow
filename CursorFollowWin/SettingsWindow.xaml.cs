@@ -9,7 +9,7 @@ using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using WinRT.Interop;
 
-namespace CursorFollowWin_App;
+namespace CursorFollowWin;
 
 public sealed partial class SettingsWindow : Window
 {

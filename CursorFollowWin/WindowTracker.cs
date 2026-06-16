@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace CursorFollowWin_App;
+namespace CursorFollowWin;
 
 internal sealed class WindowTracker
 {
@@ -258,7 +258,6 @@ internal sealed class WindowTracker
         var processFile = Path.GetFileName(processPath);
         var blockedNames = new[]
         {
-            "CursorFollowWin.App.exe",
             "CursorFollowWin.exe",
             "dwm.exe",
             "explorer.exe",
@@ -274,7 +273,7 @@ internal sealed class WindowTracker
         }
 
         var blockedTitles = new[] { "Program Manager", "Windows Input Experience" };
-        return blockedTitles.Contains(title, StringComparer.OrdinalIgnoreCase) || string.Equals(appName, "CursorFollowWin.App", StringComparison.OrdinalIgnoreCase);
+        return blockedTitles.Contains(title, StringComparer.OrdinalIgnoreCase) || string.Equals(appName, "CursorFollowWin", StringComparison.OrdinalIgnoreCase);
     }
 
     private delegate bool EnumWindowsCallback(IntPtr hwnd, IntPtr lParam);

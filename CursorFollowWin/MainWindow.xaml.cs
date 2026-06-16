@@ -2,7 +2,7 @@ using Microsoft.UI.Xaml;
 using System.Runtime.InteropServices;
 using Windows.Graphics;
 
-namespace CursorFollowWin_App;
+namespace CursorFollowWin;
 
 public sealed partial class MainWindow : Window
 {

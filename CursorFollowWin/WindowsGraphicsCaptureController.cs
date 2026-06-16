@@ -10,7 +10,7 @@ using Windows.Graphics.Imaging;
 using Windows.Security.Authorization.AppCapabilityAccess;
 using WinRT;
 
-namespace CursorFollowWin_App;
+namespace CursorFollowWin;
 
 internal sealed class WindowsGraphicsCaptureController : IDisposable
 {

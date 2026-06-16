@@ -2,11 +2,11 @@
 using Microsoft.UI.Xaml;
 using System.Runtime.InteropServices;
 
-namespace CursorFollowWin_App;
+namespace CursorFollowWin;
 
 public partial class App : Application
 {
-    private const string SingleInstanceMutexName = "Local\\CursorFollowWin.App";
+    private const string SingleInstanceMutexName = "Local\\CursorFollowWin";
     private const int SwRestore = 9;
 
     private Mutex? _singleInstanceMutex;

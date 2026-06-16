@@ -1,4 +1,4 @@
-namespace CursorFollowWin_App;
+namespace CursorFollowWin;
 
 public sealed record TrackedWindow(
     IntPtr Handle,

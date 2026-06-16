@@ -3,7 +3,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.22000.0</TargetPlatformMinVersion>
-    <RootNamespace>CursorFollowWin_App</RootNamespace>
+    <RootNamespace>CursorFollowWin</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x86;x64;ARM64</Platforms>
     <UseWinUI>true</UseWinUI>

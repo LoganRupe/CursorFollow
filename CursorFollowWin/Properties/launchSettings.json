@@ -1,9 +1,9 @@
 {
   "profiles": {
-    "CursorFollowWin.App (Unpackaged)": {
+    "CursorFollowWin (Unpackaged)": {
       "commandName": "Project"
     },
-    "CursorFollowWin.App (Package)": {
+    "CursorFollowWin (Package)": {
       "commandName": "MsixPackage"
     }
   }

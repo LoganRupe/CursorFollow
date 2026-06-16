@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace CursorFollowWin_App;
+namespace CursorFollowWin;
 
 public sealed record AppSettings
 {

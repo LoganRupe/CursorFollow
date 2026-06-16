@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace CursorFollowWin_App;
+namespace CursorFollowWin;
 
 /// <summary>
 /// Central logging access. Uses Microsoft.Extensions.Logging with a lightweight daily-rolling

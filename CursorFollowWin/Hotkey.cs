@@ -1,4 +1,4 @@
-namespace CursorFollowWin_App;
+namespace CursorFollowWin;
 
 [Flags]
 internal enum HotkeyModifiers : uint

@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace CursorFollowWin_App;
+namespace CursorFollowWin;
 
 internal sealed class TrayIconService : IDisposable
 {
