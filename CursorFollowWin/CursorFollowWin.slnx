@@ -1,5 +1,3 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/CursorFollowWin.App/CursorFollowWin.App.csproj" />
-  </Folder>
+  <Project Path="CursorFollowWin.csproj" />
 </Solution>

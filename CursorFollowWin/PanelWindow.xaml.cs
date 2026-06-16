@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using Windows.Graphics;
 using WinRT.Interop;
 
-namespace CursorFollowWin_App;
+namespace CursorFollowWin;
 
 public sealed partial class PanelWindow : Window
 {

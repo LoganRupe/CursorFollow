@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 
-namespace CursorFollowWin_App;
+namespace CursorFollowWin;
 
 /// <summary>
 /// Registers the app to launch on Windows sign-in via the per-user <c>Run</c> key.

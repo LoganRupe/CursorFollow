@@ -6,7 +6,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using System.Globalization;
 using Windows.Graphics.Imaging;
 
-namespace CursorFollowWin_App;
+namespace CursorFollowWin;
 
 public sealed partial class MainPage : Page
 {

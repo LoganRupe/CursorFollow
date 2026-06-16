@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 
-namespace CursorFollowWin_App;
+namespace CursorFollowWin;
 
 /// <summary>
 /// Registers global system hotkeys through a message-only window and dispatches them to

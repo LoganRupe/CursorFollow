@@ -1,6 +1,6 @@
 using Microsoft.UI.Xaml;
 
-namespace CursorFollowWin_App;
+namespace CursorFollowWin;
 
 public sealed class TargetFollowService
 {

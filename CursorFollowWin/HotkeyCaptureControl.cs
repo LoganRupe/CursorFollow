@@ -5,7 +5,7 @@ using Microsoft.UI.Xaml.Media;
 using System.Runtime.InteropServices;
 using Windows.System;
 
-namespace CursorFollowWin_App;
+namespace CursorFollowWin;
 
 /// <summary>
 /// A settings control that records a global hotkey. Click to enter capture mode, then press
