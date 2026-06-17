@@ -5,7 +5,7 @@ Inputs:
 - Feature name
 - User-facing behavior
 - Latency/performance expectations
-- Compatibility constraints (Slack/Zoom camera behavior)
+- Compatibility constraints (meeting-app window sharing first on Windows; camera behavior only when explicitly in scope)
 
 Output format:
 
@@ -19,6 +19,7 @@ Planning requirements:
 - Include testing/validation approach
 - Include rollback plan for risky changes
 - Explicitly note signing/permissions impacts when relevant
+- For Windows features, plan around a shareable output window first so the user's real webcam can remain active during calls. Treat virtual camera output as a separate optional track unless requested.
 
 Reference:
 

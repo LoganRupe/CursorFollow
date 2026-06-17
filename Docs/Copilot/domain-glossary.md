@@ -2,6 +2,8 @@
 
 - Active Window: The frontmost window belonging to the current foreground app.
 - Window Under Cursor: The topmost window intersecting the current mouse pointer position.
+- Output Window: A normal app window that renders CursorFollow's tracked capture and can be shared through meeting-app window sharing while the user's real webcam remains active.
+- Virtual Camera: A camera-device output path that meeting apps select as a camera source; useful for camera replacement or compositing workflows, but not the primary Windows sharing path.
 - SCStream: ScreenCaptureKit stream delivering frame sample buffers.
 - SCContentFilter: Filter describing what ScreenCaptureKit captures.
 - CMSampleBuffer: Timed media sample container used for video frames.

@@ -2,16 +2,19 @@
 
 ## Overview
 
-CursorFollow is a macOS menu bar utility that tracks a target window and presents the capture in a stable output window that users can share from conferencing apps.
+CursorFollow tracks a target window and exposes the capture through a sharing-friendly output path for conferencing and recording workflows.
+
+- macOS currently supports a CoreMediaIO virtual camera path and a shareable output window.
+- Windows should prioritize a shareable output window first, so users can keep their real camera selected in meeting apps while sharing CursorFollow's tracked-window output. Windows virtual camera work is optional/later unless explicitly requested.
 
 ### Product Goal
 
-- Track the selected target window (active/focused or under cursor).
-- Capture content with low latency (<50 ms target).
-- Render frames into a persistent macOS window named like `CursorFollow Output`.
-- Let users choose that output window from Zoom/Meet/Slack/Teams screen-share pickers.
+- Track the selected target window (active/focused or under cursor)
+- Capture content with low latency (<50 ms target)
+- Render frames into a shareable output window for presentation workflows
+- On macOS, also stream frames into a CoreMediaIO Camera Extension for camera-source workflows
 
-## Target Architecture
+## macOS Target Architecture
 
 ```
 CursorFollowMac.app
@@ -28,6 +31,13 @@ CursorFollowMac.app
 2. `CaptureEngine` captures via ScreenCaptureKit.
 3. Captured frames are rendered into the persistent output window.
 4. User shares the output window through their conferencing app.
+
+## Windows Target Direction
+
+1. Window tracker identifies the active, selected, or cursor-adjacent target window.
+2. Capture engine captures via Windows Graphics Capture.
+3. App renders frames into a normal shareable output window that meeting apps can share as a window.
+4. Optional later virtual-camera mode may publish frames through Media Foundation if the product needs camera-source behavior.
 
 ## Key APIs
 
@@ -54,6 +64,7 @@ CursorFollowMac.app
 - Exclude CursorFollow's own control and output windows from target candidates.
 - Keep queue depth low; render the latest frame rather than accumulating stale frames.
 - Avoid capturing utility and system windows by default.
+- Avoid capturing CursorFollow's own output window by default to prevent feedback loops.
 - Debounce window switches to avoid thrashing when cursor crosses dense UI.
 
 ## Permissions
