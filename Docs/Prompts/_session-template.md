@@ -18,7 +18,10 @@ Describe the user-visible outcome.
 
 ## Constraints
 
+- Target platform:
+- Primary sharing mode: Output window | Virtual camera | Both
 - macOS version:
+- Windows version:
 - Performance target:
 - Security/permission considerations:
 
@@ -42,7 +45,7 @@ Impact:
 
 ## Files Modified
 
-- 
+-
 
 ## Risks and Mitigations
 
@@ -51,6 +54,6 @@ Impact:
 
 ## Next Actions
 
-1. 
-2. 
-3. 
+1.
+2.
+3.

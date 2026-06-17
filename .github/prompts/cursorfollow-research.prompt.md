@@ -8,6 +8,11 @@ mode: "ask"
 
 Research the user's request in read-only mode.
 
+Default product direction:
+
+- macOS: virtual camera remains a supported output path alongside the shareable output window.
+- Windows: shareable output window is the primary product path; virtual camera is optional/later unless explicitly requested.
+
 Output:
 
 1. Current implementation map (which files own what)

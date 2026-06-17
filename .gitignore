@@ -7,9 +7,16 @@
 build/
 DerivedData/
 *.app/
+!CursorFollowWin/src/CursorFollowWin.App/
 *.ipa
 *.dSYM.zip
 *.dSYM
+
+# .NET build outputs
+bin/
+obj/
+**/bin/
+**/obj/
 
 # Xcode user-specific
 *.pbxuser

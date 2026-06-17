@@ -6,11 +6,13 @@ Use this checklist before and during implementation.
 - [ ] Confirm whether task is research-only or code-change.
 - [ ] Review `@Docs/Copilot/context-cursorfollow.md`.
 - [ ] Identify permission/signing implications.
+- [ ] For Windows work, confirm whether the delivery target is the shareable output window or the optional virtual camera path.
 
 ## During Implementation
 
 - [ ] Preserve low-latency defaults (queue depth, frame pacing).
 - [ ] Avoid introducing capture feedback loops (capturing conferencing app previews).
+- [ ] Keep CursorFollow's own output window excluded from auto-follow by default.
 - [ ] Handle no-target and unavailable-target states gracefully.
 - [ ] Keep window switching behavior deterministic.
 
@@ -22,8 +24,15 @@ Use this checklist before and during implementation.
 - [ ] Exclude list honored.
 - [ ] Error reporting is actionable.
 
-## Camera Extension Path (when touched)
+## Output Window Path (primary for Windows)
+
+- [ ] Output window preserves captured aspect ratio and remains shareable in meeting-app window pickers.
+- [ ] Users can keep their real webcam selected while sharing the CursorFollow output window.
+- [ ] Hide/show, pin-on-top, resize, and no-target states behave predictably.
+
+## Camera Extension / Virtual Camera Path (when touched)
 
 - [ ] CMIO provider/device/stream contract still valid.
 - [ ] Host-extension transport contract unchanged or documented.
 - [ ] Signing and entitlements requirements documented in PR notes.
+- [ ] Windows virtual camera COM/Media Foundation registration is documented separately when in scope.
