@@ -6,7 +6,7 @@ using Windows.Foundation.Metadata;
 using Windows.Graphics;
 using Windows.Graphics.Capture;
 using Windows.Graphics.DirectX;
-using Windows.Graphics.Imaging;
+using Windows.Graphics.DirectX.Direct3D11;
 using Windows.Security.Authorization.AppCapabilityAccess;
 using WinRT;
 
@@ -20,7 +20,7 @@ public sealed class WindowsGraphicsCaptureController : IDisposable
 
     private static readonly Guid GraphicsCaptureItemInterfaceId = new("79C3F95B-31F7-4EC2-A464-632EF5D30760");
 
-    private readonly CanvasDevice _device = new();
+    private readonly CanvasDevice _device;
     private Direct3D11CaptureFramePool? _framePool;
     private GraphicsCaptureSession? _session;
     private GraphicsCaptureItem? _item;
@@ -44,6 +44,14 @@ public sealed class WindowsGraphicsCaptureController : IDisposable
     public event Action<string>? CaptureStopped;
 
     public event Action<Exception>? CaptureFailed;
+
+    /// <param name="device">Shared Win2D device. The capture frame pool and the output swap chain must
+    /// use the same device so captured surfaces render with no cross-device copy. Owned by the caller;
+    /// this controller does not dispose it.</param>
+    public WindowsGraphicsCaptureController(CanvasDevice device)
+    {
+        _device = device;
+    }
 
     public async Task<bool> SelectTargetAsync(IntPtr ownerWindow)
     {
@@ -140,7 +148,7 @@ public sealed class WindowsGraphicsCaptureController : IDisposable
 
         _disposed = true;
         StopCapture(raiseStopped: false);
-        _device.Dispose();
+        // _device is shared and owned by the caller (see constructor); do not dispose it here.
     }
 
     private void Start(GraphicsCaptureItem item)
@@ -179,7 +187,7 @@ public sealed class WindowsGraphicsCaptureController : IDisposable
             _frameBufferCount);
     }
 
-    private async void FramePool_FrameArrived(Direct3D11CaptureFramePool sender, object args)
+    private void FramePool_FrameArrived(Direct3D11CaptureFramePool sender, object args)
     {
         if (Interlocked.Exchange(ref _frameProcessing, 1) == 1)
         {
@@ -190,7 +198,6 @@ public sealed class WindowsGraphicsCaptureController : IDisposable
         try
         {
             var timestamp = DateTimeOffset.Now;
-            var copyTimer = Stopwatch.StartNew();
             using var frame = sender.TryGetNextFrame();
             var contentSize = EnsureValidSize(frame.ContentSize);
 
@@ -201,19 +208,20 @@ public sealed class WindowsGraphicsCaptureController : IDisposable
             }
 
             // Frame-rate cap for Balanced/Performance: drain the frame to keep the pool moving
-            // but skip the expensive copy/present. Not counted as a dropped frame, since this is
-            // intentional pacing rather than the renderer falling behind.
+            // but skip the present. Not counted as a dropped frame, since this is intentional
+            // pacing rather than the renderer falling behind.
             if (_minFrameInterval > TimeSpan.Zero && timestamp - _lastAcceptedFrame < _minFrameInterval)
             {
                 return;
             }
 
             _lastAcceptedFrame = timestamp;
-            var bitmap = await SoftwareBitmap.CreateCopyFromSurfaceAsync(frame.Surface);
-            copyTimer.Stop();
-            var displayBitmap = EnsureDisplayBitmap(bitmap);
             var sequence = Interlocked.Increment(ref _sequence);
-            FrameReady?.Invoke(new CapturedFrame(displayBitmap, contentSize, sequence, timestamp, _targetName, copyTimer.Elapsed, Interlocked.Read(ref _droppedFrames)));
+
+            // GPU path: hand the live capture surface to the subscriber synchronously. The surface is
+            // valid only until this frame is disposed at the end of the using scope, so the renderer
+            // must draw it onto its swap chain inline (no CPU readback, no SoftwareBitmap copy).
+            FrameReady?.Invoke(new CapturedFrame(frame.Surface, contentSize, sequence, timestamp, _targetName, Interlocked.Read(ref _droppedFrames)));
         }
         catch (Exception ex)
         {
@@ -255,18 +263,6 @@ public sealed class WindowsGraphicsCaptureController : IDisposable
             AppLog.Capture.LogInformation("Capture stopped: {Reason}", reason);
             CaptureStopped?.Invoke(reason);
         }
-    }
-
-    private static SoftwareBitmap EnsureDisplayBitmap(SoftwareBitmap bitmap)
-    {
-        if (bitmap.BitmapPixelFormat == BitmapPixelFormat.Bgra8 && bitmap.BitmapAlphaMode == BitmapAlphaMode.Premultiplied)
-        {
-            return bitmap;
-        }
-
-        var converted = SoftwareBitmap.Convert(bitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
-        bitmap.Dispose();
-        return converted;
     }
 
     private static SizeInt32 EnsureValidSize(SizeInt32 size)
@@ -361,11 +357,15 @@ internal enum CaptureQuality
     LowLatency,
 }
 
+/// <summary>
+/// A single captured frame as a live GPU surface. <see cref="Surface"/> is only valid for the
+/// duration of the synchronous <c>FrameReady</c> callback that delivers it; the renderer must draw
+/// it before returning and must not retain it.
+/// </summary>
 public sealed record CapturedFrame(
-    SoftwareBitmap Bitmap,
+    IDirect3DSurface Surface,
     SizeInt32 ContentSize,
     long Sequence,
     DateTimeOffset Timestamp,
     string TargetName,
-    TimeSpan CopyDuration,
     long DroppedFrames);
