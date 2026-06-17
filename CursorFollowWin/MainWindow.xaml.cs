@@ -36,7 +36,7 @@ public sealed partial class MainWindow : Window
         _windowHandle = WinRT.Interop.WindowNative.GetWindowHandle(this);
 
         AppWindow.SetIcon("Assets/AppIcon.ico");
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(1120, 720));
+        SizeToContent(1280, 720);
         SetTaskbarIconVisible(settings.ShowTaskbarIcon);
 
         RootFrame.Navigate(typeof(MainPage));
@@ -44,8 +44,8 @@ public sealed partial class MainWindow : Window
         if (RootFrame.Content is MainPage mainPage)
         {
             mainPage.InitializeWindowHandle(_windowHandle);
-            mainPage.SetOverlayVisible(settings.ShowOverlay);
             mainPage.OutputStateChanged += (_, _) => ApplyOutputVisibilityPolicy();
+            mainPage.ContentSizeChanged += SizeToContent;
         }
     }
 
@@ -77,7 +77,6 @@ public sealed partial class MainWindow : Window
     public void ApplySettings(AppSettings settings)
     {
         _settings = settings;
-        OutputPage?.SetOverlayVisible(settings.ShowOverlay);
         OutputPage?.ApplyCaptureQuality(settings.CaptureQuality);
         OutputPage?.ApplyOutputScaleMode(settings.OutputScaleMode);
         SetTaskbarIconVisible(settings.ShowTaskbarIcon);
@@ -102,6 +101,24 @@ public sealed partial class MainWindow : Window
             0,
             0,
             SwpNoMove | SwpNoSize | SwpNoActivate);
+    }
+
+    // Match the window to the captured content's aspect ratio (bounded to a reasonable size) so
+    // the output fills the window edge-to-edge with no letterbox/pillarbox bars.
+    private void SizeToContent(int contentWidth, int contentHeight)
+    {
+        if (contentWidth <= 0 || contentHeight <= 0)
+        {
+            return;
+        }
+
+        const double maxWidth = 1280;
+        const double maxHeight = 900;
+        var scale = Math.Min(maxWidth / contentWidth, maxHeight / contentHeight);
+        var width = Math.Max(1, (int)Math.Round(contentWidth * scale));
+        var height = Math.Max(1, (int)Math.Round(contentHeight * scale));
+
+        AppWindow.Resize(new SizeInt32(width, height));
     }
 
     private void ApplyOutputVisibilityPolicy()

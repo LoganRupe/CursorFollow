@@ -8,5 +8,5 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="CursorFollow Output"
     mc:Ignorable="d">
-    <Frame x:Name="RootFrame"/>
+    <Frame x:Name="RootFrame" Background="#05070D"/>
 </Window>

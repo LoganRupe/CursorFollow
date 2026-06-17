@@ -1,15 +1,16 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System.Globalization;
-using Windows.Graphics.Imaging;
 
 namespace CursorFollowWin;
 
 public sealed partial class MainPage : Page
 {
+    private const int DefaultContentWidth = 1280;
+    private const int DefaultContentHeight = 720;
+
     private readonly WindowsGraphicsCaptureController _captureController = new();
     private IntPtr _windowHandle;
     private OutputState _currentState = OutputState.Idle;
@@ -18,6 +19,8 @@ public sealed partial class MainPage : Page
     private DateTimeOffset _lastPresentedAt;
     private double _smoothedFramesPerSecond;
     private double _smoothedRenderLatencyMs;
+    private int _contentWidth = DefaultContentWidth;
+    private int _contentHeight = DefaultContentHeight;
 
     public MainPage()
     {
@@ -31,6 +34,9 @@ public sealed partial class MainPage : Page
     }
 
     public event EventHandler? OutputStateChanged;
+
+    /// <summary>Raised with the captured content size so the window can match its aspect ratio.</summary>
+    public event Action<int, int>? ContentSizeChanged;
 
     public bool IsCapturing => _currentState == OutputState.Live;
 
@@ -53,7 +59,6 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        SelectTargetButton.IsEnabled = false;
         SetStatus("Opening Windows capture picker");
 
         try
@@ -64,10 +69,6 @@ public sealed partial class MainPage : Page
         catch (Exception ex)
         {
             UpdateState(OutputState.Error, ex.Message);
-        }
-        finally
-        {
-            SelectTargetButton.IsEnabled = true;
         }
     }
 
@@ -91,16 +92,8 @@ public sealed partial class MainPage : Page
     {
         _captureController.Stop();
         CaptureImage.Source = null;
+        ResetContentSize();
         UpdateState(OutputState.Idle);
-    }
-
-    public void ShowFallbackState() => UpdateState(
-        OutputState.Error,
-        "Fallback state for target-missing, protected-content, or renderer errors.");
-
-    public void SetOverlayVisible(bool isVisible)
-    {
-        TelemetryOverlay.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
     }
 
     public void ApplyCaptureQuality(string quality)
@@ -110,8 +103,6 @@ public sealed partial class MainPage : Page
 
     public void ApplyOutputScaleMode(string scaleMode)
     {
-        // The output Border has a corner radius, which clips the Viewbox child, so
-        // Fill/Actual content that overflows the window is cropped to the frame.
         OutputViewbox.Stretch = scaleMode switch
         {
             "Fill" => Stretch.UniformToFill,
@@ -125,14 +116,22 @@ public sealed partial class MainPage : Page
         _captureController.Dispose();
     }
 
-    private async void SelectTargetButton_Click(object sender, RoutedEventArgs e)
+    private void UpdateContentSize(int width, int height)
     {
-        await SelectTargetAsync();
+        FrameSurface.Width = width;
+        FrameSurface.Height = height;
+
+        if (width == _contentWidth && height == _contentHeight)
+        {
+            return;
+        }
+
+        _contentWidth = width;
+        _contentHeight = height;
+        ContentSizeChanged?.Invoke(width, height);
     }
 
-    private void StopButton_Click(object sender, RoutedEventArgs e) => StopCapture();
-
-    private void FallbackButton_Click(object sender, RoutedEventArgs e) => ShowFallbackState();
+    private void ResetContentSize() => UpdateContentSize(DefaultContentWidth, DefaultContentHeight);
 
     private void CaptureController_FrameReady(CapturedFrame frame)
     {
@@ -143,17 +142,13 @@ public sealed partial class MainPage : Page
             await source.SetBitmapAsync(bitmap);
 
             CaptureImage.Source = source;
-            FrameSurface.Width = Math.Max(1, frame.ContentSize.Width);
-            FrameSurface.Height = Math.Max(1, frame.ContentSize.Height);
-            FrameText.Text = $"Frame {frame.Sequence:000000}";
-            TimestampText.Text = frame.Timestamp.ToString("HH:mm:ss.fff");
-            StateText.Text = $"Capturing {frame.TargetName}";
+            UpdateContentSize(
+                Math.Max(1, frame.ContentSize.Width),
+                Math.Max(1, frame.ContentSize.Height));
             _targetName = frame.TargetName;
             _currentState = OutputState.Live;
             UpdatePipelineSnapshot(frame);
             SetStatus(FormatLiveStatus(frame));
-            FallbackOverlay.Visibility = Visibility.Collapsed;
-            OutputControlsBar.Visibility = Visibility.Collapsed;
         });
 
         if (!queued)
@@ -179,39 +174,27 @@ public sealed partial class MainPage : Page
     {
         _currentState = state;
 
-        if (state == OutputState.Live)
+        switch (state)
         {
-            FallbackOverlay.Visibility = Visibility.Collapsed;
-            OutputControlsBar.Visibility = Visibility.Collapsed;
-            StateText.Text = "Live capture";
-            SetStatus("Waiting for first captured frame");
-            return;
+            case OutputState.Live:
+                SetStatus("Waiting for first captured frame");
+                break;
+
+            case OutputState.Idle:
+                _targetName = "Manual target picker";
+                SetStatus(detail ?? "Waiting for target selection");
+                break;
+
+            default:
+                AppLog.Output.LogWarning("Output entered fallback/error state: {Detail}", detail ?? "unspecified");
+                SetStatus(detail ?? "Error / fallback output");
+                break;
         }
-
-        FallbackOverlay.Visibility = Visibility.Visible;
-        OutputControlsBar.Visibility = Visibility.Visible;
-
-        if (state == OutputState.Idle)
-        {
-            StateText.Text = "No target selected";
-            _targetName = "Manual target picker";
-            SetStatus(detail ?? "Waiting for target selection");
-            FallbackTitle.Text = "Select a target";
-            FallbackDetail.Text = detail ?? "Choose a window from the Windows capture picker to render it here.";
-            return;
-        }
-
-        AppLog.Output.LogWarning("Output entered fallback/error state: {Detail}", detail ?? "unspecified");
-        StateText.Text = "Error / fallback";
-        SetStatus(detail ?? "Error / fallback output");
-        FallbackTitle.Text = "Fallback frame";
-        FallbackDetail.Text = detail ?? "The capture pipeline reported a target-missing, protected-content, or renderer error.";
     }
 
     private void SetStatus(string status)
     {
         _status = status;
-        StatusText.Text = status;
         OutputStateChanged?.Invoke(this, EventArgs.Empty);
     }
 

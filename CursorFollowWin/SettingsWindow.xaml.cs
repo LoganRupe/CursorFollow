@@ -41,7 +41,6 @@ public sealed partial class SettingsWindow : Window
     private readonly ToggleSwitch _hideWhenNotSharingSwitch = new() { Header = "Hide when not sharing", Foreground = WhiteBrush };
     private readonly ToggleSwitch _pinOutputSwitch = new() { Header = "Pin output on top", Foreground = WhiteBrush };
     private readonly ToggleSwitch _showTaskbarIconSwitch = new() { Header = "Show app icon in taskbar", Foreground = WhiteBrush };
-    private readonly ToggleSwitch _showOverlaySwitch = new() { Header = "Show overlay", Foreground = WhiteBrush };
     private readonly Button _balancedQualityButton = new() { Content = "BALANCED" };
     private readonly Button _performanceQualityButton = new() { Content = "PERFORMANT" };
     private readonly Button _lowLatencyQualityButton = new() { Content = "LOW-LATENCY" };
@@ -100,7 +99,6 @@ public sealed partial class SettingsWindow : Window
         UpdateExclusiveToggleState();
 
         _showTaskbarIconSwitch.IsOn = settings.ShowTaskbarIcon;
-        _showOverlaySwitch.IsOn = settings.ShowOverlay;
         _autoFollowHotkey.Value = Hotkey.Parse(settings.AutoFollowHotkey);
         _toggleOutputHotkey.Value = Hotkey.Parse(settings.ToggleOutputHotkey);
         SelectQuality(settings.CaptureQuality);
@@ -129,7 +127,6 @@ public sealed partial class SettingsWindow : Window
             HideWhenNotSharing = _hideWhenNotSharingSwitch.IsOn,
             PinOutputOnTop = _pinOutputSwitch.IsOn,
             ShowTaskbarIcon = _showTaskbarIconSwitch.IsOn,
-            ShowOverlay = _showOverlaySwitch.IsOn,
             CaptureQuality = SelectedQuality(),
             OutputScaleMode = _selectedScaleMode,
             WindowFilterMode = current.WindowFilterMode,
@@ -169,7 +166,6 @@ public sealed partial class SettingsWindow : Window
         ConfigureSwitch(_hideWhenNotSharingSwitch);
         ConfigureSwitch(_pinOutputSwitch);
         ConfigureSwitch(_showTaskbarIconSwitch);
-        ConfigureSwitch(_showOverlaySwitch);
 
         _pinOutputSwitch.Toggled += PinOutputSwitch_Toggled;
         _hideWhenNotSharingSwitch.Toggled += HideWhenNotSharingSwitch_Toggled;
@@ -256,8 +252,6 @@ public sealed partial class SettingsWindow : Window
         rightColumn.Children.Add(CreateSectionLabel("DISPLAY"));
         rightColumn.Children.Add(CreateCard(
             CreateOutputScalingBlock(),
-            CreateDivider(),
-            CreateSettingRow("Show overlay", "Display telemetry on output window", _showOverlaySwitch),
             CreateDivider(),
             CreateSettingRow("Show app in taskbar", "Keep CursorFollow windows visible in the taskbar", _showTaskbarIconSwitch)));
 
