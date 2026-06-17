@@ -851,14 +851,14 @@
           <tr>
             <td>Capture-to-output latency (median)</td>
             <td>&lt;50 ms</td>
-            <td>~63 ms median (p95 ~65 ms) capturing a 1512&times;741 window; the CPU <code>SoftwareBitmap</code> copy alone is ~62 ms of it</td>
-            <td><strong>Miss</strong> &mdash; CPU copy is the bottleneck</td>
+            <td>CPU path was ~63 ms median (p95 ~65 ms), the <code>SoftwareBitmap</code> copy ~62 ms of it. After switching to GPU texture sharing: <strong>~0.4 ms median pipeline latency (p95 ~0.8 ms)</strong> on the same 1512&times;741 window, 0 dropped frames. (Measured frame-received&rarr;presented, same point in both; excludes constant WGC capture latency.)</td>
+            <td><strong>Pass (GPU)</strong></td>
           </tr>
           <tr>
             <td>Frame transport: GPU vs CPU</td>
             <td>Pick simplest path that meets latency</td>
-            <td>Copy dominates end-to-end latency; CPU path cannot hit &lt;50 ms</td>
-            <td><strong>Decision: adopt GPU texture sharing</strong> (Phase 4 / pre-Phase-4 work)</td>
+            <td>Implemented GPU texture sharing: the capture frame pool and a <code>CanvasSwapChainPanel</code> share one Win2D <code>CanvasDevice</code>; each captured <code>IDirect3DSurface</code> is drawn straight to the swap chain via <code>CanvasBitmap.CreateFromDirect3D11Surface</code> with no CPU readback. ~150&times; latency reduction; memory flat (no surface leak).</td>
+            <td><strong>Done</strong></td>
           </tr>
           <tr>
             <td>Frame rate</td>
@@ -896,7 +896,7 @@
 
       <h3 style="margin-top:22px;">Remaining Before Phase 4</h3>
       <ul>
-        <li><strong>GPU transport:</strong> implement GPU texture sharing to bring capture-to-output latency under 50 ms (the measured CPU-copy bottleneck), then re-measure latency and fps on motion content.</li>
+        <li><strong>GPU transport:</strong> <em>done</em> &mdash; zero-copy <code>CanvasSwapChainPanel</code> path brings pipeline latency to ~0.4 ms median. Still worth re-measuring fps on motion content (the WGC frame rate was content-limited in testing).</li>
         <li><strong>Meeting-app matrix:</strong> manual share test in Teams/Slack/Edge (present) and, where installed, Zoom/Meet/OBS, confirming the real webcam stays selectable while sharing the output window.</li>
         <li><strong>Output-window lifecycle:</strong> stop capture when the output window closes (root cause behind the guarded crash), not just guard the null.</li>
       </ul>

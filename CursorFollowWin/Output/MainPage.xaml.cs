@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Graphics.Canvas;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
+using System.Diagnostics;
 using System.Globalization;
+using Windows.Graphics.DirectX.Direct3D11;
 
 namespace CursorFollowWin;
 
@@ -11,7 +13,11 @@ public sealed partial class MainPage : Page
     private const int DefaultContentWidth = 1280;
     private const int DefaultContentHeight = 720;
 
-    private readonly WindowsGraphicsCaptureController _captureController = new();
+    // One Win2D device shared by the capture frame pool and the output swap chain so captured
+    // surfaces render with no cross-device copy. Owned here; the controller does not dispose it.
+    private readonly CanvasDevice _device = new();
+    private readonly WindowsGraphicsCaptureController _captureController;
+    private readonly SwapChainRenderer _renderer;
     private IntPtr _windowHandle;
     private OutputState _currentState = OutputState.Idle;
     private string _status = "Waiting for target selection";
@@ -26,6 +32,9 @@ public sealed partial class MainPage : Page
     public MainPage()
     {
         InitializeComponent();
+
+        _captureController = new WindowsGraphicsCaptureController(_device);
+        _renderer = new SwapChainRenderer(SwapPanel, _device);
 
         _captureController.FrameReady += CaptureController_FrameReady;
         _captureController.CaptureStopped += CaptureController_CaptureStopped;
@@ -92,7 +101,7 @@ public sealed partial class MainPage : Page
     public void StopCapture()
     {
         _captureController.Stop();
-        CaptureImage.Source = null;
+        _renderer.Clear();
         ResetContentSize();
         UpdateState(OutputState.Idle);
     }
@@ -115,12 +124,14 @@ public sealed partial class MainPage : Page
     public void DisposeCapture()
     {
         _captureController.Dispose();
+        _renderer.Dispose();
+        _device.Dispose();
     }
 
     private void UpdateContentSize(int width, int height)
     {
-        FrameSurface.Width = width;
-        FrameSurface.Height = height;
+        SwapPanel.Width = width;
+        SwapPanel.Height = height;
 
         if (width == _contentWidth && height == _contentHeight)
         {
@@ -136,26 +147,34 @@ public sealed partial class MainPage : Page
 
     private void CaptureController_FrameReady(CapturedFrame frame)
     {
-        var queued = DispatcherQueue.TryEnqueue(async () =>
+        // Render the live GPU surface immediately on the capture thread — it is valid only for the
+        // duration of this callback. No CPU copy; the swap chain presents the surface directly.
+        double presentMs;
+        try
         {
-            using var bitmap = frame.Bitmap;
-            var source = new SoftwareBitmapSource();
-            await source.SetBitmapAsync(bitmap);
+            var timer = Stopwatch.StartNew();
+            _renderer.Render(frame.Surface, frame.ContentSize);
+            presentMs = timer.Elapsed.TotalMilliseconds;
+        }
+        catch (Exception ex)
+        {
+            DispatcherQueue.TryEnqueue(() => UpdateState(OutputState.Error, $"GPU render failed: {ex.Message}"));
+            return;
+        }
 
-            CaptureImage.Source = source;
+        var presentedAt = DateTimeOffset.Now;
+
+        // Status text and telemetry touch XAML and shared state, so marshal them to the UI thread.
+        DispatcherQueue.TryEnqueue(() =>
+        {
             UpdateContentSize(
                 Math.Max(1, frame.ContentSize.Width),
                 Math.Max(1, frame.ContentSize.Height));
             _targetName = frame.TargetName;
             _currentState = OutputState.Live;
-            UpdatePipelineSnapshot(frame);
+            UpdatePipelineSnapshot(frame, presentedAt, presentMs);
             SetStatus(FormatLiveStatus(frame));
         });
-
-        if (!queued)
-        {
-            frame.Bitmap.Dispose();
-        }
     }
 
     private void CaptureController_CaptureStopped(string reason)
@@ -199,9 +218,8 @@ public sealed partial class MainPage : Page
         OutputStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void UpdatePipelineSnapshot(CapturedFrame frame)
+    private void UpdatePipelineSnapshot(CapturedFrame frame, DateTimeOffset presentedAt, double presentMs)
     {
-        var presentedAt = DateTimeOffset.Now;
         var renderLatencyMs = Math.Max(0, (presentedAt - frame.Timestamp).TotalMilliseconds);
 
         if (_lastPresentedAt != default)
@@ -223,7 +241,7 @@ public sealed partial class MainPage : Page
             frame.ContentSize.Width,
             frame.ContentSize.Height,
             _smoothedFramesPerSecond,
-            frame.CopyDuration.TotalMilliseconds,
+            presentMs,
             _smoothedRenderLatencyMs,
             frame.DroppedFrames,
             frame.TargetName);
@@ -234,11 +252,11 @@ public sealed partial class MainPage : Page
         {
             _lastTelemetryLoggedAt = presentedAt;
             AppLog.Output.LogInformation(
-                "Telemetry: {Width}x{Height} {Fps:0.0} fps, copy {Copy:0.0} ms, render {Render:0.0} ms, dropped {Dropped}, seq {Seq}",
+                "Telemetry: {Width}x{Height} {Fps:0.0} fps, present {Present:0.0} ms, render {Render:0.0} ms, dropped {Dropped}, seq {Seq}",
                 PipelineSnapshot.Width,
                 PipelineSnapshot.Height,
                 PipelineSnapshot.FramesPerSecond,
-                PipelineSnapshot.CopyMilliseconds,
+                PipelineSnapshot.PresentMilliseconds,
                 PipelineSnapshot.RenderLatencyMilliseconds,
                 PipelineSnapshot.DroppedFrames,
                 PipelineSnapshot.Sequence);
@@ -250,7 +268,7 @@ public sealed partial class MainPage : Page
         var snapshot = PipelineSnapshot;
         return string.Create(
             CultureInfo.InvariantCulture,
-            $"Live | {snapshot.Width}x{snapshot.Height} | {snapshot.FramesPerSecond:0.0} fps | copy {snapshot.CopyMilliseconds:0.0} ms | render {snapshot.RenderLatencyMilliseconds:0.0} ms | dropped {snapshot.DroppedFrames} | {frame.TargetName}");
+            $"Live | {snapshot.Width}x{snapshot.Height} | {snapshot.FramesPerSecond:0.0} fps | present {snapshot.PresentMilliseconds:0.0} ms | render {snapshot.RenderLatencyMilliseconds:0.0} ms | dropped {snapshot.DroppedFrames} | {frame.TargetName}");
     }
 
     private enum OutputState
@@ -266,7 +284,7 @@ public sealed record OutputPipelineSnapshot(
     int Width,
     int Height,
     double FramesPerSecond,
-    double CopyMilliseconds,
+    double PresentMilliseconds,
     double RenderLatencyMilliseconds,
     long DroppedFrames,
     string TargetName)
