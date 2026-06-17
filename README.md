@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="Docs/images/app-icon.png" alt="CursorFollow app icon" width="128" height="128">
+</p>
+
 # CursorFollow (macOS)
 
 A macOS menu bar utility that captures a target window and renders it into a stable window named **CursorFollow Output**. Share that output window from Zoom, Google Meet, Slack Huddles, Teams, OBS, or any app with a window-share picker.

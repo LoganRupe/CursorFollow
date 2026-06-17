@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="../Docs/images/app-icon.png" alt="CursorFollow app icon" width="128" height="128">
+</p>
+
 # CursorFollowWin
 
 CursorFollowWin is the **Windows port** of CursorFollow. It tracks a target window on
@@ -217,7 +221,6 @@ break hotkeys, scaling, or filter lists). Notable keys:
 | `AutoShareOnLaunch`                           | `false`        | Start following a target immediately          |
 | `HideWhenNotSharing`                          | `false`        | Hide the output window when idle              |
 | `PinOutputOnTop`                              | `false`        | Keep the output window topmost                |
-| `ShowOverlay`                                 | `true`         | Show the on-frame overlay                     |
 | `CaptureQuality`                              | `Balanced`     | Capture preset (buffer depth + fps cap)       |
 | `OutputScaleMode`                             | `Fit`          | `Fit` / `Fill` / `Actual` output scaling      |
 | `WindowFilterMode`                            | `All`          | `All` / `Include` / `Exclude`                 |
