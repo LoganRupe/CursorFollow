@@ -6,130 +6,19 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:CursorFollowWin"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    Background="#10131A"
+    Background="#05070D"
     mc:Ignorable="d">
 
-    <Grid Padding="18"
-          RowSpacing="12">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <Border
-            Grid.Row="0"
-            Background="#05070D"
-            BorderBrush="#2B3445"
-            BorderThickness="1"
-            CornerRadius="4">
-            <Viewbox x:Name="OutputViewbox" Stretch="Uniform">
-                <Grid x:Name="FrameSurface"
-                      Width="1280"
-                      Height="720"
-                      Background="#05070D">
-                    <Image
-                        x:Name="CaptureImage"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        Stretch="Uniform"/>
-
-                    <Border
-                        x:Name="TelemetryOverlay"
-                        Margin="28"
-                        Padding="18,14"
-                        HorizontalAlignment="Left"
-                        VerticalAlignment="Top"
-                        Background="#D80B1020"
-                        BorderBrush="#7AFFFFFF"
-                        BorderThickness="1"
-                        CornerRadius="4">
-                        <StackPanel Spacing="4">
-                            <TextBlock
-                                x:Name="StateText"
-                                FontSize="30"
-                                FontWeight="SemiBold"
-                                Foreground="White"
-                                Text="No target selected"/>
-                            <TextBlock
-                                x:Name="FrameText"
-                                FontFamily="Consolas"
-                                FontSize="20"
-                                Foreground="#DCE7F7"
-                                Text="Frame 000000"/>
-                            <TextBlock
-                                x:Name="TimestampText"
-                                FontFamily="Consolas"
-                                FontSize="20"
-                                Foreground="#DCE7F7"
-                                Text="00:00:00.000"/>
-                        </StackPanel>
-                    </Border>
-
-                    <Grid
-                        x:Name="FallbackOverlay"
-                        Background="#E510131A"
-                        Visibility="Visible">
-                        <StackPanel
-                            Width="720"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Spacing="12">
-                            <TextBlock
-                                x:Name="FallbackTitle"
-                                HorizontalAlignment="Center"
-                                FontSize="42"
-                                FontWeight="SemiBold"
-                                Foreground="White"
-                                Text="Select a target"/>
-                            <TextBlock
-                                x:Name="FallbackDetail"
-                                HorizontalAlignment="Center"
-                                FontSize="22"
-                                Foreground="#CAD5E4"
-                                Text="Choose a window from the Windows capture picker to render it here."
-                                TextAlignment="Center"
-                                TextWrapping="WrapWholeWords"/>
-                        </StackPanel>
-                    </Grid>
-                </Grid>
-            </Viewbox>
-        </Border>
-
-        <Grid x:Name="OutputControlsBar"
-              Grid.Row="1"
-              ColumnSpacing="12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
-            <StackPanel Orientation="Horizontal"
-                        Spacing="10">
-                <Border
-                    Width="12"
-                    Height="12"
-                    VerticalAlignment="Center"
-                    Background="#65D6A4"
-                    CornerRadius="6"/>
-                <TextBlock
-                    x:Name="StatusText"
-                    VerticalAlignment="Center"
-                    Foreground="#EEF4FF"
-                    Text="Waiting for target selection"/>
-            </StackPanel>
-
-            <StackPanel Grid.Column="1"
-                        Orientation="Horizontal"
-                        Spacing="8">
-                <Button x:Name="SelectTargetButton"
-                        Click="SelectTargetButton_Click"
-                        Content="Select target"/>
-                <Button x:Name="StopButton"
-                        Click="StopButton_Click"
-                        Content="Stop"/>
-                <Button Click="FallbackButton_Click"
-                        Content="Fallback"/>
-            </StackPanel>
+    <Viewbox x:Name="OutputViewbox" Stretch="Uniform">
+        <Grid x:Name="FrameSurface"
+              Width="1280"
+              Height="720"
+              Background="#05070D">
+            <Image
+                x:Name="CaptureImage"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                Stretch="Uniform"/>
         </Grid>
-    </Grid>
+    </Viewbox>
 </Page>
