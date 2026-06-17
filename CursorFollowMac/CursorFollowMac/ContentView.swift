@@ -6,6 +6,30 @@
 //
 
 
+/// Diagnostic logging verbosity. Logging is not yet implemented; this only
+/// drives the Settings UI and persists the selected mode.
+enum LoggingMode: String, CaseIterable, Identifiable {
+    case none
+    case errorsOnly
+    case standard
+    case verbose
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .none:
+            return "None"
+        case .errorsOnly:
+            return "Errors only"
+        case .standard:
+            return "Standard"
+        case .verbose:
+            return "Verbose"
+        }
+    }
+}
+
 @MainActor
 final class AppSettings: ObservableObject {
     @Published private(set) var startOnLoginEnabled = false
@@ -16,6 +40,7 @@ final class AppSettings: ObservableObject {
     @Published private(set) var showResolution = false
     @Published private(set) var showFrameCount = false
     @Published private(set) var outputPresentationMode: OutputPresentationMode
+    @Published private(set) var loggingMode: LoggingMode
 
     private let log = Logger(subsystem: "io.github.loganrupe.CursorFollowMac", category: "AppSettings")
     private let defaults: UserDefaults
@@ -28,6 +53,26 @@ final class AppSettings: ObservableObject {
         static let showResolution = "settings.showResolution"
         static let showFrameCount = "settings.showFrameCount"
         static let outputPresentationMode = "settings.outputPresentationMode"
+        static let loggingMode = "settings.loggingMode"
+    }
+
+    nonisolated static func savedLoggingMode(defaults: UserDefaults = .standard) -> LoggingMode {
+        guard let rawMode = defaults.string(forKey: Keys.loggingMode),
+              let mode = LoggingMode(rawValue: rawMode) else {
+            return .none
+        }
+        return mode
+    }
+
+    /// Location of the diagnostic log file. The app logs through the unified
+    /// logging system (`os.Logger`); the "Open log file" action exports those
+    /// entries to this path on demand and reveals it in Finder.
+    nonisolated static var logFileURL: URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        return base
+            .appendingPathComponent("CursorFollowMac", isDirectory: true)
+            .appendingPathComponent("CursorFollow.log", isDirectory: false)
     }
 
     nonisolated static func savedOutputPresentationMode(defaults: UserDefaults = .standard) -> OutputPresentationMode {
@@ -57,6 +102,7 @@ final class AppSettings: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         outputPresentationMode = Self.savedOutputPresentationMode(defaults: defaults)
+        loggingMode = Self.savedLoggingMode(defaults: defaults)
         if defaults.string(forKey: Keys.outputPresentationMode) == nil {
             defaults.set(OutputPresentationMode.fit.rawValue, forKey: Keys.outputPresentationMode)
         }
@@ -133,6 +179,11 @@ final class AppSettings: ObservableObject {
         defaults.set(mode.rawValue, forKey: Keys.outputPresentationMode)
     }
 
+    func setLoggingMode(_ mode: LoggingMode) {
+        loggingMode = mode
+        defaults.set(mode.rawValue, forKey: Keys.loggingMode)
+    }
+
     private static func isEnabled(status: SMAppService.Status) -> Bool {
         switch status {
         case .enabled, .requiresApproval:
@@ -150,6 +201,7 @@ import AppKit
 import Carbon
 import ServiceManagement
 import os
+import OSLog
 
 struct ContentView: View {
     @EnvironmentObject var windowTracker: WindowTracker
@@ -190,7 +242,7 @@ struct ContentView: View {
                     .environmentObject(captureEngine)
                     .environmentObject(autoFollowHotKeyManager)
                     .environmentObject(toggleShareHotKeyManager)
-                    .frame(width: 840, height: 650)
+                    .frame(width: 840, height: 750)
                 }
                 Button {
                     isQuitConfirmationPresented = true
@@ -591,6 +643,7 @@ private struct SettingsModalView: View {
     @State private var draftShowResolution = false
     @State private var draftShowFrameCount = false
     @State private var draftOutputPresentationMode: OutputPresentationMode = .fit
+    @State private var draftLoggingMode: LoggingMode = .none
     @State private var initialCaptureQuality: CaptureQuality = .balanced
     @State private var initialAutoFollowShortcut: HotKeyShortcut?
     @State private var initialToggleShareShortcut: HotKeyShortcut?
@@ -615,6 +668,7 @@ private struct SettingsModalView: View {
                         VStack(alignment: .leading, spacing: 18) {
                             generalSection
                             captureQualitySection
+                            loggingSection
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
 
@@ -767,6 +821,73 @@ private struct SettingsModalView: View {
                     .font(.system(size: 13, weight: .medium, design: .default))
                     .italic()
                     .foregroundStyle(Color.white.opacity(0.78))
+            }
+        }
+    }
+
+    private var loggingSection: some View {
+        SettingsCard(title: "LOGGING") {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Log level")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white)
+                        Text("Write diagnostic output to a log file")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Color.white.opacity(0.74))
+                    }
+
+                    Spacer(minLength: 10)
+
+                    Menu {
+                        ForEach(LoggingMode.allCases) { mode in
+                            Button {
+                                draftLoggingMode = mode
+                            } label: {
+                                if mode == draftLoggingMode {
+                                    Label(mode.label, systemImage: "checkmark")
+                                } else {
+                                    Text(mode.label)
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text(draftLoggingMode.label)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.white)
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(Color.white.opacity(0.6))
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 9)
+                        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .fixedSize()
+                }
+
+                Button {
+                    openLogFile()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "doc.text.magnifyingglass")
+                            .font(.system(size: 12, weight: .medium))
+                        Text("Open log file")
+                            .font(.system(size: 12, weight: .bold))
+                    }
+                    .foregroundStyle(draftLoggingMode == .none
+                        ? Color.white.opacity(0.35)
+                        : Color(red: 0.74, green: 0.82, blue: 1.0))
+                }
+                .buttonStyle(.plain)
+                .disabled(draftLoggingMode == .none)
+                .help(draftLoggingMode == .none
+                    ? "Enable a logging mode to write a log file"
+                    : "Reveal the log file in Finder")
             }
         }
     }
@@ -1067,6 +1188,83 @@ private struct SettingsModalView: View {
         .buttonStyle(.plain)
     }
 
+    /// Exports this process's unified-log entries (filtered by the selected
+    /// logging mode) to the diagnostic log file, then reveals it in Finder.
+    /// If the export fails, reveals the containing folder so the action still
+    /// gives the user something to act on.
+    private func openLogFile() {
+        let url = AppSettings.logFileURL
+        do {
+            try Self.exportUnifiedLog(to: url, mode: draftLoggingMode)
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        } catch {
+            Logger(subsystem: "io.github.loganrupe.CursorFollowMac", category: "Settings")
+                .error("Failed to export log file: \(String(describing: error))")
+            let folder = url.deletingLastPathComponent()
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            NSWorkspace.shared.activateFileViewerSelecting([folder])
+        }
+    }
+
+    /// Reads the current process's unified-log entries for the app's subsystem
+    /// over the last 24 hours, filters them to the level implied by `mode`, and
+    /// writes a plain-text export to `url`.
+    nonisolated private static func exportUnifiedLog(to url: URL, mode: LoggingMode) throws {
+        let subsystem = "io.github.loganrupe.CursorFollowMac"
+        let store = try OSLogStore(scope: .currentProcessIdentifier)
+        let start = store.position(date: Date().addingTimeInterval(-60 * 60 * 24))
+        let entries = try store.getEntries(
+            at: start,
+            matching: NSPredicate(format: "subsystem == %@", subsystem)
+        )
+
+        let minLevel: OSLogEntryLog.Level
+        switch mode {
+        case .errorsOnly: minLevel = .error
+        case .verbose: minLevel = .debug
+        case .standard, .none: minLevel = .notice
+        }
+
+        let timestamp = ISO8601DateFormatter()
+        timestamp.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        var lines: [String] = []
+        for entry in entries {
+            guard let logEntry = entry as? OSLogEntryLog,
+                  logEntry.level.rawValue >= minLevel.rawValue else { continue }
+            let date = timestamp.string(from: logEntry.date)
+            let level = levelLabel(logEntry.level)
+            lines.append("\(date) [\(level)] \(logEntry.category): \(logEntry.composedMessage)")
+        }
+
+        let header = """
+        CursorFollowMac diagnostic log
+        Mode: \(mode.label)
+        Exported: \(timestamp.string(from: Date()))
+        Entries: \(lines.count)
+
+        """
+        let body = header + lines.joined(separator: "\n") + "\n"
+
+        try FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try body.write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    nonisolated private static func levelLabel(_ level: OSLogEntryLog.Level) -> String {
+        switch level {
+        case .undefined: return "default"
+        case .debug: return "debug"
+        case .info: return "info"
+        case .notice: return "notice"
+        case .error: return "error"
+        case .fault: return "fault"
+        @unknown default: return "default"
+        }
+    }
+
     private func loadDraftState() {
         appSettings.refreshStartOnLoginStatus()
 
@@ -1078,6 +1276,7 @@ private struct SettingsModalView: View {
         draftShowResolution = appSettings.showResolution
         draftShowFrameCount = appSettings.showFrameCount
         draftOutputPresentationMode = appSettings.outputPresentationMode
+        draftLoggingMode = appSettings.loggingMode
 
         initialCaptureQuality = captureEngine.captureQuality
         selectedQuality = initialCaptureQuality
@@ -1101,6 +1300,7 @@ private struct SettingsModalView: View {
         appSettings.setShowResolution(draftShowResolution)
         appSettings.setShowFrameCount(draftShowFrameCount)
         appSettings.setOutputPresentationMode(draftOutputPresentationMode)
+        appSettings.setLoggingMode(draftLoggingMode)
         captureEngine.setCaptureQuality(selectedQuality)
 
         didSaveChanges = true
