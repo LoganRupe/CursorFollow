@@ -863,8 +863,8 @@
           <tr>
             <td>Frame rate</td>
             <td>60 fps capable, 30 fps fallback</td>
-            <td>~10 fps median on a near-static editor window; WGC is change-driven so fps is content-limited here, not a hard pipeline cap. Re-measure on motion content once GPU transport lands.</td>
-            <td><strong>Inconclusive</strong> (content-limited sample)</td>
+            <td>~10 fps median on a near-static editor window; WGC is change-driven so fps is content-limited here, not a hard pipeline cap. With GPU transport the pipeline presents a frame in ~0.4 ms, so it is not the bottleneck. Motion-content re-measure <strong>postponed indefinitely</strong> by decision (June 2026).</td>
+            <td><strong>Descoped</strong> (pipeline not the limit)</td>
           </tr>
           <tr>
             <td>Dropped frames</td>
@@ -887,22 +887,22 @@
           <tr>
             <td>Meeting-app compatibility matrix</td>
             <td>Teams, Zoom, Slack, Meet/Chrome, Edge, OBS</td>
-            <td>Installed on dev box: Teams (new), Slack, Edge. Absent: Zoom, OBS, Chrome. No webcam device present. Actual in-app share selection + &ldquo;webcam stays active&rdquo; is a manual step.</td>
-            <td><strong>Partial</strong> &mdash; needs manual per-app run</td>
+            <td>Confirmed working in <strong>Slack</strong> (manual). The broader per-app matrix is <strong>postponed indefinitely</strong> by decision (June 2026) &mdash; Slack coverage is sufficient for now; the output window is structurally shareable (see proxy row) so other apps can be checked later if needed.</td>
+            <td><strong>Slack confirmed; rest descoped</strong></td>
           </tr>
         </tbody>
       </table>
       <p class="review-note">Method: telemetry logged from the output pipeline (capture timestamp to UI present), driven by an auto-follow capture; stability sampled once per minute for 30 minutes. Latency/fps are change-driven by Windows Graphics Capture, so fps reflects source motion, not a fixed cap.</p>
 
-      <h3 style="margin-top:22px;">Remaining Before Phase 4</h3>
+      <h3 style="margin-top:22px;">Final Items (Done / Descoped)</h3>
       <ul>
-        <li><strong>GPU transport:</strong> <em>done</em> &mdash; zero-copy <code>CanvasSwapChainPanel</code> path brings pipeline latency to ~0.4 ms median. Still worth re-measuring fps on motion content (the WGC frame rate was content-limited in testing).</li>
-        <li><strong>Meeting-app matrix:</strong> manual share test in Teams/Slack/Edge (present) and, where installed, Zoom/Meet/OBS, confirming the real webcam stays selectable while sharing the output window.</li>
+        <li><strong>GPU transport:</strong> <em>done</em> &mdash; zero-copy <code>CanvasSwapChainPanel</code> path brings pipeline latency to ~0.4 ms median. (Motion-content fps re-measure postponed indefinitely; the pipeline is not the bottleneck.)</li>
         <li><strong>Output-window lifecycle:</strong> <em>done</em> &mdash; the title-bar close is intercepted (<code>AppWindow.Closing</code>) and hides the window to the tray instead of destroying it, so the window is never gone when a late frame arrives. The window stays re-showable; a shutdown bypass lets the app still exit. Runtime-verified via a posted <code>WM_CLOSE</code>.</li>
+        <li><strong>Meeting-app compat matrix &amp; motion-fps re-measure:</strong> <em>postponed indefinitely</em> by decision &mdash; Slack is confirmed working and is sufficient for now; the pipeline is not the fps bottleneck.</li>
       </ul>
 
       <div class="callout">
-        <strong>Exit criteria.</strong> Phase 3.5 is complete when every Phase&nbsp;1&ndash;3 functional and UI requirement is either implemented (not stubbed) or explicitly deferred with a written rationale, diagnostics and accessibility exist, the project is split with a passing test project, and the latency/compatibility/stability numbers are recorded. The split, tests, diagnostics, and recorded numbers are done; the remaining items above (GPU transport for the latency target, manual compat matrix) carry into Phase 4.
+        <strong>Exit criteria &mdash; met.</strong> Phase 3.5 is complete: every Phase&nbsp;1&ndash;3 functional and UI requirement is implemented (not stubbed) or explicitly deferred with a written rationale, diagnostics and accessibility exist, the project is split with a passing test project, and the latency/stability numbers are recorded (latency now passes via GPU transport). Remaining compat-matrix and motion-fps checks are postponed by decision, not blockers. Phase 4 (packaging and hardening) can begin.
       </div>
     </div>
 
