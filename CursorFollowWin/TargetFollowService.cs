@@ -7,7 +7,7 @@ public sealed class TargetFollowService
     private static readonly TimeSpan AutoFollowDebounce = TimeSpan.FromMilliseconds(350);
 
     private readonly MainWindow _outputWindow;
-    private readonly WindowTracker _windowTracker = new();
+    private readonly IWindowTracker _windowTracker = new WindowTracker();
     private readonly DispatcherTimer _timer = new();
     private TrackedWindow? _pendingTarget;
     private DateTimeOffset _pendingSince;

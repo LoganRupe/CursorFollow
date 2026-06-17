@@ -17,6 +17,7 @@ public sealed partial class MainPage : Page
     private string _status = "Waiting for target selection";
     private string _targetName = "Manual target picker";
     private DateTimeOffset _lastPresentedAt;
+    private DateTimeOffset _lastTelemetryLoggedAt;
     private double _smoothedFramesPerSecond;
     private double _smoothedRenderLatencyMs;
     private int _contentWidth = DefaultContentWidth;
@@ -226,6 +227,22 @@ public sealed partial class MainPage : Page
             _smoothedRenderLatencyMs,
             frame.DroppedFrames,
             frame.TargetName);
+
+        // Throttled telemetry so capture-to-output latency, fps, and dropped frames are recoverable
+        // from the logs for verification runs (the UI-only status line is not persisted).
+        if (presentedAt - _lastTelemetryLoggedAt >= TimeSpan.FromSeconds(2))
+        {
+            _lastTelemetryLoggedAt = presentedAt;
+            AppLog.Output.LogInformation(
+                "Telemetry: {Width}x{Height} {Fps:0.0} fps, copy {Copy:0.0} ms, render {Render:0.0} ms, dropped {Dropped}, seq {Seq}",
+                PipelineSnapshot.Width,
+                PipelineSnapshot.Height,
+                PipelineSnapshot.FramesPerSecond,
+                PipelineSnapshot.CopyMilliseconds,
+                PipelineSnapshot.RenderLatencyMilliseconds,
+                PipelineSnapshot.DroppedFrames,
+                PipelineSnapshot.Sequence);
+        }
     }
 
     private string FormatLiveStatus(CapturedFrame frame)

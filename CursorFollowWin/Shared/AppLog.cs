@@ -9,7 +9,7 @@ namespace CursorFollowWin;
 /// architecture so log lines name the component that produced them. Loggers default to a
 /// no-op until <see cref="Initialize"/> runs, so early or test calls never throw.
 /// </summary>
-internal static class AppLog
+public static class AppLog
 {
     private static ILoggerFactory? _factory;
 

@@ -421,6 +421,7 @@
             <li>Windows 10 support unless required later by testing.</li>
             <li>macOS implementation changes.</li>
             <li>Linux support.</li>
+            <li>Windows virtual camera / Media Foundation camera source (decided out of scope June 2026; the MF feasibility spike was archived and removed). The shareable output window is the delivery path.</li>
             <li>Cloud accounts, sync, licensing, or telemetry services.</li>
             <li>Advanced visual effects, transitions, annotations, or compositing beyond parity.</li>
             <li>Mobile, Xbox, HoloLens, or Store-only distribution requirements.</li>
@@ -451,7 +452,7 @@
         </div>
       </div>
       <div class="callout warning">
-        <strong>Phase 0 gate:</strong> Before building the full app, prove that a normal CursorFollow output window can render frames, stay shareable in meeting-app window pickers, and let the user keep their real webcam active. Virtual camera work is optional/later unless explicitly requested.
+        <strong>Phase 0 gate:</strong> Before building the full app, prove that a normal CursorFollow output window can render frames, stay shareable in meeting-app window pickers, and let the user keep their real webcam active. Windows virtual camera is out of scope (decided June 2026) &mdash; see Out of Scope; the archived MF spike was removed.
       </div>
     </div>
 
@@ -832,15 +833,76 @@
         <strong>Two bugs the work surfaced.</strong> (1) The handed-off "completed Phase&nbsp;3" code did not compile: <code>WindowRefreshDiagnostics</code> was undefined and <code>TrackedWindow</code> was missing the <code>PackageFamilyName</code> member its constructor used. (2) Settings files written before a field existed deserialized that field as <code>null</code> (System.Text.Json does not run property initializers for absent members), so on upgrade the global hotkeys silently never registered and scaling/filter values were lost. <code>SettingsStore.Load</code> now normalizes missing values to defaults. The logging item is what exposed bug&nbsp;2.
       </div>
 
+      <h3 style="margin-top:22px;">Structural Refactor &amp; Tests (Done)</h3>
+      <div class="card">
+        <ul>
+          <li><strong>Project split done.</strong> The single project became four: <code>CursorFollowWin.Shared</code> (<code>net10.0</code>, no WinUI &mdash; settings, hotkey, models, pure <code>WindowFilter</code>, <code>IWindowTracker</code>, diagnostics), <code>CursorFollowWin.Capture</code> (tracking + Windows Graphics Capture behind <code>IWindowTracker</code>), <code>CursorFollowWin.Output</code> (output window/page, WinUI class library), and the app shell. All build green; types kept the <code>CursorFollowWin</code> namespace so no consumer edits were needed.</li>
+          <li><strong>Tests done.</strong> <code>tests/CursorFollowWin.Tests</code> (xUnit, references Shared only) &mdash; 20 passing tests over hotkey parse/format, filter modes (All/Include/Exclude), settings-normalize upgrade behavior, and tracked-window identity.</li>
+          <li><strong>Crash fixed.</strong> A capture frame arriving after the output window closed dereferenced a null <code>Window.AppWindow</code> in <code>MainWindow.SizeToContent</code> and took the app down; now guarded.</li>
+        </ul>
+      </div>
+
+      <h3 style="margin-top:22px;">Verification Results (recorded June 2026, dev Windows 11 desktop)</h3>
+      <table>
+        <thead>
+          <tr><th>Check</th><th>Target</th><th>Measured</th><th>Verdict</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Capture-to-output latency (median)</td>
+            <td>&lt;50 ms</td>
+            <td>~63 ms median (p95 ~65 ms) capturing a 1512&times;741 window; the CPU <code>SoftwareBitmap</code> copy alone is ~62 ms of it</td>
+            <td><strong>Miss</strong> &mdash; CPU copy is the bottleneck</td>
+          </tr>
+          <tr>
+            <td>Frame transport: GPU vs CPU</td>
+            <td>Pick simplest path that meets latency</td>
+            <td>Copy dominates end-to-end latency; CPU path cannot hit &lt;50 ms</td>
+            <td><strong>Decision: adopt GPU texture sharing</strong> (Phase 4 / pre-Phase-4 work)</td>
+          </tr>
+          <tr>
+            <td>Frame rate</td>
+            <td>60 fps capable, 30 fps fallback</td>
+            <td>~10 fps median on a near-static editor window; WGC is change-driven so fps is content-limited here, not a hard pipeline cap. Re-measure on motion content once GPU transport lands.</td>
+            <td><strong>Inconclusive</strong> (content-limited sample)</td>
+          </tr>
+          <tr>
+            <td>Dropped frames</td>
+            <td>No sustained drops</td>
+            <td>1 total over 5,400+ frames</td>
+            <td><strong>Pass</strong></td>
+          </tr>
+          <tr>
+            <td>30-minute stability</td>
+            <td>No crash / leak / sustained spike</td>
+            <td>Working set 142.4&rarr;143.5 MB (+0.8%), handles 1159&ndash;1178 flat, threads ~75 flat, CPU ~1.1 s/min, 0 errors logged, process survived</td>
+            <td><strong>Pass</strong></td>
+          </tr>
+          <tr>
+            <td>Output-window shareability</td>
+            <td>Appears in meeting-app window pickers</td>
+            <td>Normal top-level window: <code>WS_EX_APPWINDOW</code> set, <code>WS_EX_TOOLWINDOW</code> clear, not DWM-cloaked, visible with title &mdash; structurally enumerable by standard share pickers</td>
+            <td><strong>Pass (proxy)</strong></td>
+          </tr>
+          <tr>
+            <td>Meeting-app compatibility matrix</td>
+            <td>Teams, Zoom, Slack, Meet/Chrome, Edge, OBS</td>
+            <td>Installed on dev box: Teams (new), Slack, Edge. Absent: Zoom, OBS, Chrome. No webcam device present. Actual in-app share selection + &ldquo;webcam stays active&rdquo; is a manual step.</td>
+            <td><strong>Partial</strong> &mdash; needs manual per-app run</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="review-note">Method: telemetry logged from the output pipeline (capture timestamp to UI present), driven by an auto-follow capture; stability sampled once per minute for 30 minutes. Latency/fps are change-driven by Windows Graphics Capture, so fps reflects source motion, not a fixed cap.</p>
+
       <h3 style="margin-top:22px;">Remaining Before Phase 4</h3>
       <ul>
-        <li><strong>Structural refactor:</strong> split <code>.Capture</code> / <code>.Output</code> / <code>.Shared</code> behind interfaces and stand up a test project. (Next item; warrants its own review.)</li>
-        <li><strong>Automated tests:</strong> xUnit coverage for tracking, filtering, settings, and hotkey parsing.</li>
-        <li><strong>Verification:</strong> real capture-to-output latency, meeting-app compatibility matrix, 30-minute stability run, and the GPU-vs-CPU transport decision.</li>
+        <li><strong>GPU transport:</strong> implement GPU texture sharing to bring capture-to-output latency under 50 ms (the measured CPU-copy bottleneck), then re-measure latency and fps on motion content.</li>
+        <li><strong>Meeting-app matrix:</strong> manual share test in Teams/Slack/Edge (present) and, where installed, Zoom/Meet/OBS, confirming the real webcam stays selectable while sharing the output window.</li>
+        <li><strong>Output-window lifecycle:</strong> stop capture when the output window closes (root cause behind the guarded crash), not just guard the null.</li>
       </ul>
 
       <div class="callout">
-        <strong>Exit criteria.</strong> Phase 3.5 is complete when every Phase&nbsp;1&ndash;3 functional and UI requirement is either implemented (not stubbed) or explicitly deferred with a written rationale, diagnostics and accessibility exist, the project is split with a passing test project, and the latency/compatibility/stability numbers are recorded. Then Phase 4 (packaging and hardening) can begin.
+        <strong>Exit criteria.</strong> Phase 3.5 is complete when every Phase&nbsp;1&ndash;3 functional and UI requirement is either implemented (not stubbed) or explicitly deferred with a written rationale, diagnostics and accessibility exist, the project is split with a passing test project, and the latency/compatibility/stability numbers are recorded. The split, tests, diagnostics, and recorded numbers are done; the remaining items above (GPU transport for the latency target, manual compat matrix) carry into Phase 4.
       </div>
     </div>
 
@@ -859,19 +921,19 @@
             <td>This browser-reviewable requirements document.</td>
           </tr>
           <tr>
-            <td><code>CursorFollowWin/src/CursorFollowWin.App/</code></td>
-            <td>Tray host, UI shell, settings, hotkeys, and output window.</td>
+            <td><code>CursorFollowWin/CursorFollowWin.csproj</code></td>
+            <td>Flattened app project (no <code>src/</code> nesting): tray host, UI shell, settings, hotkeys, and output window. Currently also holds the capture/tracking logic pending the structural split below.</td>
           </tr>
           <tr>
-            <td><code>CursorFollowWin/src/CursorFollowWin.Capture/</code></td>
-            <td>Window enumeration, tracking, filtering, and Windows Graphics Capture pipeline.</td>
+            <td><code>CursorFollowWin/Capture/</code> (planned)</td>
+            <td>Window enumeration, tracking, filtering, and Windows Graphics Capture pipeline, extracted behind interfaces.</td>
           </tr>
           <tr>
-            <td><code>CursorFollowWin/src/CursorFollowWin.Output/</code></td>
+            <td><code>CursorFollowWin/Output/</code> (planned)</td>
             <td>Output-window rendering, overlays, sizing, and sharing behavior.</td>
           </tr>
           <tr>
-            <td><code>CursorFollowWin/src/CursorFollowWin.Shared/</code></td>
+            <td><code>CursorFollowWin/Shared/</code> (planned)</td>
             <td>Shared contracts, settings models, diagnostics, and frame metadata.</td>
           </tr>
           <tr>

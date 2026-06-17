@@ -1,3 +1,7 @@
 <Solution>
   <Project Path="CursorFollowWin.csproj" />
+  <Project Path="Shared/CursorFollowWin.Shared.csproj" />
+  <Project Path="Capture/CursorFollowWin.Capture.csproj" />
+  <Project Path="Output/CursorFollowWin.Output.csproj" />
+  <Project Path="tests/CursorFollowWin.Tests/CursorFollowWin.Tests.csproj" />
 </Solution>

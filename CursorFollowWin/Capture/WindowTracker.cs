@@ -5,7 +5,7 @@ using System.Text;
 
 namespace CursorFollowWin;
 
-internal sealed class WindowTracker
+public sealed class WindowTracker : IWindowTracker
 {
     private const int DwmwaCloaked = 14;
     private const int GwlExStyle = -20;
@@ -45,16 +45,7 @@ internal sealed class WindowTracker
         return TryCreateWindow(root == IntPtr.Zero ? handle : root, out var window) ? window : null;
     }
 
-    public bool IsAllowed(TrackedWindow window, AppSettings settings)
-    {
-        var identity = window.Identity;
-        return settings.WindowFilterMode switch
-        {
-            WindowFilterMode.Exclude => !settings.ExcludeWindowIdentities.Contains(identity, StringComparer.OrdinalIgnoreCase),
-            WindowFilterMode.Include => settings.IncludeWindowIdentities.Contains(identity, StringComparer.OrdinalIgnoreCase),
-            _ => true,
-        };
-    }
+    public bool IsAllowed(TrackedWindow window, AppSettings settings) => WindowFilter.IsAllowed(window, settings);
 
     private IEnumerable<TrackedWindow> EnumerateWindows()
     {
@@ -103,7 +94,7 @@ internal sealed class WindowTracker
         }
 
         var title = GetWindowTitle(handle);
-        if (string.IsNullOrWhiteSpace(title) || string.Equals(title, WindowsGraphicsCaptureController.OutputWindowTitle, StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(title) || string.Equals(title, CaptureConstants.OutputWindowTitle, StringComparison.OrdinalIgnoreCase))
         {
             TrackOmission(trackOmission, "untitled/output");
             return false;
