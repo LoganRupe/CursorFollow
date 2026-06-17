@@ -12,9 +12,11 @@ using WinRT;
 
 namespace CursorFollowWin;
 
-internal sealed class WindowsGraphicsCaptureController : IDisposable
+public sealed class WindowsGraphicsCaptureController : IDisposable
 {
-    public const string OutputWindowTitle = "CursorFollow Output";
+    /// <summary>Forwards <see cref="CaptureConstants.OutputWindowTitle"/> so existing call sites that
+    /// reference the controller keep compiling; the single source of truth lives in Shared.</summary>
+    public const string OutputWindowTitle = CaptureConstants.OutputWindowTitle;
 
     private static readonly Guid GraphicsCaptureItemInterfaceId = new("79C3F95B-31F7-4EC2-A464-632EF5D30760");
 
@@ -359,7 +361,7 @@ internal enum CaptureQuality
     LowLatency,
 }
 
-internal sealed record CapturedFrame(
+public sealed record CapturedFrame(
     SoftwareBitmap Bitmap,
     SizeInt32 ContentSize,
     long Sequence,

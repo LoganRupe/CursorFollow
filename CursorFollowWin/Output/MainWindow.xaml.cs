@@ -112,6 +112,14 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        // A capture frame can arrive on the dispatcher after the output window has been closed,
+        // at which point Window.AppWindow is null. Resizing then threw a NullReferenceException
+        // that took the whole app down, so ignore sizing once the window is gone.
+        if (AppWindow is null)
+        {
+            return;
+        }
+
         const double maxWidth = 1280;
         const double maxHeight = 900;
         var scale = Math.Min(maxWidth / contentWidth, maxHeight / contentHeight);

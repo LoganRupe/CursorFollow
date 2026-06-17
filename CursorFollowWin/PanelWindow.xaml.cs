@@ -41,7 +41,7 @@ public sealed partial class PanelWindow : Window
     private readonly TargetFollowService _targetFollowService;
     private readonly Action _showSettings;
     private readonly Action _quit;
-    private readonly WindowTracker _windowTracker = new();
+    private readonly IWindowTracker _windowTracker = new WindowTracker();
     private readonly DispatcherTimer _dismissTimer = new();
     private readonly IntPtr _windowHandle;
     private IReadOnlyList<WindowListItem> _windows = Array.Empty<WindowListItem>();

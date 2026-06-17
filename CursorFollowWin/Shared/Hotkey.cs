@@ -1,7 +1,7 @@
 namespace CursorFollowWin;
 
 [Flags]
-internal enum HotkeyModifiers : uint
+public enum HotkeyModifiers : uint
 {
     None = 0,
     Alt = 0x1,       // MOD_ALT
@@ -14,7 +14,7 @@ internal enum HotkeyModifiers : uint
 /// A global hotkey expressed as a set of modifiers plus a Win32 virtual-key code.
 /// The modifier values match the <c>MOD_*</c> flags expected by <c>RegisterHotKey</c>.
 /// </summary>
-internal readonly record struct Hotkey(HotkeyModifiers Modifiers, uint VirtualKey)
+public readonly record struct Hotkey(HotkeyModifiers Modifiers, uint VirtualKey)
 {
     public static readonly Hotkey None = new(HotkeyModifiers.None, 0);
 

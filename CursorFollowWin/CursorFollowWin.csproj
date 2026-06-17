@@ -47,6 +47,26 @@
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
 
+  <!-- The app project sits at the repo's CursorFollowWin/ root and globs **/*.cs by default, which
+       would otherwise sweep in (and double-compile) the sibling Shared/Capture/tests projects nested
+       beneath it. Exclude those trees; they build as their own assemblies referenced below. -->
+  <ItemGroup>
+    <Compile Remove="Shared\**\*.cs" />
+    <Compile Remove="Capture\**\*.cs" />
+    <Compile Remove="Output\**\*.cs" />
+    <Compile Remove="tests\**\*.cs" />
+    <Page Remove="Shared\**\*.xaml" />
+    <Page Remove="Capture\**\*.xaml" />
+    <Page Remove="Output\**\*.xaml" />
+    <Page Remove="tests\**\*.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="Shared\CursorFollowWin.Shared.csproj" />
+    <ProjectReference Include="Capture\CursorFollowWin.Capture.csproj" />
+    <ProjectReference Include="Output\CursorFollowWin.Output.csproj" />
+  </ItemGroup>
+
   <!--
     Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
     Tools extension to be activated for this project even if the Windows App SDK Nuget

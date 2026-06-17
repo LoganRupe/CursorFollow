@@ -23,7 +23,7 @@ public sealed record AppSettings
 [JsonSerializable(typeof(AppSettings))]
 internal sealed partial class AppSettingsJsonContext : JsonSerializerContext;
 
-internal static class SettingsStore
+public static class SettingsStore
 {
     private static readonly string SettingsDirectory = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -60,7 +60,7 @@ internal static class SettingsStore
     // Settings files written before a field existed deserialize that field as null (System.Text.Json
     // does not apply property initializers for absent members). Replace null/blank values with the
     // current defaults so upgrading users keep working hotkeys, scaling, and filter lists.
-    private static AppSettings Normalize(AppSettings settings)
+    public static AppSettings Normalize(AppSettings settings)
     {
         var defaults = new AppSettings();
         return settings with
