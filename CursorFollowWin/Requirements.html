@@ -898,7 +898,7 @@
       <ul>
         <li><strong>GPU transport:</strong> <em>done</em> &mdash; zero-copy <code>CanvasSwapChainPanel</code> path brings pipeline latency to ~0.4 ms median. Still worth re-measuring fps on motion content (the WGC frame rate was content-limited in testing).</li>
         <li><strong>Meeting-app matrix:</strong> manual share test in Teams/Slack/Edge (present) and, where installed, Zoom/Meet/OBS, confirming the real webcam stays selectable while sharing the output window.</li>
-        <li><strong>Output-window lifecycle:</strong> stop capture when the output window closes (root cause behind the guarded crash), not just guard the null.</li>
+        <li><strong>Output-window lifecycle:</strong> <em>done</em> &mdash; the title-bar close is intercepted (<code>AppWindow.Closing</code>) and hides the window to the tray instead of destroying it, so the window is never gone when a late frame arrives. The window stays re-showable; a shutdown bypass lets the app still exit. Runtime-verified via a posted <code>WM_CLOSE</code>.</li>
       </ul>
 
       <div class="callout">

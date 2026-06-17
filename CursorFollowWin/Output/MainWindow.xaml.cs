@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using System.Runtime.InteropServices;
 using Windows.Graphics;
@@ -26,6 +28,7 @@ public sealed partial class MainWindow : Window
     private AppSettings _settings;
     private bool _isVisible;
     private bool _showTaskbarIcon;
+    private bool _closeForShutdown;
 
     public MainWindow(AppSettings settings)
     {
@@ -36,6 +39,7 @@ public sealed partial class MainWindow : Window
         _windowHandle = WinRT.Interop.WindowNative.GetWindowHandle(this);
 
         AppWindow.SetIcon("Assets/AppIcon.ico");
+        AppWindow.Closing += AppWindow_Closing;
         SizeToContent(1280, 720);
         SetTaskbarIconVisible(settings.ShowTaskbarIcon);
 
@@ -72,6 +76,26 @@ public sealed partial class MainWindow : Window
         ShowWindow(_windowHandle, _showTaskbarIcon ? SwMinimize : SwHide);
         _isVisible = false;
         OutputStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Allows the next close to actually destroy the window, used during app shutdown so the
+    /// close-to-tray interception below does not block exit.</summary>
+    public void AllowCloseForShutdown() => _closeForShutdown = true;
+
+    // The output window is a persistent, tray-managed surface (it gets shared in meetings and is
+    // re-shown from the tray). Closing it from the title bar should hide it, not destroy it: a
+    // destroyed window left AppWindow null, which a late capture frame then dereferenced and crashed
+    // the app. Cancelling the close keeps the window alive and re-showable; only shutdown closes it.
+    private void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
+    {
+        if (_closeForShutdown)
+        {
+            return;
+        }
+
+        args.Cancel = true;
+        HideOutput();
+        AppLog.Output.LogInformation("Output window close intercepted; hidden to tray instead.");
     }
 
     public void ApplySettings(AppSettings settings)

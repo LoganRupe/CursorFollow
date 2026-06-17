@@ -161,6 +161,7 @@ public partial class App : Application
     private void ExitApplication()
     {
         AppLog.App.LogInformation("CursorFollowWin exiting.");
+        _outputWindow?.AllowCloseForShutdown();
         _hotkeyService?.Dispose();
         _trayIcon?.Dispose();
         _outputWindow?.DisposeCapture();
