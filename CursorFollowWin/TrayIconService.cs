@@ -94,6 +94,27 @@ internal sealed class TrayIconService : IDisposable
 
     private static IntPtr LoadTrayIcon()
     {
+        // Prefer the icon embedded in this executable (see <ApplicationIcon> in the csproj). This
+        // is correct for both the dev build and the installed build, with no dependency on a loose
+        // Assets\AppIcon.ico next to the exe — `dotnet publish` does not copy that file, so the
+        // installed build has none and the loose-file path below would fall through to the generic
+        // system icon. ExtractIconEx returns the small (tray-sized) variant.
+        var exePath = Environment.ProcessPath;
+        if (!string.IsNullOrEmpty(exePath) &&
+            ExtractIconEx(exePath, 0, out var largeIcon, out var smallIcon, 1) > 0)
+        {
+            if (largeIcon != IntPtr.Zero)
+            {
+                DestroyIcon(largeIcon);
+            }
+
+            if (smallIcon != IntPtr.Zero)
+            {
+                return smallIcon;
+            }
+        }
+
+        // Fallback: a loose AppIcon.ico deployed next to the exe (e.g. the non-published dev build).
         var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico");
         if (File.Exists(iconPath))
         {
@@ -179,6 +200,9 @@ internal sealed class TrayIconService : IDisposable
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern IntPtr LoadImage(IntPtr hInst, string name, int type, int cx, int cy, int fuLoad);
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern uint ExtractIconEx(string lpszFile, int nIconIndex, out IntPtr phiconLarge, out IntPtr phiconSmall, uint nIcons);
 
     [DllImport("user32.dll")]
     private static extern IntPtr LoadIcon(IntPtr hInstance, IntPtr lpIconName);

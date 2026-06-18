@@ -5,6 +5,11 @@
     <TargetPlatformMinVersion>10.0.22000.0</TargetPlatformMinVersion>
     <RootNamespace>CursorFollowWin</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Embed the app icon as a Win32 resource in the exe. Gives the executable a real icon in
+         Explorer / taskbar / Alt-Tab, and lets the tray load its icon from the exe itself
+         (TrayIconService) without depending on a loose Assets\AppIcon.ico — which `dotnet publish`
+         does NOT copy, so the installed build would otherwise show the generic system icon. -->
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <Platforms>x86;x64;ARM64</Platforms>
     <UseWinUI>true</UseWinUI>
     <WinUISDKReferences>false</WinUISDKReferences>
