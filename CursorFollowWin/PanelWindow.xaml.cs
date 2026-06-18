@@ -16,6 +16,15 @@ public sealed partial class PanelWindow : Window
     private static readonly SolidColorBrush InactiveSegmentBrush = new(Windows.UI.Color.FromArgb(0, 0, 0, 0));
     private static readonly SolidColorBrush PrimaryTextBrush = new(Windows.UI.Color.FromArgb(255, 232, 237, 245));
     private static readonly SolidColorBrush MutedTextBrush = new(Windows.UI.Color.FromArgb(255, 174, 184, 200));
+    // Resume = green play (matches macOS .tint(.green)); Pause = red bars (matches .tint(.red)).
+    private static readonly SolidColorBrush ResumeBackgroundBrush = new(Windows.UI.Color.FromArgb(255, 20, 62, 43));
+    private static readonly SolidColorBrush ResumeForegroundBrush = new(Windows.UI.Color.FromArgb(255, 57, 233, 130));
+    private static readonly SolidColorBrush PauseBackgroundBrush = new(Windows.UI.Color.FromArgb(255, 62, 20, 20));
+    private static readonly SolidColorBrush PauseForegroundBrush = new(Windows.UI.Color.FromArgb(255, 255, 112, 112));
+    private static readonly SolidColorBrush LiveDotBrush = new(Windows.UI.Color.FromArgb(255, 57, 233, 130));
+    private static readonly SolidColorBrush IdleDotBrush = new(Windows.UI.Color.FromArgb(255, 154, 166, 183));
+    private const string PlayGlyph = "";
+    private const string PauseGlyph = "";
     private const int GwlStyle = -16;
     private const int GwlExStyle = -20;
     private const int SwHide = 0;
@@ -100,7 +109,18 @@ public sealed partial class PanelWindow : Window
         TargetText.Text = page?.TargetName ?? "Manual target picker";
         StatusText.Text = page?.Status ?? "Waiting for target selection";
         OutputButton.Content = _outputWindow.IsOutputVisible ? "Hide" : "Show";
-        StartButtonText.Text = isCapturing ? "Restart" : "Resume";
+        LiveDot.Fill = isCapturing ? LiveDotBrush : IdleDotBrush;
+
+        // Mirror the macOS status bar: a red Pause while capturing (stops the recording without
+        // closing the output window) and a green Resume otherwise (re-starts capture of the target).
+        StartButtonText.Text = isCapturing ? "Pause" : "Resume";
+        StartButtonIcon.Glyph = isCapturing ? PauseGlyph : PlayGlyph;
+        StartButton.Background = isCapturing ? PauseBackgroundBrush : ResumeBackgroundBrush;
+        StartButton.Foreground = isCapturing ? PauseForegroundBrush : ResumeForegroundBrush;
+        ToolTipService.SetToolTip(
+            StartButton,
+            isCapturing ? "Pause output without closing the shared window" : "Resume output");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(StartButton, isCapturing ? "Pause" : "Resume");
         StartButton.IsEnabled = page is not null;
         StopButton.IsEnabled = page is not null;
         UpdateFilterStatus();
@@ -108,6 +128,18 @@ public sealed partial class PanelWindow : Window
 
     private async void StartButton_Click(object sender, RoutedEventArgs e)
     {
+        // While capturing the button acts as Pause: stop the screen recording but keep the output
+        // window and remembered target so the next click can resume it (parity with macOS userStop()).
+        if (_outputWindow.OutputPage?.IsCapturing == true)
+        {
+            _targetFollowService.MarkUserStopped();
+            _outputWindow.OutputPage.StopCapture();
+            RefreshFromOutput();
+            return;
+        }
+
+        // Resume: clear the user-pause gate so auto-follow can re-engage, then re-start capture.
+        _targetFollowService.ClearUserStopped();
         _outputWindow.ShowOutput();
         if (_outputWindow.OutputPage is not null)
         {
