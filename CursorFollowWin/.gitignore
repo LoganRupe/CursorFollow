@@ -38,6 +38,11 @@ BundleArtifacts/
 *.appxbundle
 *.appxupload
 
+# WiX / MSI installer output (produced by scripts/package.ps1)
+installer/dist/
+*.msi
+*.wixpdb
+
 # Publish output
 publish/
 *.pubxml

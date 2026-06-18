@@ -34,12 +34,17 @@ Single WinUI 3 desktop project (~3,300 LOC). Implemented so far:
   guard.
 - **Phase 3.5 — Gap close-out** — real global hotkeys (`RegisterHotKey`), Start-with-Windows
   (HKCU `Run` key), capture-quality presets, output scaling (Fit / Fill / Actual),
-  pin/hide behavior, file-based diagnostics, and accessibility names.
+  pin/hide behavior, file-based diagnostics, and accessibility names. Plus the structural split
+  into `.Shared` / `.Capture` / `.Output` projects with xUnit tests, and zero-copy GPU frame
+  transport (swap-chain present, ~0.4 ms pipeline latency).
+- **Phase 4 — Packaging & hardening** — a per-user **WiX MSI installer** (no UAC; upgrade path,
+  uninstall cleanup), developer build/publish/package/verify scripts, a code-signing plan, and
+  reset/troubleshooting docs. See [docs/Installer.md](docs/Installer.md).
 
-**Not yet done:** structural split into `.Capture` / `.Output` / `.Shared` projects (all code
-currently lives in this one project), xUnit tests, GPU frame transport (the renderer still
-does a CPU `SoftwareBitmap` copy), a WiX installer, and the full meeting-app compatibility
-matrix. See [docs/](docs/) for the per-phase records.
+**Not yet done:** code signing (planned and wired — see
+[docs/CodeSigning.md](docs/CodeSigning.md) — but no certificate yet) and the full meeting-app
+compatibility matrix (Slack is confirmed; the rest is descoped for now). See [docs/](docs/) for
+the per-phase records.
 
 ---
 
@@ -242,9 +247,27 @@ dotnet publish CursorFollowWin.csproj -c Release -p:PublishProfile=win-x86
 ```
 
 These produce a **self-contained** build under
-`bin\Release\net10.0-windows10.0.26100.0\<rid>\publish\`. Release builds enable
-ReadyToRun and trimming. A proper WiX installer is planned but not yet present — for now,
-distribution is the published folder.
+`bin\Release\net10.0-windows10.0.26100.0\<rid>\publish\`. Release builds enable ReadyToRun
+(trimming is intentionally off — it is not safe for WinUI/XAML; see
+[docs/Installer.md](docs/Installer.md)).
+
+## Installer
+
+A per-user MSI (no admin required) is built with WiX. From this directory:
+
+```powershell
+# Build (and optionally sign) the MSI -> installer/dist/
+./scripts/package.ps1 -Rid win-x64
+
+# Verify it installs, launches, upgrades, and uninstalls cleanly
+./scripts/verify-install.ps1
+```
+
+The MSI installs to `%LocalAppData%\Programs\CursorFollowWin`, adds a Start-menu shortcut and an
+Add/Remove-Programs entry, supports in-place major upgrades (preserving user settings), and on
+uninstall removes the app, the `Run` value, and `%LocalAppData%\CursorFollowWin`. See
+[docs/Installer.md](docs/Installer.md) for the full packaging guide and
+[docs/CodeSigning.md](docs/CodeSigning.md) for the signing plan.
 
 ---
 
@@ -252,6 +275,9 @@ distribution is the published folder.
 
 - [TechStack.md](TechStack.md) — stack decisions and the longer-term multi-project architecture.
 - [Requirements.html](Requirements.html) — product requirements.
+- [docs/Installer.md](docs/Installer.md) — WiX MSI packaging, scripts, versioning, upgrades.
+- [docs/CodeSigning.md](docs/CodeSigning.md) — code-signing plan and mechanics.
+- [docs/Troubleshooting.md](docs/Troubleshooting.md) — reset, capture/sharing/hotkey/elevation fixes.
 - [docs/OutputWindowFeasibility.md](docs/OutputWindowFeasibility.md) — output-window approach validation.
 - [docs/Phase1TrayUi.md](docs/Phase1TrayUi.md) — tray, panel, settings.
 - [docs/Phase2WindowTracking.md](docs/Phase2WindowTracking.md) — enumeration, filtering, auto-follow.

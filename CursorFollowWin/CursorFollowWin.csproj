@@ -13,6 +13,17 @@
     <EnableWinAppRunSupport>false</EnableWinAppRunSupport>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <!-- Single source of truth for the product version. The About dialog reads the assembly
+         version; the WiX installer (installer/Package.wxs) reads FileVersion via package.ps1.
+         Bump this to drive a MajorUpgrade. Pre-1.0 while the Windows port is in packaging/hardening. -->
+    <Version>0.4.0</Version>
+    <FileVersion>0.4.0.0</FileVersion>
+    <AssemblyVersion>0.4.0.0</AssemblyVersion>
+    <InformationalVersion>0.4.0</InformationalVersion>
+    <Company>Logan Rupe</Company>
+    <Product>CursorFollow</Product>
+    <Authors>Logan Rupe</Authors>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(RuntimeIdentifier)' == '' and '$(Platform)' == 'x86'">
@@ -98,7 +109,25 @@
   <PropertyGroup>
     <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-    <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
-    <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+    <!-- Trimming is intentionally OFF. WinUI 3 / XAML / Win2D resolve types via reflection and
+         XAML metadata, which the IL trimmer cannot see and silently removes, producing a build
+         that crashes at runtime (e.g. missing XAML types). ReadyToRun gives the startup-speed
+         win without the trimming risk; the self-contained payload is larger but reliable. -->
+    <PublishTrimmed>False</PublishTrimmed>
   </PropertyGroup>
+
+  <!-- WinUI 3 unpackaged self-contained publish drops the app's root resources PRI
+       ($(TargetName).pri): the per-project PRIs of referenced libraries (Capture/Output) are
+       copied as ordinary project outputs, but the app's own generated PRI is not added to the
+       publish item set. Without it the runtime cannot resolve ANY ms-appx:/// resource — the
+       app launches but throws XamlParseException locating MainWindow.xaml from the Output
+       assembly. The normal build OutDir always holds a freshly generated PRI by publish time
+       (publish builds first), so copy it across. See README "Publish" notes. -->
+  <Target Name="_CopyAppPriToPublish" AfterTargets="Publish"
+          Condition="Exists('$(OutDir)$(TargetName).pri')">
+    <Copy SourceFiles="$(OutDir)$(TargetName).pri"
+          DestinationFolder="$(PublishDir)"
+          SkipUnchangedFiles="true" />
+    <Message Importance="high" Text="Copied $(TargetName).pri into publish output (WinUI PRI fix)." />
+  </Target>
 </Project>
