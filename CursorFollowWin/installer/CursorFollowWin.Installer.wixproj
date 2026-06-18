@@ -1,0 +1,34 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+
+  <!--
+    Per-user MSI installer for CursorFollowWin.
+
+    Driven by scripts/package.ps1, which publishes the self-contained app and then builds
+    this project passing two MSBuild properties through to the WiX preprocessor:
+
+      Version     the product version (read from the built exe's FileVersion)
+      PublishDir  the absolute path of the self-contained publish folder to harvest
+
+    Build directly (after a publish) with, e.g.:
+      dotnet build installer/CursorFollowWin.Installer.wixproj -c Release ^
+        -p:Version=0.4.0 ^
+        -p:PublishDir=<abs path to ...\win-x64\publish>
+  -->
+
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <!-- x64 MSI to match the x64 payload (default is the legacy 32-bit "Intel" template, which
+         would file the ARP entry under HKLM\WOW6432Node). Still a per-user install (Scope=perUser
+         in Package.wxs → no ALLUSERS → no elevation). -->
+    <InstallerPlatform>x64</InstallerPlatform>
+    <!-- Default RID label used only for the output file name; the actual payload comes from PublishDir. -->
+    <RidLabel Condition="'$(RidLabel)' == ''">win-x64</RidLabel>
+    <OutputName>CursorFollowWin-$(Version)-$(RidLabel)</OutputName>
+    <!-- Surface Version/PublishDir to the WiX preprocessor as $(var.Version) / $(var.PublishDir). -->
+    <DefineConstants>Version=$(Version);PublishDir=$(PublishDir)</DefineConstants>
+    <!-- Suppress ICE warnings that are expected for a per-user, self-contained payload. -->
+    <!-- ICE61: expected with AllowSameVersionUpgrades (Maximum version == current). -->
+    <SuppressIces>ICE38;ICE43;ICE57;ICE61;ICE91</SuppressIces>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <!--
+    CursorFollow for Windows — per-user installer.
+
+    Scope="perUser": installs without elevation (UAC), matching the app's "no admin rights"
+    design. Files land under %LocalAppData%\Programs\CursorFollowWin; the ARP (Add/Remove
+    Programs) entry and the Start-menu shortcut are per-user.
+
+    Version and PublishDir are supplied by the build (see CursorFollowWin.Installer.wixproj).
+  -->
+  <Package Name="CursorFollow for Windows"
+           Manufacturer="Logan Rupe"
+           Version="$(var.Version)"
+           UpgradeCode="0EB55016-015B-4AC8-A6C5-E650FBE113B5"
+           Scope="perUser"
+           Compressed="yes">
+
+    <!-- Block downgrades; allow same-or-newer to replace an existing install in place. -->
+    <MajorUpgrade
+      AllowSameVersionUpgrades="yes"
+      DowngradeErrorMessage="A newer version of [ProductName] is already installed. Setup will now exit." />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Add/Remove Programs metadata. -->
+    <Icon Id="AppIcon.ico" SourceFile="..\Assets\AppIcon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/LoganRupe/CursorFollow" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/LoganRupe/CursorFollow/src/branch/main/CursorFollowWin/docs/Troubleshooting.md" />
+    <!-- No Modify/Repair UI for this simple per-user payload. -->
+    <Property Id="ARPNOMODIFY" Value="1" />
+
+    <!-- Install layout: %LocalAppData%\Programs\CursorFollowWin (per-user, no elevation). -->
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="CursorFollowWin" />
+      </Directory>
+    </StandardDirectory>
+
+    <!-- Per-user Start-menu location for the shortcut. -->
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Feature Id="Main" Title="CursorFollow for Windows" Level="1">
+      <ComponentGroupRef Id="AppPayload" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="Cleanup" />
+    </Feature>
+
+    <!--
+      Application payload: every file in the self-contained publish folder, harvested at build
+      time. WiX creates one component per file; uninstall removes them and the directories.
+    -->
+    <ComponentGroup Id="AppPayload" Directory="INSTALLFOLDER">
+      <Files Include="$(var.PublishDir)\**" />
+    </ComponentGroup>
+
+    <!--
+      Start-menu shortcut. Non-advertised, targeting the installed exe by path so it does not
+      depend on an auto-generated File id. Per-user component → HKCU registry keypath.
+    -->
+    <Component Id="StartMenuShortcut" Directory="ProgramMenuFolder"
+               Guid="A2CC88D9-D716-4854-9331-A7D9383D9461">
+      <Shortcut Id="AppStartMenuShortcut"
+                Name="CursorFollow"
+                Description="Track a window and share it as a normal output window."
+                Target="[INSTALLFOLDER]CursorFollowWin.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="AppIcon.ico" />
+      <RegistryValue Root="HKCU" Key="Software\LoganRupe\CursorFollowWin"
+                     Name="ShortcutInstalled" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <!--
+      Uninstall cleanup component. Owns the installer's marker key (removed automatically on
+      uninstall) and drives two extra cleanups that the app itself creates at runtime:
+        1. The per-user data folder %LocalAppData%\CursorFollowWin (settings.json + Logs\),
+           removed recursively via RemoveFolderEx. The folder path is stamped into the marker
+           key at install and read back by the RegistrySearch below so it is also available
+           during uninstall.
+        2. The HKCU Run value the app writes for "Start with Windows", removed on uninstall via
+           a deferred, impersonated reg.exe call (Windows Installer has no built-in single-value
+           remove-on-uninstall, and we must not delete the shared Run key wholesale).
+      A major upgrade (UPGRADINGPRODUCTCODE set) intentionally preserves user data.
+    -->
+    <Component Id="Cleanup" Directory="INSTALLFOLDER"
+               Guid="C2F0B7A1-6E4D-4E2A-8B3C-9A1D5E7F0C42">
+      <RegistryValue Root="HKCU" Key="Software\LoganRupe\CursorFollowWin"
+                     Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+      <!-- The install dirs live under the user profile; list them for removal (only deleted when
+           empty, so the shared "Programs" folder survives if other apps use it). -->
+      <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
+      <RemoveFolder Id="RemoveProgramsFolder" Directory="ProgramsFolder" On="uninstall" />
+    </Component>
+
+    <!--
+      Runtime-created state is cleaned up by two deferred, impersonated actions, BOTH guarded so
+      they run only on a true uninstall (REMOVE=ALL) and NOT during a major upgrade's removal of
+      the old version (UPGRADINGPRODUCTCODE) — otherwise every upgrade would wipe user settings.
+
+        RemoveRunValue   removes the HKCU "Start with Windows" Run value the app writes (Windows
+                         Installer has no single-value remove-on-uninstall, and we must not delete
+                         the shared Run key wholesale).
+        RemoveDataFolder removes %LocalAppData%\CursorFollowWin (settings.json + Logs\).
+
+      Impersonate=yes so HKCU / %LOCALAPPDATA% resolve to the installing user; Return=ignore so a
+      missing key/folder never fails the uninstall.
+    -->
+    <CustomAction Id="RemoveRunValue"
+                  Directory="INSTALLFOLDER"
+                  ExeCommand="reg.exe delete &quot;HKCU\Software\Microsoft\Windows\CurrentVersion\Run&quot; /v CursorFollowWin /f"
+                  Execute="deferred" Impersonate="yes" Return="ignore" />
+    <CustomAction Id="RemoveDataFolder"
+                  Directory="INSTALLFOLDER"
+                  ExeCommand="cmd.exe /c rmdir /s /q &quot;%LOCALAPPDATA%\CursorFollowWin&quot;"
+                  Execute="deferred" Impersonate="yes" Return="ignore" />
+    <InstallExecuteSequence>
+      <Custom Action="RemoveRunValue" Before="RemoveFiles"
+              Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+      <Custom Action="RemoveDataFolder" After="RemoveRunValue"
+              Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
+
+  </Package>
+</Wix>
