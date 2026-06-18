@@ -7,6 +7,7 @@ internal sealed class TrayIconService : IDisposable
     private const int WmUser = 0x0400;
     private const int WmTrayIcon = WmUser + 1;
     private const int WmLButtonUp = 0x0202;
+    private const int WmRButtonUp = 0x0205;
     private const int NimAdd = 0x00000000;
     private const int NimDelete = 0x00000002;
     private const int NifMessage = 0x00000001;
@@ -55,7 +56,7 @@ internal sealed class TrayIconService : IDisposable
 
     private IntPtr WndProc(IntPtr hwnd, uint message, IntPtr wParam, IntPtr lParam)
     {
-        if (message == WmTrayIcon && lParam.ToInt32() == WmLButtonUp)
+        if (message == WmTrayIcon && (lParam.ToInt32() == WmLButtonUp || lParam.ToInt32() == WmRButtonUp))
         {
             _showPanel();
             return IntPtr.Zero;
