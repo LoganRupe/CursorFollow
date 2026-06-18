@@ -30,6 +30,11 @@ public sealed class TargetFollowService
 
     public bool IsEnabled { get; private set; }
 
+    // Set when the user explicitly pauses output; prevents auto-follow from restarting capture
+    // until they resume (mirrors macOS CaptureEngine.userStopped). Starts false so auto-follow
+    // still engages on launch, matching existing Windows behaviour.
+    public bool UserStopped { get; private set; }
+
     public IntPtr CapturedWindowHandle { get; private set; }
 
     public string Status { get; private set; } = "Auto follow ready";
@@ -64,6 +69,17 @@ public sealed class TargetFollowService
 
     public bool IsAllowed(TrackedWindow window) => _windowTracker.IsAllowed(window, SettingsStore.Current);
 
+    /// <summary>User paused output: stops auto-follow from restarting capture until resumed.</summary>
+    public void MarkUserStopped()
+    {
+        UserStopped = true;
+        _pendingTarget = null;
+        _pendingSince = DateTimeOffset.MinValue;
+    }
+
+    /// <summary>User resumed output: lets auto-follow restart capture again.</summary>
+    public void ClearUserStopped() => UserStopped = false;
+
     public async Task<bool> CaptureWindowAsync(TrackedWindow window, bool showOutput, string source)
     {
         if (Interlocked.Exchange(ref _captureInFlight, 1) == 1)
@@ -97,6 +113,7 @@ public sealed class TargetFollowService
 
         if (_outputWindow.OutputPage is not null && await _outputWindow.OutputPage.CaptureWindowAsync(window))
         {
+            UserStopped = false;
             CapturedWindowHandle = window.Handle;
             Status = $"{source}: {window.AppName}";
             RaiseStateChanged();
@@ -111,6 +128,15 @@ public sealed class TargetFollowService
 
     private async void Timer_Tick(object? sender, object e)
     {
+        // Honor a user pause: while not capturing, don't let auto-follow restart until the user
+        // resumes (matches macOS gating auto-start on !userStopped). Target switching while live
+        // is unaffected because UserStopped is cleared on every successful capture.
+        if (UserStopped && _outputWindow.OutputPage?.IsCapturing != true)
+        {
+            _pendingTarget = null;
+            return;
+        }
+
         var candidate = _windowTracker.GetCursorWindowCandidate() ?? _windowTracker.GetForegroundWindowCandidate();
         if (candidate is null || !IsAllowed(candidate) || candidate.Handle == CapturedWindowHandle)
         {

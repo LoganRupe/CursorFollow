@@ -15,6 +15,11 @@ public sealed partial class MainPage : Page
     private const int DefaultContentHeight = 720;
     private const string DefaultTargetName = "Manual target picker";
 
+    // Paused dims the retained freeze-frame just enough to read the card (matches macOS' 0.74 black);
+    // idle/error have no frame behind them, so they stay near-opaque.
+    private static readonly SolidColorBrush PausedOverlayBrush = new(Windows.UI.Color.FromArgb(0xBD, 0, 0, 0));
+    private static readonly SolidColorBrush SolidOverlayBrush = new(Windows.UI.Color.FromArgb(0xE6, 0, 0, 0));
+
     // One Win2D device shared by the capture frame pool and the output swap chain so captured
     // surfaces render with no cross-device copy. Owned here; the controller does not dispose it.
     private readonly CanvasDevice _device = new();
@@ -105,14 +110,22 @@ public sealed partial class MainPage : Page
     public void StopCapture()
     {
         _captureController.Stop();
+
+        // A stop after a live capture is a pause; a stop before anything was ever captured is a full
+        // idle reset. On pause, freeze on the last presented frame (like macOS): leave it on the swap
+        // chain and keep the content size so the frozen image holds its aspect ratio behind the dimmed
+        // paused card. On a full stop with no target to resume, clear to black and reset to idle.
+        if (HasResumableTarget)
+        {
+            UpdateState(OutputState.Paused);
+            return;
+        }
+
         _renderer.Clear();
         ResetContentSize();
         PipelineSnapshot = OutputPipelineSnapshot.Empty;
         UpdateMetricsOverlay();
-
-        // A stop after a live capture is a pause: keep the last target name so the overlay can offer
-        // to resume it. A stop before anything was ever captured falls back to the idle "no target" card.
-        UpdateState(HasResumableTarget ? OutputState.Paused : OutputState.Idle);
+        UpdateState(OutputState.Idle);
     }
 
     public void ApplyCaptureQuality(string quality)
@@ -307,6 +320,9 @@ public sealed partial class MainPage : Page
         NoTargetIcon.Visibility = ToVisibility(icon == FallbackIcon.NoTarget);
         PausedIcon.Visibility = ToVisibility(icon == FallbackIcon.Paused);
         ErrorIcon.Visibility = ToVisibility(icon == FallbackIcon.Error);
+
+        // Let the frozen frame show through while paused; otherwise keep the card opaque over black.
+        FallbackOverlay.Background = _currentState == OutputState.Paused ? PausedOverlayBrush : SolidOverlayBrush;
 
         FallbackTitle.Text = title;
         FallbackMessage.Text = message;

@@ -293,7 +293,8 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel Orientation="Horizontal"
                             Spacing="6">
-                        <Ellipse Width="8"
+                        <Ellipse x:Name="LiveDot"
+                                 Width="8"
                                  Height="8"
                                  VerticalAlignment="Center"
                                  Fill="#9AA6B7"/>
@@ -318,7 +319,8 @@
                             Click="StartButton_Click">
                         <StackPanel Orientation="Horizontal"
                                 Spacing="5">
-                            <FontIcon FontFamily="Segoe Fluent Icons"
+                            <FontIcon x:Name="StartButtonIcon"
+                                    FontFamily="Segoe Fluent Icons"
                                     FontSize="12"
                                     Glyph="&#xF5B0;"/>
                             <TextBlock x:Name="StartButtonText"
