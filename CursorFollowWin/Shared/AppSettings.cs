@@ -10,8 +10,11 @@ public sealed record AppSettings
     public bool HideWhenNotSharing { get; init; }
     public bool PinOutputOnTop { get; init; }
     public bool ShowTaskbarIcon { get; init; }
+    public bool ShowResolution { get; init; }
+    public bool ShowFrameCount { get; init; }
     public string CaptureQuality { get; init; } = "Balanced";
     public string OutputScaleMode { get; init; } = "Fit";
+    public string LogLevel { get; init; } = "Standard";
     public WindowFilterMode WindowFilterMode { get; init; } = WindowFilterMode.All;
     public string[] IncludeWindowIdentities { get; init; } = Array.Empty<string>();
     public string[] ExcludeWindowIdentities { get; init; } = Array.Empty<string>();
@@ -67,6 +70,7 @@ public static class SettingsStore
         {
             CaptureQuality = Fallback(settings.CaptureQuality, defaults.CaptureQuality),
             OutputScaleMode = Fallback(settings.OutputScaleMode, defaults.OutputScaleMode),
+            LogLevel = Fallback(settings.LogLevel, defaults.LogLevel),
             AutoFollowHotkey = settings.AutoFollowHotkey ?? defaults.AutoFollowHotkey,
             ToggleOutputHotkey = settings.ToggleOutputHotkey ?? defaults.ToggleOutputHotkey,
             IncludeWindowIdentities = settings.IncludeWindowIdentities ?? defaults.IncludeWindowIdentities,

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Graphics.Canvas;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using Windows.Graphics.DirectX.Direct3D11;
@@ -12,6 +13,7 @@ public sealed partial class MainPage : Page
 {
     private const int DefaultContentWidth = 1280;
     private const int DefaultContentHeight = 720;
+    private const string DefaultTargetName = "Manual target picker";
 
     // One Win2D device shared by the capture frame pool and the output swap chain so captured
     // surfaces render with no cross-device copy. Owned here; the controller does not dispose it.
@@ -21,13 +23,15 @@ public sealed partial class MainPage : Page
     private IntPtr _windowHandle;
     private OutputState _currentState = OutputState.Idle;
     private string _status = "Waiting for target selection";
-    private string _targetName = "Manual target picker";
+    private string _targetName = DefaultTargetName;
     private DateTimeOffset _lastPresentedAt;
     private DateTimeOffset _lastTelemetryLoggedAt;
     private double _smoothedFramesPerSecond;
     private double _smoothedRenderLatencyMs;
     private int _contentWidth = DefaultContentWidth;
     private int _contentHeight = DefaultContentHeight;
+    private bool _showResolution;
+    private bool _showFrameCount;
 
     public MainPage()
     {
@@ -103,7 +107,12 @@ public sealed partial class MainPage : Page
         _captureController.Stop();
         _renderer.Clear();
         ResetContentSize();
-        UpdateState(OutputState.Idle);
+        PipelineSnapshot = OutputPipelineSnapshot.Empty;
+        UpdateMetricsOverlay();
+
+        // A stop after a live capture is a pause: keep the last target name so the overlay can offer
+        // to resume it. A stop before anything was ever captured falls back to the idle "no target" card.
+        UpdateState(HasResumableTarget ? OutputState.Paused : OutputState.Idle);
     }
 
     public void ApplyCaptureQuality(string quality)
@@ -119,6 +128,40 @@ public sealed partial class MainPage : Page
             "Actual" => Stretch.None,
             _ => Stretch.Uniform, // Fit
         };
+    }
+
+    public void ApplyMetricsOverlay(bool showResolution, bool showFrameCount)
+    {
+        _showResolution = showResolution;
+        _showFrameCount = showFrameCount;
+        UpdateMetricsOverlay();
+    }
+
+    // Builds the resolution / fps overlay from the latest pipeline snapshot. Hidden entirely when
+    // neither metric is enabled (or before the first frame), matching the macOS output overlay.
+    private void UpdateMetricsOverlay()
+    {
+        var snapshot = PipelineSnapshot;
+        var lines = new List<string>(2);
+
+        if (_showResolution && snapshot.Width > 0 && snapshot.Height > 0)
+        {
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"{snapshot.Width} x {snapshot.Height}"));
+        }
+
+        if (_showFrameCount)
+        {
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"{snapshot.FramesPerSecond:0} fps"));
+        }
+
+        if (lines.Count == 0)
+        {
+            MetricsOverlay.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+            return;
+        }
+
+        MetricsText.Text = string.Join(Environment.NewLine, lines);
+        MetricsOverlay.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
     }
 
     public void DisposeCapture()
@@ -173,6 +216,7 @@ public sealed partial class MainPage : Page
             _targetName = frame.TargetName;
             _currentState = OutputState.Live;
             UpdatePipelineSnapshot(frame, presentedAt, presentMs);
+            UpdateMetricsOverlay();
             SetStatus(FormatLiveStatus(frame));
         });
     }
@@ -190,6 +234,9 @@ public sealed partial class MainPage : Page
         DispatcherQueue.TryEnqueue(() => UpdateState(OutputState.Error, exception.Message));
     }
 
+    private bool HasResumableTarget =>
+        !string.IsNullOrEmpty(_targetName) && _targetName != DefaultTargetName;
+
     private void UpdateState(OutputState state, string? detail = null)
     {
         _currentState = state;
@@ -201,8 +248,12 @@ public sealed partial class MainPage : Page
                 break;
 
             case OutputState.Idle:
-                _targetName = "Manual target picker";
+                _targetName = DefaultTargetName;
                 SetStatus(detail ?? "Waiting for target selection");
+                break;
+
+            case OutputState.Paused:
+                SetStatus(detail ?? "Output paused");
                 break;
 
             default:
@@ -210,7 +261,60 @@ public sealed partial class MainPage : Page
                 SetStatus(detail ?? "Error / fallback output");
                 break;
         }
+
+        UpdateFallbackOverlay();
     }
+
+    // Centered card shown over the (black) output surface whenever there is nothing live to display.
+    // Hidden entirely while capturing; otherwise mirrors the macOS output window's idle/paused/error cards.
+    private void UpdateFallbackOverlay()
+    {
+        if (_currentState == OutputState.Live)
+        {
+            FallbackOverlay.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+            return;
+        }
+
+        string title;
+        string message;
+        var icon = _currentState switch
+        {
+            OutputState.Paused => FallbackIcon.Paused,
+            OutputState.Error => FallbackIcon.Error,
+            _ => FallbackIcon.NoTarget,
+        };
+
+        switch (_currentState)
+        {
+            case OutputState.Paused:
+                title = "Output Paused";
+                message = HasResumableTarget
+                    ? string.Create(CultureInfo.InvariantCulture, $"Ready to resume {_targetName}.")
+                    : "Start capture when you are ready.";
+                break;
+
+            case OutputState.Error:
+                title = "Output Unavailable";
+                message = _status;
+                break;
+
+            default:
+                title = "No Target Selected";
+                message = "Choose a window in CursorFollow to start sharing.";
+                break;
+        }
+
+        NoTargetIcon.Visibility = ToVisibility(icon == FallbackIcon.NoTarget);
+        PausedIcon.Visibility = ToVisibility(icon == FallbackIcon.Paused);
+        ErrorIcon.Visibility = ToVisibility(icon == FallbackIcon.Error);
+
+        FallbackTitle.Text = title;
+        FallbackMessage.Text = message;
+        FallbackOverlay.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+    }
+
+    private static Microsoft.UI.Xaml.Visibility ToVisibility(bool visible) =>
+        visible ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
 
     private void SetStatus(string status)
     {
@@ -276,6 +380,14 @@ public sealed partial class MainPage : Page
         Idle,
         Error,
         Live,
+        Paused,
+    }
+
+    private enum FallbackIcon
+    {
+        NoTarget,
+        Paused,
+        Error,
     }
 }
 

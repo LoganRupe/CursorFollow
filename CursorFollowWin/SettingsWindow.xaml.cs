@@ -1,8 +1,11 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
+using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using Windows.Graphics;
 using Microsoft.UI;
@@ -31,8 +34,10 @@ public sealed partial class SettingsWindow : Window
     private const int DwmwaBorderColor = 34;
     private const uint DwmwaSettingsBorderColor = 0x00201811;
     private const int WindowWidth = 840;
-    private const int WindowHeight = 646;
+    private const int WindowHeight = 742;
     private const int AnchorGap = 8;
+
+    private static readonly string[] LogLevels = { "None", "Errors only", "Standard", "Verbose" };
 
     private readonly Func<AppSettings, string?> _save;
     private readonly IntPtr _windowHandle;
@@ -41,6 +46,10 @@ public sealed partial class SettingsWindow : Window
     private readonly ToggleSwitch _hideWhenNotSharingSwitch = new() { Header = "Hide when not sharing", Foreground = WhiteBrush };
     private readonly ToggleSwitch _pinOutputSwitch = new() { Header = "Pin output on top", Foreground = WhiteBrush };
     private readonly ToggleSwitch _showTaskbarIconSwitch = new() { Header = "Show app icon in taskbar", Foreground = WhiteBrush };
+    private readonly ToggleSwitch _showResolutionSwitch = new() { Header = "Show resolution", Foreground = WhiteBrush };
+    private readonly ToggleSwitch _showFrameCountSwitch = new() { Header = "Show frame count", Foreground = WhiteBrush };
+    private readonly DropDownButton _logLevelButton = new();
+    private readonly HyperlinkButton _openLogButton = new();
     private readonly Button _balancedQualityButton = new() { Content = "BALANCED" };
     private readonly Button _performanceQualityButton = new() { Content = "PERFORMANT" };
     private readonly Button _lowLatencyQualityButton = new() { Content = "LOW-LATENCY" };
@@ -53,6 +62,7 @@ public sealed partial class SettingsWindow : Window
     private readonly TextBlock _pinOutputSubtitle = CreateSubtitleBlock("Keep output window above other windows");
     private string _selectedQuality = "Balanced";
     private string _selectedScaleMode = "Fit";
+    private string _selectedLogLevel = "Standard";
     private bool _syncingExclusiveToggles;
     private TextBlock _statusText = null!;
     private Ellipse _statusDot = null!;
@@ -99,10 +109,13 @@ public sealed partial class SettingsWindow : Window
         UpdateExclusiveToggleState();
 
         _showTaskbarIconSwitch.IsOn = settings.ShowTaskbarIcon;
+        _showResolutionSwitch.IsOn = settings.ShowResolution;
+        _showFrameCountSwitch.IsOn = settings.ShowFrameCount;
         _autoFollowHotkey.Value = Hotkey.Parse(settings.AutoFollowHotkey);
         _toggleOutputHotkey.Value = Hotkey.Parse(settings.ToggleOutputHotkey);
         SelectQuality(settings.CaptureQuality);
         SelectScaleMode(settings.OutputScaleMode);
+        SelectLogLevel(settings.LogLevel);
     }
 
     public void ApplySettings(AppSettings settings)
@@ -127,8 +140,11 @@ public sealed partial class SettingsWindow : Window
             HideWhenNotSharing = _hideWhenNotSharingSwitch.IsOn,
             PinOutputOnTop = _pinOutputSwitch.IsOn,
             ShowTaskbarIcon = _showTaskbarIconSwitch.IsOn,
+            ShowResolution = _showResolutionSwitch.IsOn,
+            ShowFrameCount = _showFrameCountSwitch.IsOn,
             CaptureQuality = SelectedQuality(),
             OutputScaleMode = _selectedScaleMode,
+            LogLevel = _selectedLogLevel,
             WindowFilterMode = current.WindowFilterMode,
             IncludeWindowIdentities = current.IncludeWindowIdentities,
             ExcludeWindowIdentities = current.ExcludeWindowIdentities,
@@ -166,6 +182,8 @@ public sealed partial class SettingsWindow : Window
         ConfigureSwitch(_hideWhenNotSharingSwitch);
         ConfigureSwitch(_pinOutputSwitch);
         ConfigureSwitch(_showTaskbarIconSwitch);
+        ConfigureSwitch(_showResolutionSwitch);
+        ConfigureSwitch(_showFrameCountSwitch);
 
         _pinOutputSwitch.Toggled += PinOutputSwitch_Toggled;
         _hideWhenNotSharingSwitch.Toggled += HideWhenNotSharingSwitch_Toggled;
@@ -220,6 +238,8 @@ public sealed partial class SettingsWindow : Window
         leftColumn.Children.Add(CreateCard(
             CreateSettingRow("Start on Login", "Launch CursorFollow automatically", _startWithWindowsSwitch),
             CreateDivider(),
+            CreateSettingRow("Show app in taskbar", "Keep CursorFollow windows visible in the taskbar", _showTaskbarIconSwitch),
+            CreateDivider(),
             CreateSettingRow("Resume output on launch", "Resume output when a target is available", _autoShareSwitch),
             CreateDivider(),
             CreateSettingRow("Hide when not sharing", _hideWhenNotSharingSubtitle, _hideWhenNotSharingSwitch),
@@ -239,6 +259,11 @@ public sealed partial class SettingsWindow : Window
                 Margin = new Thickness(0, 10, 0, 0),
             }));
 
+        leftColumn.Children.Add(CreateSectionLabel("LOGGING"));
+        leftColumn.Children.Add(CreateCard(
+            CreateLogLevelRow(),
+            CreateOpenLogRow()));
+
         var rightColumn = new StackPanel { Spacing = 16 };
         Grid.SetColumn(rightColumn, 1);
         columns.Children.Add(rightColumn);
@@ -253,7 +278,9 @@ public sealed partial class SettingsWindow : Window
         rightColumn.Children.Add(CreateCard(
             CreateOutputScalingBlock(),
             CreateDivider(),
-            CreateSettingRow("Show app in taskbar", "Keep CursorFollow windows visible in the taskbar", _showTaskbarIconSwitch)));
+            CreateSettingRow("Show resolution", "Display resolution on output window", _showResolutionSwitch),
+            CreateDivider(),
+            CreateSettingRow("Show frame count", "Display frame counter on output window", _showFrameCountSwitch)));
 
         rightColumn.Children.Add(CreateSectionLabel("ABOUT"));
         rightColumn.Children.Add(CreateCard(CreateAboutContent()));
@@ -574,29 +601,156 @@ public sealed partial class SettingsWindow : Window
         UpdateQualityButton(_actualScaleButton, _selectedScaleMode == "Actual");
     }
 
+    private Grid CreateLogLevelRow()
+    {
+        var row = new Grid { MinHeight = 44, ColumnSpacing = 12 };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var text = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
+        text.Children.Add(new TextBlock
+        {
+            Text = "Log level",
+            Foreground = WhiteBrush,
+            FontSize = 16,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+        });
+        text.Children.Add(new TextBlock
+        {
+            Text = "Write diagnostic output to a log file",
+            Foreground = MutedBrush,
+            FontSize = 13,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap,
+        });
+        row.Children.Add(text);
+
+        var flyout = new MenuFlyout();
+        foreach (var level in LogLevels)
+        {
+            var item = new MenuFlyoutItem { Text = level };
+            item.Click += (_, _) => SelectLogLevel(level);
+            flyout.Items.Add(item);
+        }
+
+        _logLevelButton.Flyout = flyout;
+        _logLevelButton.Background = SegmentBackgroundBrush;
+        _logLevelButton.Foreground = WhiteBrush;
+        _logLevelButton.BorderThickness = new Thickness(0);
+        _logLevelButton.FontSize = 13;
+        _logLevelButton.FontWeight = Microsoft.UI.Text.FontWeights.SemiBold;
+        _logLevelButton.VerticalAlignment = VerticalAlignment.Center;
+        AutomationProperties.SetName(_logLevelButton, "Log level");
+        Grid.SetColumn(_logLevelButton, 1);
+        row.Children.Add(_logLevelButton);
+        return row;
+    }
+
+    private Border CreateOpenLogRow()
+    {
+        var content = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 6,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        content.Children.Add(new FontIcon
+        {
+            FontFamily = new FontFamily("Segoe Fluent Icons"),
+            Glyph = "",
+            FontSize = 14,
+        });
+        content.Children.Add(new TextBlock
+        {
+            Text = "Open log file",
+            FontSize = 13,
+            FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+
+        _openLogButton.Content = content;
+        _openLogButton.Padding = new Thickness(0);
+        _openLogButton.HorizontalAlignment = HorizontalAlignment.Left;
+        _openLogButton.Click += OpenLogButton_Click;
+        AutomationProperties.SetName(_openLogButton, "Open log file");
+
+        return new Border
+        {
+            Margin = new Thickness(0, 8, 0, 0),
+            Child = _openLogButton,
+        };
+    }
+
+    private void SelectLogLevel(string level)
+    {
+        _selectedLogLevel = Array.IndexOf(LogLevels, level) >= 0 ? level : "Standard";
+        _logLevelButton.Content = _selectedLogLevel;
+
+        // "Open log file" is meaningless with logging off — disable it like the macOS app does.
+        _openLogButton.IsEnabled = _selectedLogLevel != "None";
+    }
+
+    private void OpenLogButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Directory.CreateDirectory(AppLog.LogDirectory);
+            var target = File.Exists(AppLog.CurrentLogFilePath) ? AppLog.CurrentLogFilePath : AppLog.LogDirectory;
+            Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            AppLog.App.LogWarning(ex, "Failed to open log file from settings.");
+            ShowStatus("Couldn't open the log file", isError: true);
+        }
+    }
+
     private static UIElement CreateAboutContent()
     {
-        var stack = new StackPanel { Spacing = 6 };
-        stack.Children.Add(new TextBlock
+        var stack = new StackPanel { Spacing = 10, HorizontalAlignment = HorizontalAlignment.Center };
+
+        stack.Children.Add(new Border
+        {
+            Width = 56,
+            Height = 56,
+            CornerRadius = new CornerRadius(12),
+            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(28, 255, 255, 255)),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Child = new FontIcon
+            {
+                FontFamily = new FontFamily("Segoe Fluent Icons"),
+                Glyph = "", // Video
+                FontSize = 28,
+                Foreground = PrimaryButtonBrush,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            },
+        });
+
+        var titleStack = new StackPanel { Spacing = 2, HorizontalAlignment = HorizontalAlignment.Center };
+        titleStack.Children.Add(new TextBlock
         {
             Text = "CursorFollowWin",
             Foreground = WhiteBrush,
             FontSize = 16,
             FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            HorizontalAlignment = HorizontalAlignment.Center,
         });
-        stack.Children.Add(new TextBlock
+        titleStack.Children.Add(new TextBlock
         {
             Text = $"Version {AppVersion()}",
             Foreground = MutedBrush,
             FontSize = 13,
             FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            HorizontalAlignment = HorizontalAlignment.Center,
         });
+        stack.Children.Add(titleStack);
 
         var links = new StackPanel
         {
             Orientation = Orientation.Horizontal,
-            Spacing = 4,
-            Margin = new Thickness(0, 2, 0, 0),
+            Spacing = 12,
+            HorizontalAlignment = HorizontalAlignment.Center,
         };
         links.Children.Add(CreateLinkButton("Documentation", "https://github.com/LoganRupe/CursorFollow/src/branch/main/README.md"));
         links.Children.Add(CreateLinkButton("Changelog", "https://github.com/LoganRupe/CursorFollow/src/branch/main/CHANGELOG.md"));

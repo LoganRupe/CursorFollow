@@ -11,6 +11,11 @@ namespace CursorFollowWin;
 /// </summary>
 public static class AppLog
 {
+    // Mutable so the Settings "Log level" choice can raise or lower verbosity at runtime. Read by
+    // every FileLogger via IsEnabled; defaults to Information so startup logs (emitted before
+    // settings load) are captured.
+    private static volatile int _minimumLevel = (int)LogLevel.Information;
+
     private static ILoggerFactory? _factory;
 
     public static ILogger App { get; private set; } = NullLogger.Instance;
@@ -20,6 +25,18 @@ public static class AppLog
     public static ILogger Hotkeys { get; private set; } = NullLogger.Instance;
     public static ILogger Startup { get; private set; } = NullLogger.Instance;
 
+    internal static LogLevel MinimumLevel => (LogLevel)_minimumLevel;
+
+    /// <summary>Directory holding the daily-rolling log files.</summary>
+    public static string LogDirectory { get; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "CursorFollowWin",
+        "Logs");
+
+    /// <summary>Path to today's log file (may not exist yet if nothing has been logged).</summary>
+    public static string CurrentLogFilePath =>
+        Path.Combine(LogDirectory, $"cursorfollowwin-{DateTime.Now:yyyyMMdd}.log");
+
     public static void Initialize()
     {
         if (_factory is not null)
@@ -27,15 +44,10 @@ public static class AppLog
             return;
         }
 
-        var logDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "CursorFollowWin",
-            "Logs");
-
         _factory = LoggerFactory.Create(builder =>
         {
-            builder.SetMinimumLevel(LogLevel.Information);
-            builder.AddProvider(new FileLoggerProvider(logDirectory));
+            builder.SetMinimumLevel(LogLevel.Trace);
+            builder.AddProvider(new FileLoggerProvider(LogDirectory));
         });
 
         App = _factory.CreateLogger("App");
@@ -44,6 +56,21 @@ public static class AppLog
         WindowTracker = _factory.CreateLogger("WindowTracker");
         Hotkeys = _factory.CreateLogger("Hotkeys");
         Startup = _factory.CreateLogger("Startup");
+    }
+
+    /// <summary>
+    /// Applies the user's log-level choice (the Settings strings "None", "Errors only", "Standard",
+    /// "Verbose"). Anything else falls back to Information.
+    /// </summary>
+    public static void ApplyLevel(string? level)
+    {
+        _minimumLevel = (int)(level switch
+        {
+            "None" => LogLevel.None,
+            "Errors only" => LogLevel.Error,
+            "Verbose" => LogLevel.Debug,
+            _ => LogLevel.Information, // Standard
+        });
     }
 
     public static void Shutdown()
@@ -108,7 +135,7 @@ internal sealed class FileLogger : ILogger
 
     public IDisposable BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
 
-    public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Information;
+    public bool IsEnabled(LogLevel logLevel) => logLevel >= AppLog.MinimumLevel;
 
     public void Log<TState>(
         LogLevel logLevel,

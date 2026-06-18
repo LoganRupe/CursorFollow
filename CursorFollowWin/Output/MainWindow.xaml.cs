@@ -103,6 +103,7 @@ public sealed partial class MainWindow : Window
         _settings = settings;
         OutputPage?.ApplyCaptureQuality(settings.CaptureQuality);
         OutputPage?.ApplyOutputScaleMode(settings.OutputScaleMode);
+        OutputPage?.ApplyMetricsOverlay(settings.ShowResolution, settings.ShowFrameCount);
         SetTaskbarIconVisible(settings.ShowTaskbarIcon);
         SetTopMost(settings.PinOutputOnTop);
         ApplyOutputVisibilityPolicy();
