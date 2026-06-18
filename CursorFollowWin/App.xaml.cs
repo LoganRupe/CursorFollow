@@ -41,6 +41,7 @@ public partial class App : Application
 
         AppLog.App.LogInformation("CursorFollowWin starting.");
         SettingsStore.Load();
+        AppLog.ApplyLevel(SettingsStore.Current.LogLevel);
         StartupRegistration.Apply(SettingsStore.Current.StartWithWindows);
 
         _outputWindow = new MainWindow(SettingsStore.Current);
@@ -151,6 +152,7 @@ public partial class App : Application
     private string? SaveSettings(AppSettings settings)
     {
         SettingsStore.Save(settings);
+        AppLog.ApplyLevel(settings.LogLevel);
         StartupRegistration.Apply(settings.StartWithWindows);
         _outputWindow?.ApplySettings(settings);
         _settingsWindow?.ApplySettings(settings);

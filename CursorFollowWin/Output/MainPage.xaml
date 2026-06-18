@@ -10,10 +10,106 @@
     Background="#05070D"
     mc:Ignorable="d">
 
-    <Viewbox x:Name="OutputViewbox" Stretch="Uniform">
-        <canvas:CanvasSwapChainPanel
-            x:Name="SwapPanel"
-            Width="1280"
-            Height="720"/>
-    </Viewbox>
+    <Grid>
+        <Viewbox x:Name="OutputViewbox" Stretch="Uniform">
+            <canvas:CanvasSwapChainPanel
+                x:Name="SwapPanel"
+                Width="1280"
+                Height="720"/>
+        </Viewbox>
+
+        <!-- Fallback overlay shown whenever there is no live output: at startup (no target picked),
+             when capture is paused, or on error. Mirrors the macOS output window's centered card. -->
+        <Grid
+            x:Name="FallbackOverlay"
+            Background="#E6000000"
+            Visibility="Collapsed">
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                MaxWidth="520"
+                Padding="28"
+                Spacing="12">
+                <Grid Height="64" HorizontalAlignment="Center">
+                    <!-- No target: dashed rounded rectangle (matches SF Symbol "rectangle.dashed"). -->
+                    <Rectangle
+                        x:Name="NoTargetIcon"
+                        Width="58"
+                        Height="44"
+                        RadiusX="7"
+                        RadiusY="7"
+                        Stroke="#D1FFFFFF"
+                        StrokeThickness="3"
+                        StrokeDashArray="2 1.6"
+                        StrokeDashCap="Round"
+                        Visibility="Collapsed"/>
+
+                    <!-- Paused: circle with two bars (matches SF Symbol "pause.circle"). -->
+                    <Grid
+                        x:Name="PausedIcon"
+                        Width="60"
+                        Height="60"
+                        Visibility="Collapsed">
+                        <Ellipse Stroke="#D1FFFFFF" StrokeThickness="3"/>
+                        <StackPanel
+                            Orientation="Horizontal"
+                            Spacing="7"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                            <Rectangle Width="5" Height="20" RadiusX="2.5" RadiusY="2.5" Fill="#D1FFFFFF"/>
+                            <Rectangle Width="5" Height="20" RadiusX="2.5" RadiusY="2.5" Fill="#D1FFFFFF"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Error / unavailable: warning glyph. -->
+                    <FontIcon
+                        x:Name="ErrorIcon"
+                        FontFamily="Segoe Fluent Icons"
+                        Glyph="&#xE7BA;"
+                        FontSize="46"
+                        Foreground="#D1FFFFFF"
+                        Visibility="Collapsed"/>
+                </Grid>
+
+                <StackPanel Spacing="5" HorizontalAlignment="Center">
+                    <TextBlock
+                        x:Name="FallbackTitle"
+                        Text="No Target Selected"
+                        FontSize="22"
+                        FontWeight="SemiBold"
+                        Foreground="White"
+                        HorizontalAlignment="Center"
+                        TextAlignment="Center"/>
+                    <TextBlock
+                        x:Name="FallbackMessage"
+                        Text="Choose a window in CursorFollow to start sharing."
+                        FontSize="14"
+                        FontWeight="Medium"
+                        Foreground="#B8FFFFFF"
+                        HorizontalAlignment="Center"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap"
+                        MaxLines="3"/>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+
+        <!-- Optional resolution / frame-count overlay, drawn over the captured output. -->
+        <Border
+            x:Name="MetricsOverlay"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Margin="10"
+            Padding="7,4"
+            CornerRadius="4"
+            Visibility="Collapsed"
+            Background="#8C000000">
+            <TextBlock
+                x:Name="MetricsText"
+                FontFamily="Consolas"
+                FontSize="11"
+                FontWeight="SemiBold"
+                Foreground="White"/>
+        </Border>
+    </Grid>
 </Page>
