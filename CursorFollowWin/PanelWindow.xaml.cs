@@ -55,6 +55,7 @@ public sealed partial class PanelWindow : Window
     private readonly IntPtr _windowHandle;
     private IReadOnlyList<WindowListItem> _windows = Array.Empty<WindowListItem>();
     private bool _isLoadingSettings;
+    private bool _isShowingQuitDialog;
 
     public PanelWindow(MainWindow outputWindow, TargetFollowService targetFollowService, Action showSettings, Action quit)
     {
@@ -241,7 +242,77 @@ public sealed partial class PanelWindow : Window
 
     private void SettingsButton_Click(object sender, RoutedEventArgs e) => _showSettings();
 
-    private void QuitButton_Click(object sender, RoutedEventArgs e) => _quit();
+    private async void QuitButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (await ConfirmQuitAsync())
+        {
+            _quit();
+        }
+    }
+
+    /// <summary>
+    /// Shows a dark-themed "Quit CursorFollow?" confirmation matching the macOS app, with a red
+    /// destructive Quit button. Returns true only if the user confirms.
+    /// </summary>
+    private async Task<bool> ConfirmQuitAsync()
+    {
+        if (_isShowingQuitDialog || Content?.XamlRoot is null)
+        {
+            return false;
+        }
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = Content.XamlRoot,
+            RequestedTheme = ElementTheme.Dark,
+            Title = "Quit CursorFollow?",
+            Content = new TextBlock
+            {
+                Text = "Are you sure you want to quit CursorFollow?",
+                TextWrapping = TextWrapping.Wrap,
+                FontSize = 13,
+                Foreground = DialogBrush(0xAE, 0xB8, 0xC8),
+            },
+            PrimaryButtonText = "Quit",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+        };
+
+        // Fit the compact tray panel (274px wide) and match its dark palette. Overriding the
+        // button theme brushes (incl. pointer-over / pressed) keeps the colors stable across
+        // hover states; the Quit button is the default, so it picks up the Accent* brushes.
+        var res = dialog.Resources;
+        res["ContentDialogBackground"] = DialogBrush(0x1C, 0x27, 0x33);
+        res["ContentDialogBorderBrush"] = DialogBrush(0x2A, 0x3A, 0x4A);
+        res["ContentDialogForeground"] = DialogBrush(0xEE, 0xF3, 0xFA);
+        res["ContentDialogMinWidth"] = 250.0;
+        res["ContentDialogMaxWidth"] = 258.0;
+        res["ButtonBackground"] = DialogBrush(0x2B, 0x36, 0x46);
+        res["ButtonBackgroundPointerOver"] = DialogBrush(0x35, 0x41, 0x52);
+        res["ButtonBackgroundPressed"] = DialogBrush(0x23, 0x2D, 0x3A);
+        res["ButtonForeground"] = DialogBrush(0xE8, 0xED, 0xF5);
+        res["ButtonForegroundPointerOver"] = DialogBrush(0xE8, 0xED, 0xF5);
+        res["ButtonForegroundPressed"] = DialogBrush(0xE8, 0xED, 0xF5);
+        res["AccentButtonBackground"] = DialogBrush(0xD9, 0x34, 0x2B);
+        res["AccentButtonBackgroundPointerOver"] = DialogBrush(0xE2, 0x44, 0x3B);
+        res["AccentButtonBackgroundPressed"] = DialogBrush(0xBC, 0x2A, 0x23);
+        res["AccentButtonForeground"] = DialogBrush(0xFF, 0xFF, 0xFF);
+        res["AccentButtonForegroundPointerOver"] = DialogBrush(0xFF, 0xFF, 0xFF);
+        res["AccentButtonForegroundPressed"] = DialogBrush(0xFF, 0xFF, 0xFF);
+
+        _isShowingQuitDialog = true;
+        try
+        {
+            return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        }
+        finally
+        {
+            _isShowingQuitDialog = false;
+        }
+    }
+
+    private static SolidColorBrush DialogBrush(byte r, byte g, byte b) =>
+        new(Windows.UI.Color.FromArgb(255, r, g, b));
 
     private void AutoFollowModeButton_Click(object sender, RoutedEventArgs e)
     {
@@ -272,6 +343,13 @@ public sealed partial class PanelWindow : Window
 
     private void PanelWindow_Activated(object sender, WindowActivatedEventArgs args)
     {
+        // While the quit confirmation is up, the modal dialog can take focus within the window;
+        // don't let a transient deactivation hide the panel out from under the dialog.
+        if (_isShowingQuitDialog)
+        {
+            return;
+        }
+
         if (args.WindowActivationState == WindowActivationState.Deactivated)
         {
             HidePanel();
@@ -280,6 +358,11 @@ public sealed partial class PanelWindow : Window
 
     private void DismissTimer_Tick(object? sender, object e)
     {
+        if (_isShowingQuitDialog)
+        {
+            return;
+        }
+
         var foregroundWindow = GetForegroundWindow();
         if (foregroundWindow != IntPtr.Zero && foregroundWindow != _windowHandle)
         {
