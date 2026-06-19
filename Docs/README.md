@@ -7,6 +7,8 @@ Project docs for CursorFollow — a macOS menu bar app that tracks a target wind
 ```
 Docs/
 ├── README.md
+├── Distribution/         # Packaging, signing, install/upgrade/uninstall
+│   └── Packaging.md
 ├── Copilot/              # AI assistant context
 │   ├── context-cursorfollow.md
 │   ├── domain-glossary.md

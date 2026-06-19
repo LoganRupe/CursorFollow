@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Distribution outside the Mac App Store (Developer ID + notarization). -->
+	<key>method</key>
+	<string>developer-id</string>
+	<key>teamID</key>
+	<string>YOURTEAMID</string>
+	<!-- Let Xcode resolve the Developer ID Application cert + provisioning. -->
+	<key>signingStyle</key>
+	<string>automatic</string>
+	<!-- Hardened runtime is required for notarization; the project already sets it. -->
+	<key>destination</key>
+	<string>export</string>
+</dict>
+</plist>
