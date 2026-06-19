@@ -37,9 +37,6 @@ final class SharedMemoryFrameTransport: FrameTransport, @unchecked Sendable {
     private var notifyToken: Int32 = -1
     private var frameNotifyToken: Int32 = -1
 
-    /// App group identifier retained for historical extension compatibility.
-    static let appGroupID = "group.io.github.loganrupe.CursorFollowMac"
-
     /// Darwin notification name for cross-process surface ID sharing.
     static let surfaceNotificationName = "io.github.loganrupe.CursorFollowMac.surfaceID"
 

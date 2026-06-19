@@ -27,18 +27,7 @@
 		5902C74A2FBD97B700FFEA1C /* CursorFollowMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CursorFollowMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5902C7572FBD97B900FFEA1C /* CursorFollowMacTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CursorFollowMacTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5902C7612FBD97B900FFEA1C /* CursorFollowMacUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CursorFollowMacUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		5902C7782FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowMac.CameraExtension.systemextension */ = {isa = PBXFileReference; explicitFileType = "wrapper.system-extension"; includeInIndex = 0; path = io.github.loganrupe.CursorFollowMac.CameraExtension.systemextension; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		5902C7832FBD97F300FFEA1C /* Exceptions for "CameraExtension" folder in "CameraExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 5902C7772FBD97F300FFEA1C /* CameraExtension */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5902C74C2FBD97B700FFEA1C /* CursorFollowMac */ = {
@@ -54,14 +43,6 @@
 		5902C7642FBD97B900FFEA1C /* CursorFollowMacUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = CursorFollowMacUITests;
-			sourceTree = "<group>";
-		};
-		5902C7792FBD97F300FFEA1C /* CameraExtension */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				5902C7832FBD97F300FFEA1C /* Exceptions for "CameraExtension" folder in "CameraExtension" target */,
-			);
-			path = CameraExtension;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -88,13 +69,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		5902C7752FBD97F300FFEA1C /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -104,7 +78,6 @@
 				5902C74C2FBD97B700FFEA1C /* CursorFollowMac */,
 				5902C75A2FBD97B900FFEA1C /* CursorFollowMacTests */,
 				5902C7642FBD97B900FFEA1C /* CursorFollowMacUITests */,
-				5902C7792FBD97F300FFEA1C /* CameraExtension */,
 				5902C74B2FBD97B700FFEA1C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -115,7 +88,6 @@
 				5902C74A2FBD97B700FFEA1C /* CursorFollowMac.app */,
 				5902C7572FBD97B900FFEA1C /* CursorFollowMacTests.xctest */,
 				5902C7612FBD97B900FFEA1C /* CursorFollowMacUITests.xctest */,
-				5902C7782FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowMac.CameraExtension.systemextension */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -191,28 +163,6 @@
 			productReference = 5902C7612FBD97B900FFEA1C /* CursorFollowMacUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
-		5902C7772FBD97F300FFEA1C /* CameraExtension */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 5902C7842FBD97F300FFEA1C /* Build configuration list for PBXNativeTarget "CameraExtension" */;
-			buildPhases = (
-				5902C7742FBD97F300FFEA1C /* Sources */,
-				5902C7752FBD97F300FFEA1C /* Frameworks */,
-				5902C7762FBD97F300FFEA1C /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				5902C7792FBD97F300FFEA1C /* CameraExtension */,
-			);
-			name = CameraExtension;
-			packageProductDependencies = (
-			);
-			productName = CameraExtension;
-			productReference = 5902C7782FBD97F300FFEA1C /* io.github.loganrupe.CursorFollowMac.CameraExtension.systemextension */;
-			productType = "com.apple.product-type.system-extension";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -234,9 +184,6 @@
 						CreatedOnToolsVersion = 26.5;
 						TestTargetID = 5902C7492FBD97B700FFEA1C;
 					};
-					5902C7772FBD97F300FFEA1C = {
-						CreatedOnToolsVersion = 26.5;
-					};
 				};
 			};
 			buildConfigurationList = 5902C7452FBD97B700FFEA1C /* Build configuration list for PBXProject "CursorFollowMac" */;
@@ -256,7 +203,6 @@
 				5902C7492FBD97B700FFEA1C /* CursorFollowMac */,
 				5902C7562FBD97B900FFEA1C /* CursorFollowMacTests */,
 				5902C7602FBD97B900FFEA1C /* CursorFollowMacUITests */,
-				5902C7772FBD97F300FFEA1C /* CameraExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -283,13 +229,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		5902C7762FBD97F300FFEA1C /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -308,13 +247,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		5902C75D2FBD97B900FFEA1C /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		5902C7742FBD97F300FFEA1C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -481,7 +413,6 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowMac;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -515,7 +446,6 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowMac;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -605,68 +535,6 @@
 			};
 			name = Release;
 		};
-		5902C7852FBD97F300FFEA1C /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = CameraExtension/CameraExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
-				DEVELOPMENT_TEAM = YOURTEAMID;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = CameraExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = CameraExtension;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@executable_path/../../../../Frameworks",
-				);
-				MARKETING_VERSION = 1.1;
-				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowMac.CameraExtension;
-				PRODUCT_NAME = "$(inherited)";
-				REGISTER_APP_GROUPS = YES;
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Debug;
-		};
-		5902C7862FBD97F300FFEA1C /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = CameraExtension/CameraExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
-				DEVELOPMENT_TEAM = YOURTEAMID;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = CameraExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = CameraExtension;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@executable_path/../../../../Frameworks",
-				);
-				MARKETING_VERSION = 1.1;
-				PRODUCT_BUNDLE_IDENTIFIER = io.github.loganrupe.CursorFollowMac.CameraExtension;
-				PRODUCT_NAME = "$(inherited)";
-				REGISTER_APP_GROUPS = YES;
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -702,15 +570,6 @@
 			buildConfigurations = (
 				5902C7722FBD97B900FFEA1C /* Debug */,
 				5902C7732FBD97B900FFEA1C /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		5902C7842FBD97F300FFEA1C /* Build configuration list for PBXNativeTarget "CameraExtension" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				5902C7852FBD97F300FFEA1C /* Debug */,
-				5902C7862FBD97F300FFEA1C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
