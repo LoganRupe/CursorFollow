@@ -13,7 +13,7 @@ CursorFollow ships for **macOS** and **Windows**. This page covers what's common
 - [Overview](#overview)
 - [Platforms](#platforms)
 - [How It Works](#how-it-works)
-- [Getting Started](#getting-started)
+- [Download & Install](#download--install)
 - [Troubleshooting](#troubleshooting)
 - [Developer Docs](#developer-docs)
 
@@ -41,14 +41,16 @@ These controls behave the same on both platforms (only the UI placement differs)
 - **Show / Hide** — bring the persistent output window forward or hide it.
 - **Resume / Pause** — start or pause output without changing the shared window's identity.
 
-## Getting Started
+## Download & Install
 
-Pick your platform, then point your meeting app's **window** picker at **CursorFollow Output**:
+Download the latest build from **[GitHub Releases](https://github.com/LoganRupe/CursorFollow/releases/latest)**, then install for your platform:
 
-- **macOS** — [Quick Start](CursorFollowMac/README.md#quick-start) (requires the **Screen Recording** permission).
-- **Windows** — install the [MSI](CursorFollowWin/README.md#installer) (no admin required), or [build & run](CursorFollowWin/README.md#build) from source.
+- **macOS** — open the `.dmg` and drag **CursorFollowMac** into **Applications**. On first launch, grant the **Screen Recording** permission when prompted. See [macOS setup & permissions](CursorFollowMac/README.md#quick-start).
+- **Windows** — run the `.msi` (no admin required). See [Windows setup](CursorFollowWin/README.md#installer).
 
-In both cases: pick a target window (or set **Target Mode** to **Auto**), make sure output isn't paused, then share **CursorFollow Output** from your meeting app.
+Then point your meeting app's **window** picker at **CursorFollow Output**: pick a target window (or set **Target Mode** to **Auto**), make sure output isn't paused, and share it.
+
+> Prefer to build it yourself? See [Developer Docs](#developer-docs).
 
 ## Troubleshooting
 
@@ -59,6 +61,16 @@ The general reset is the same everywhere — quit your meeting app and CursorFol
 
 ## Developer Docs
 
-- **macOS app** — build, signing, packaging: [CursorFollowMac/README.md](CursorFollowMac/README.md)
-- **Windows app** — build, publish, installer: [CursorFollowWin/README.md](CursorFollowWin/README.md)
+### Build from source
+
+- **macOS app** — build, signing, packaging: [CursorFollowMac/README.md](CursorFollowMac/README.md#building--developing)
+- **Windows app** — build, publish, installer: [CursorFollowWin/README.md](CursorFollowWin/README.md#build)
 - **Architecture & planning** — [Docs/README.md](Docs/README.md)
+
+### Releasing
+
+Releases are published manually to [GitHub Releases](https://github.com/LoganRupe/CursorFollow/releases). For each version:
+
+1. **macOS** — run `./CursorFollowMac/scripts/package.sh` to produce a signed, notarized `CursorFollowMac-<version>.dmg` (details in [Docs/Distribution/Packaging.md](Docs/Distribution/Packaging.md)).
+2. **Windows** — build the `.msi` (see [Windows build](CursorFollowWin/README.md#build)).
+3. Create a new GitHub release, tag the version (e.g. `v1.0`), and upload both the `.dmg` and `.msi` as release assets.
