@@ -77,11 +77,15 @@ function Invoke-Sign {
 $publishDir = & (Join-Path $PSScriptRoot 'publish.ps1') -Rid $Rid -Configuration Release
 $publishDir = "$publishDir".Trim()
 
-# 2. Read the product version from the built exe (single source of truth = the csproj <Version>).
+# 2. Read the product version from the csproj <Version> (the single source of truth) so it
+#    flows through verbatim — e.g. "1.0" stays "1.0" rather than being padded to "1.0.0".
 $exe = Join-Path $publishDir 'CursorFollowWin.exe'
-$fileVer = (Get-Item $exe).VersionInfo.FileVersion         # e.g. 0.4.0.0
-$version = ($fileVer -split '\.')[0..2] -join '.'           # -> 0.4.0 (MSI uses 3 fields)
-Write-Host "==> Product version: $version (from $fileVer)" -ForegroundColor Cyan
+$csprojPath = Join-Path $repo 'CursorFollowWin.csproj'
+[xml]$csproj = Get-Content $csprojPath
+$version = ($csproj.Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1)
+if ([string]::IsNullOrWhiteSpace($version)) { throw "No <Version> found in $csprojPath." }
+$version = "$version".Trim()
+Write-Host "==> Product version: $version" -ForegroundColor Cyan
 
 # 3. Optionally sign the app exe before it is embedded in the MSI cab.
 $signed = Invoke-Sign -File $exe
