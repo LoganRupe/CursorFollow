@@ -18,7 +18,7 @@ you started from.
 | Authenticode code-signing cert (DigiCert/EV) | **Apple Developer ID Application** cert (issued by Apple, needs the $99/yr account). Different authority entirely — you can't reuse a Windows cert. | ⚠️ Replace, don't port |
 | Timestamping server | Apple's secure timestamp is automatic via `codesign`. | ✅ Automatic |
 | SmartScreen reputation | **Gatekeeper + Notarization** (`notarytool`) + ticket **stapling**. This has *no* Windows analog and is mandatory for distribution. | 🆕 New step |
-| Registry keys (HKLM/HKCU) | **No registry.** Settings live in `~/Library/Preferences/<bundleid>.plist` and the app-group container. | ❌ Doesn't exist |
+| Registry keys (HKLM/HKCU) | **No registry.** Settings live in `~/Library/Preferences/<bundleid>.plist`. | ❌ Doesn't exist |
 | `Add/Remove Programs` uninstaller | **No built-in uninstaller.** Ship a script or document manual cleanup. | 🆕 → `uninstall.sh` |
 | Driver / service install | N/A — the CoreMediaIO system extension was removed. (If one is ever re-added, it activates via `OSSystemExtensionRequest`, not file copies.) | ❌ Removed |
 | `signtool verify` / `Get-AuthenticodeSignature` | `codesign --verify`, `spctl`, `stapler validate`. | ✅ → `verify.sh` |
@@ -70,18 +70,18 @@ purchased signing cert, and notarization is an extra step Windows never had.
 Full pipeline (build → notarize → DMG → notarize → staple):
 
 ```bash
-./scripts/package.sh
+./CursorFollowMac/scripts/package.sh
 # → build/CursorFollowMac-<version>.dmg  (notarized, stapled, ready to ship)
 ```
 
 Or step by step:
 
 ```bash
-./scripts/build_release.sh      # build/export/CursorFollowMac.app (Developer ID signed)
-./scripts/notarize.sh build/export/CursorFollowMac.app
-./scripts/make_dmg.sh           # build/CursorFollowMac-<version>.dmg
-./scripts/notarize.sh build/CursorFollowMac-<version>.dmg
-./scripts/verify.sh build/CursorFollowMac-<version>.dmg
+./CursorFollowMac/scripts/build_release.sh      # build/export/CursorFollowMac.app (Developer ID signed)
+./CursorFollowMac/scripts/notarize.sh build/export/CursorFollowMac.app
+./CursorFollowMac/scripts/make_dmg.sh           # build/CursorFollowMac-<version>.dmg
+./CursorFollowMac/scripts/notarize.sh build/CursorFollowMac-<version>.dmg
+./CursorFollowMac/scripts/verify.sh build/CursorFollowMac-<version>.dmg
 ```
 
 **DMG vs `.pkg`:** DMG is the right default here — drag-to-`/Applications` with
@@ -96,7 +96,7 @@ There is no MSI-style upgrade engine. To ship an update:
 
 1. Bump **`MARKETING_VERSION`** (user-facing) and **`CURRENT_PROJECT_VERSION`**
    (must strictly increase) in the Xcode project.
-2. Run `./scripts/package.sh` to produce the new signed/notarized DMG.
+2. Run `./CursorFollowMac/scripts/package.sh` to produce the new signed/notarized DMG.
 3. The user drags the new app over the old one in `/Applications` (same bundle
    ID → macOS treats it as an upgrade; preferences are preserved).
 
@@ -111,9 +111,9 @@ Recording (TCC) grant, and (on machines where an old build registered one) a
 stray system extension behind. Clean removal:
 
 ```bash
-./scripts/uninstall.sh --dry-run   # preview exactly what would be removed
-./scripts/uninstall.sh             # interactive
-./scripts/uninstall.sh --yes       # unattended
+./CursorFollowMac/scripts/uninstall.sh --dry-run   # preview exactly what would be removed
+./CursorFollowMac/scripts/uninstall.sh             # interactive
+./CursorFollowMac/scripts/uninstall.sh --yes       # unattended
 ```
 
 It quits the app, removes the bundle and all per-user data, resets the Screen
@@ -125,14 +125,14 @@ Settings → General → Login Items & Extensions → Camera Extensions** (the
 ## Developer verification
 
 ```bash
-./scripts/verify.sh build/export/CursorFollowMac.app   # or a .dmg
+./CursorFollowMac/scripts/verify.sh build/export/CursorFollowMac.app   # or a .dmg
 ```
 
 Checks signature validity (deep/strict), hardened-runtime flag, Team ID,
 Gatekeeper assessment (`spctl`), and ticket
 stapling. Non-zero exit on any failure — safe to gate a release on.
 
-## Script reference (`scripts/`)
+## Script reference (`CursorFollowMac/scripts/`)
 
 | Script | Purpose |
 | --- | --- |
