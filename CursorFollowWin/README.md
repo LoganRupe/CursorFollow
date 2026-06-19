@@ -13,8 +13,9 @@ The Windows product is **output-window-first**: the primary deliverable is the s
 output window, not a virtual camera. A Windows virtual-camera mode is explicitly optional
 and out of scope for the current phases (see [Status](#status)).
 
-> The mature, full-featured product is the macOS app (`CursorFollowMac`), which adds a
-> CoreMediaIO virtual camera. This directory is the Windows-native rebuild.
+> New here? See the [project overview](../README.md) for what CursorFollow does and the controls
+> shared with the macOS app. The mature, full-featured sibling is [CursorFollowMac](../CursorFollowMac/README.md);
+> this directory is the Windows-native rebuild.
 
 ---
 

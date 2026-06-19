@@ -2,96 +2,63 @@
   <img src="Docs/images/app-icon.png" alt="CursorFollow app icon" width="128" height="128">
 </p>
 
-# CursorFollow (macOS)
+# CursorFollow
 
-A macOS menu bar utility that captures a target window and renders it into a stable window named **CursorFollow Output**. Share that output window from Zoom, Google Meet, Slack Huddles, Teams, OBS, or any app with a window-share picker.
+Capture a target window and render it into a stable, shareable window named **CursorFollow Output**. Share that one window from Zoom, Google Meet, Slack, Teams, OBS, or any app with a window-share picker — and it keeps following your target as you switch focus, so your audience always sees the right thing without you re-picking a share source.
+
+CursorFollow ships for **macOS** and **Windows**. This page covers what's common to both; each platform's page has the setup, permissions, screenshots, and troubleshooting specific to that OS.
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Quick Start](#quick-start)
-- [Usage](#usage)
-- [Screenshots](#screenshots)
-- [Permissions](#permissions)
+- [Platforms](#platforms)
+- [How It Works](#how-it-works)
+- [Getting Started](#getting-started)
 - [Troubleshooting](#troubleshooting)
-    - [Reset Checklist](#reset-checklist-when-things-are-stuck)
 - [Developer Docs](#developer-docs)
 
 ## Overview
 
-CursorFollow runs in your menu bar and keeps **CursorFollow Output** pointed at the window you want to share. It can follow the frontmost eligible window automatically, or let you lock to a specific window manually.
+CursorFollow runs in the background — the **menu bar** on macOS, the **system tray** on Windows — and keeps **CursorFollow Output** pointed at the window you want to share. It can follow the frontmost eligible window automatically, or lock to a specific window manually. Because the thing you share is an ordinary app window, you keep your real webcam selected and simply add the output window as a screen/window share.
 
-## Quick Start
+## Platforms
 
-1. Launch `CursorFollowMac.app`.
-2. When prompted, allow:
-   - **Screen Recording** (required for window capture)
-3. Open the CursorFollow menu bar panel.
-4. Pick a target window from the list, or set **Target Mode** to **Auto**.
-5. Click **Resume** if output is paused.
-6. In your meeting app, share the window named **CursorFollow Output**.
+| Platform | Capture | Surface | Status | Docs |
+| -------- | ------- | ------- | ------ | ---- |
+| **macOS** | ScreenCaptureKit | Menu bar app + shared output window | Mature | [CursorFollowMac/README.md](CursorFollowMac/README.md) |
+| **Windows** | Windows Graphics Capture | Tray app + shared output window | Output-window-first port | [CursorFollowWin/README.md](CursorFollowWin/README.md) |
 
-## Usage
+Both platforms render to the same **CursorFollow Output** window. The shared output window is the shipping feature on each — a virtual-camera mode is **not** part of the product.
 
-- **Target Mode**: Use **Auto** to track the active eligible window, or **Manual** to keep the selected target.
-- **Filter mode**: Use **All / Exclude / Include** to control which windows appear as capture targets.
-- **Output scaling**: Choose **Fit**, **Fill**, or **Actual** for the shared output window.
-- **Refresh**: Re-scan active windows if the list looks stale or incomplete.
-- **Show / Hide**: Bring the persistent output window forward or hide it.
-- **Resume / Pause**: Start or pause output without changing the share-source window identity.
+## How It Works
 
-## Screenshots
+These controls behave the same on both platforms (only the UI placement differs):
 
-### Menu bar panel
+- **Target Mode** — **Auto** tracks the active eligible window; **Manual** keeps the selected target.
+- **Filter mode** — **All / Exclude / Include** controls which windows appear as capture targets.
+- **Output scaling** — **Fit**, **Fill**, or **Actual** for the shared output window.
+- **Refresh** — re-scan active windows if the list looks stale or incomplete.
+- **Show / Hide** — bring the persistent output window forward or hide it.
+- **Resume / Pause** — start or pause output without changing the shared window's identity.
 
-![CursorFollow menu bar panel](Docs/images/readme/main-panel.png)
+## Getting Started
 
-### Settings window
+Pick your platform, then point your meeting app's **window** picker at **CursorFollow Output**:
 
-![CursorFollow settings window](Docs/images/readme/settings-window.png)
+- **macOS** — [Quick Start](CursorFollowMac/README.md#quick-start) (requires the **Screen Recording** permission).
+- **Windows** — install the [MSI](CursorFollowWin/README.md#installer) (no admin required), or [build & run](CursorFollowWin/README.md#build) from source.
 
-## Permissions
-
-- **Screen Recording**: Required for ScreenCaptureKit window capture.
+In both cases: pick a target window (or set **Target Mode** to **Auto**), make sure output isn't paused, then share **CursorFollow Output** from your meeting app.
 
 ## Troubleshooting
 
-### Reset checklist (when things are stuck)
+The general reset is the same everywhere — quit your meeting app and CursorFollow, confirm capture permission, reopen CursorFollow, **Refresh**, reselect the target, **Resume**, then reselect **CursorFollow Output** in the meeting app. For platform specifics (permission paths, black/frozen output, picker quirks):
 
-1. Quit your video app (Zoom/Meet/Slack/OBS) and quit CursorFollow.
-2. In **System Settings → Privacy & Security → Screen Recording**, verify CursorFollow is enabled.
-3. Reopen CursorFollow, click **Refresh**, select the target window, then click **Resume**.
-4. Reopen your meeting app and reselect **CursorFollow Output** as the shared window.
-
-### Permission paths by macOS version
-
-- **macOS 13 Ventura / 14 Sonoma / 15 Sequoia**
-    - Screen capture access: **System Settings → Privacy & Security → Screen Recording**
-
-### CursorFollow Output does not appear in Zoom/Meet/Slack/Teams
-
-- Ensure CursorFollow is running and **CursorFollow Output** is visible.
-- Use the meeting app's **Share Screen** or **Share Window** picker, not the camera selector.
-- If the picker was already open, close and reopen the picker after showing the output window.
-
-### Output is black or frozen
-
-- Confirm **Screen Recording** permission is enabled for CursorFollow in System Settings → Privacy & Security → Screen Recording.
-- Click **Refresh**, then reselect the target window.
-- Pause and resume output from the menu bar panel.
-
-### Wrong window is being captured
-
-- Set **Target Mode** to **Manual** and select a specific window.
-- Use **Include** mode to limit capture targets to approved windows.
-
-### Capture feels choppy or high CPU
-
-- In Settings, switch capture quality from **Balanced** to **Performant** or **Low-Latency**.
-- Reduce competing screen capture/recording tools running at the same time.
-- If needed, capture a smaller target window instead of a full-size display window.
+- **macOS** — [Troubleshooting](CursorFollowMac/README.md#troubleshooting)
+- **Windows** — [Troubleshooting](CursorFollowWin/docs/Troubleshooting.md)
 
 ## Developer Docs
 
-- App and build documentation: [CursorFollowMac/README.md](CursorFollowMac/README.md)
-- Additional architecture and planning docs: [Docs/README.md](Docs/README.md)
+- **macOS app** — build, signing, packaging: [CursorFollowMac/README.md](CursorFollowMac/README.md)
+- **Windows app** — build, publish, installer: [CursorFollowWin/README.md](CursorFollowWin/README.md)
+- **Architecture & planning** — [Docs/README.md](Docs/README.md)
