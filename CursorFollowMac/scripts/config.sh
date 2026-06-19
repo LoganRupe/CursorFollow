@@ -29,9 +29,11 @@ SIGN_IDENTITY="${SIGN_IDENTITY:-Developer ID Application: ($TEAM_ID)}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-CursorFollowNotary}"
 
 # --- Paths ------------------------------------------------------------------
+# Scripts live in CursorFollowMac/scripts/, so the project dir is one level up
+# and the repo root is two.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-PROJECT_DIR="$REPO_ROOT/CursorFollowMac"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PROJECT="$PROJECT_DIR/CursorFollowMac.xcodeproj"
 BUILD_DIR="${BUILD_DIR:-$REPO_ROOT/build}"
 ARCHIVE_PATH="$BUILD_DIR/$APP_NAME.xcarchive"

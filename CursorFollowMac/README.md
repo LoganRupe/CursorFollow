@@ -65,5 +65,13 @@ CursorFollowMac/
 ├── CursorFollowMac/               # Host app sources
 ├── CursorFollowMacTests/
 ├── CursorFollowMacUITests/
+├── scripts/                       # Packaging/signing/notarization tooling
 └── CursorFollowMac.xcodeproj/
 ```
+
+## Packaging & Distribution
+
+Build, sign, notarize, install, and uninstall scripts live in [scripts/](scripts/).
+Run them from the repo root, e.g. `./CursorFollowMac/scripts/package.sh`. See
+[Docs/Distribution/Packaging.md](../Docs/Distribution/Packaging.md) for the full
+workflow and the Windows→macOS mapping.
