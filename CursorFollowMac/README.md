@@ -52,16 +52,17 @@ If this is the first signed build on a machine, run once from a logged-in Xcode 
 ## Signing Identifiers
 
 - Team ID: `YOURTEAMID`
-- App Group: `group.io.github.loganrupe.CursorFollowMac`
 - Host Bundle: `io.github.loganrupe.CursorFollowMac`
-- Extension Bundle: `io.github.loganrupe.CursorFollowMac.CameraExtension`
+
+The app is sandboxed (no system-extension or app-group entitlements). The
+CoreMediaIO virtual-camera extension was removed — the shipping feature is the
+shared-window output, not a virtual camera.
 
 ## Project Structure
 
 ```text
 CursorFollowMac/
 ├── CursorFollowMac/               # Host app sources
-├── CameraExtension/               # CoreMediaIO system extension
 ├── CursorFollowMacTests/
 ├── CursorFollowMacUITests/
 └── CursorFollowMac.xcodeproj/
