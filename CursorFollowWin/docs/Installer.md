@@ -42,9 +42,9 @@ never wipes user data.
 ## Versioning
 
 The product version has a **single source of truth**: `<Version>` in `CursorFollowWin.csproj`.
-The exe is stamped with it, the About dialog reads it, and `package.ps1` reads the exe's
-`FileVersion` and passes it to WiX. **To release a new version, bump `<Version>` and re-run
-`package.ps1`** — a major upgrade falls out automatically.
+The exe is stamped with it, the About dialog reads it, and `package.ps1` reads `<Version>`
+verbatim and passes it to WiX (so `1.0` stays `1.0` and isn't padded to `1.0.0`). **To release a
+new version, bump `<Version>` and re-run `package.ps1`** — a major upgrade falls out automatically.
 
 > The `UpgradeCode` GUID in `installer/Package.wxs` is the stable product identity across all
 > versions. **Never change it** — doing so breaks the upgrade chain (the new MSI would install

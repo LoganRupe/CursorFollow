@@ -22,10 +22,10 @@
     <!-- Single source of truth for the product version. The About dialog reads the assembly
          version; the WiX installer (installer/Package.wxs) reads FileVersion via package.ps1.
          Bump this to drive a MajorUpgrade. Pre-1.0 while the Windows port is in packaging/hardening. -->
-    <Version>0.4.0</Version>
-    <FileVersion>0.4.0.0</FileVersion>
-    <AssemblyVersion>0.4.0.0</AssemblyVersion>
-    <InformationalVersion>0.4.0</InformationalVersion>
+    <Version>1.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <InformationalVersion>1.0</InformationalVersion>
     <Company>Logan Rupe</Company>
     <Product>CursorFollow</Product>
     <Authors>Logan Rupe</Authors>
