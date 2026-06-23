@@ -56,7 +56,11 @@ enum CaptureQuality: String, CaseIterable {
 @MainActor
 final class CaptureEngine: NSObject, ObservableObject {
     @Published private(set) var isCapturing = false
-    @Published private(set) var frameCount: UInt64 = 0
+    // Internal counter for logging only. Intentionally NOT @Published: it is
+    // mutated every captured frame (~60fps), and publishing it would fire
+    // objectWillChange on every observing view (e.g. ContentView), forcing a
+    // full panel relayout 60×/sec. No UI reads this value.
+    private(set) var frameCount: UInt64 = 0
     @Published private(set) var lastError: String?
     @Published private(set) var transportReady = false
     /// Set when the user explicitly stops capture; prevents auto-follow from restarting.
