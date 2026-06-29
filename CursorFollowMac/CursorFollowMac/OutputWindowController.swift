@@ -143,9 +143,14 @@ final class OutputWindowController: NSObject, ObservableObject {
             return
         }
 
+        // Note: deliberately NOT using `.fullSizeContentView`. The title bar is
+        // visible and opaque (see below), so a full-size content view would only
+        // push the rendered frame up behind the title bar — hiding the top strip
+        // of the captured window (its toolbar). Letting AppKit inset the content
+        // view below the title bar keeps the whole frame visible.
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: contentSize),
-            styleMask: [.titled, .resizable, .fullSizeContentView],
+            styleMask: [.titled, .resizable],
             backing: .buffered,
             defer: false
         )
