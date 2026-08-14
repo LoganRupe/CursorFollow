@@ -609,6 +609,9 @@ final class AppCoordinator: ObservableObject {
             captureEngine.onFrameDelivered = { [weak owc] in
                 owc?.notifyFrameReady()
             }
+            captureEngine.onSurfaceChanged = { [weak owc] surface in
+                owc?.updateSurface(surface)
+            }
             if !outputPreferences.hideWhenNotSharing {
                 owc.show()
             }
@@ -667,6 +670,24 @@ final class AppCoordinator: ObservableObject {
             }
             .store(in: &cancellables)
 
+        // Quality and scale are baked into SCStreamConfiguration when the stream is
+        // created, so a live capture has to be restarted for either to take effect.
+        Publishers.Merge(
+            captureEngine.$captureQuality.dropFirst().map { _ in () },
+            captureEngine.$captureScale.dropFirst().map { _ in () }
+        )
+        .sink { [weak self] in
+            guard let self else { return }
+            guard self.captureEngine.isCapturing,
+                  let window = self.windowTracker.selectedWindow else { return }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                await self.captureEngine.reapplyConfiguration(to: window)
+                self.updateOutputWindowForCurrentCapture()
+            }
+        }
+        .store(in: &cancellables)
+
         windowTracker.$targetUnavailableMessage
             .compactMap { $0 }
             .sink { [weak self] message in
@@ -719,7 +740,6 @@ final class AppCoordinator: ObservableObject {
               let selectedWindow = windowTracker.selectedWindow else { return }
 
         outputWindowController?.updateForCapture(
-            windowFrame: selectedWindow.frame,
             captureWidth: captureEngine.activeCaptureWidth,
             captureHeight: captureEngine.activeCaptureHeight,
             captureScale: captureEngine.activeCaptureScale,

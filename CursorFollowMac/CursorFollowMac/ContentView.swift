@@ -242,7 +242,7 @@ struct ContentView: View {
                     .environmentObject(captureEngine)
                     .environmentObject(autoFollowHotKeyManager)
                     .environmentObject(toggleShareHotKeyManager)
-                    .frame(width: 840, height: 750)
+                    .frame(width: 840, height: Self.settingsPopoverHeight)
                 }
                 Button {
                     isQuitConfirmationPresented = true
@@ -526,6 +526,13 @@ struct ContentView: View {
         }
     }
 
+    /// Height of the settings popover. Tall enough for both columns to fit without
+    /// scrolling, but clamped to the screen so it doesn't overhang on shorter displays.
+    private static var settingsPopoverHeight: CGFloat {
+        let available = (NSScreen.main?.visibleFrame.height ?? 880) - 24
+        return min(880, max(600, available))
+    }
+
     @ViewBuilder
     private var captureStatusBadge: some View {
         if captureEngine.isCapturing {
@@ -629,6 +636,7 @@ private struct SettingsModalView: View {
     }
 
     @State private var selectedQuality: CaptureQuality = .balanced
+    @State private var selectedScale: CaptureScale = .native
     @State private var activeHotkeyCapture: HotkeyCaptureTarget?
     @State private var keyEventMonitor: Any?
     @State private var autoFollowShortcutStatusMessage: String?
@@ -668,13 +676,13 @@ private struct SettingsModalView: View {
                         VStack(alignment: .leading, spacing: 18) {
                             generalSection
                             captureQualitySection
-                            loggingSection
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
 
                         VStack(alignment: .leading, spacing: 18) {
                             hotkeysSection
                             displaySection
+                            loggingSection
                             aboutSection
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -818,6 +826,38 @@ private struct SettingsModalView: View {
                 .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
                 Text("Optimization level for real-time cursor tracking and window refreshes.")
+                    .font(.system(size: 13, weight: .medium, design: .default))
+                    .italic()
+                    .foregroundStyle(Color.white.opacity(0.78))
+
+                Divider().overlay(Color.white.opacity(0.06))
+
+                Text("Resolution")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+
+                HStack(spacing: 6) {
+                    ForEach(CaptureScale.allCases, id: \.self) { scale in
+                        Button {
+                            selectedScale = scale
+                        } label: {
+                            Text(scale.label)
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(scale == selectedScale ? .white : Color.white.opacity(0.7))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .fill(scale == selectedScale ? Color(red: 0.09, green: 0.43, blue: 0.95) : Color.clear)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(4)
+                .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                Text("Share of the target window's native resolution to capture. Lower values reduce CPU and memory use.")
                     .font(.system(size: 13, weight: .medium, design: .default))
                     .italic()
                     .foregroundStyle(Color.white.opacity(0.78))
@@ -1280,6 +1320,7 @@ private struct SettingsModalView: View {
 
         initialCaptureQuality = captureEngine.captureQuality
         selectedQuality = initialCaptureQuality
+        selectedScale = captureEngine.captureScale
 
         initialAutoFollowShortcut = autoFollowHotKeyManager.currentShortcut
         initialToggleShareShortcut = toggleShareHotKeyManager.currentShortcut
@@ -1302,6 +1343,7 @@ private struct SettingsModalView: View {
         appSettings.setOutputPresentationMode(draftOutputPresentationMode)
         appSettings.setLoggingMode(draftLoggingMode)
         captureEngine.setCaptureQuality(selectedQuality)
+        captureEngine.setCaptureScale(selectedScale)
 
         didSaveChanges = true
         initialCaptureQuality = selectedQuality
