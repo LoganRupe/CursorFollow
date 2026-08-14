@@ -59,8 +59,9 @@ final class OutputWindowController: NSObject, ObservableObject {
     private var fpsTimer: Timer?
     private var activeTargetTitle: String?
 
-    /// The IOSurface to render. Set before showing the window.
-    private let surface: IOSurface
+    /// The IOSurface to render. Replaced whenever the capture engine resizes its
+    /// transport surface to match a new target's dimensions.
+    private var surface: IOSurface
 
     init(surface: IOSurface) {
         self.surface = surface
@@ -78,12 +79,12 @@ final class OutputWindowController: NSObject, ObservableObject {
     /// The current captured pixel dimensions used by the renderer.
     private var currentCaptureSize = NSSize(width: 1920, height: 1080)
 
-    /// The IOSurface total dimensions (constant).
-    private let surfaceWidth: CGFloat = 1920
-    private let surfaceHeight: CGFloat = 1080
-
-    /// Current crop rect for the layer (stored so it can be applied when window is first shown).
-    private var currentContentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
+    /// Point the renderer at a newly allocated transport surface.
+    func updateSurface(_ surface: IOSurface) {
+        self.surface = surface
+        surfaceView?.setSurface(surface)
+        log.info("Output window switched to surfaceID=\(surface.surfaceID)")
+    }
 
     func setNoTarget() {
         activeTargetTitle = nil
@@ -109,20 +110,17 @@ final class OutputWindowController: NSObject, ObservableObject {
         outputState = .waitingForFrames(activeTargetTitle)
     }
 
-    /// Update the output renderer crop to match the capture dimensions.
+    /// Update the output renderer to match the capture dimensions.
     /// Called after capture starts/switches with the actual config dimensions.
-    func updateForCapture(windowFrame: CGRect, captureWidth: Int, captureHeight: Int, captureScale: CGFloat, targetTitle: String? = nil) {
+    ///
+    /// The transport surface is allocated to these exact dimensions, so the layer
+    /// renders all of it — no crop rect, and no y-flip to reason about.
+    func updateForCapture(captureWidth: Int, captureHeight: Int, captureScale: CGFloat, targetTitle: String? = nil) {
         guard captureWidth > 0, captureHeight > 0 else { return }
         activeTargetTitle = targetTitle ?? activeTargetTitle
         currentCaptureSize = NSSize(width: CGFloat(captureWidth), height: CGFloat(captureHeight))
 
-        // Crop the layer to show only the portion of the IOSurface that has pixels.
-        // y-origin is flipped: CA content coords have y=0 at bottom, but our pixel
-        // data starts at the top of the surface. Use (1 - cropH) to select from top.
-        let cropW = min(CGFloat(captureWidth) / surfaceWidth, 1.0)
-        let cropH = min(CGFloat(captureHeight) / surfaceHeight, 1.0)
-        currentContentsRect = CGRect(x: 0, y: 1.0 - cropH, width: cropW, height: cropH)
-        surfaceView?.setCaptureSize(NSSize(width: captureWidth, height: captureHeight), contentsRect: currentContentsRect)
+        surfaceView?.setCaptureSize(currentCaptureSize)
         resolutionText = "\(captureWidth)×\(captureHeight)"
 
         if presentationMode == .actualSize {
@@ -130,7 +128,7 @@ final class OutputWindowController: NSObject, ObservableObject {
         }
 
         outputState = .waitingForFrames(activeTargetTitle)
-        log.info("Output window updated: capture=\(captureWidth)x\(captureHeight), contentsRect=(\(cropW), \(cropH))")
+        log.info("Output window updated: capture=\(captureWidth)x\(captureHeight), captureScale=\(captureScale)")
     }
 
     func show() {
@@ -169,7 +167,7 @@ final class OutputWindowController: NSObject, ObservableObject {
         view.frame = NSRect(origin: .zero, size: contentSize)
         view.autoresizingMask = [.width, .height]
         view.presentationMode = presentationMode
-        view.setCaptureSize(currentCaptureSize, contentsRect: currentContentsRect)
+        view.setCaptureSize(currentCaptureSize)
         window.contentView = view
 
         let hosting = PassthroughHostingView(rootView: OutputWindowOverlayView(controller: self))
@@ -285,10 +283,9 @@ extension OutputWindowController: NSWindowDelegate {
 /// Uses layer-hosting mode (not layer-backed) so AppKit does not interfere
 /// with the layer's contents — we manage it directly.
 private final class SurfaceLayerView: NSView {
-    private let surface: IOSurface
+    private var surface: IOSurface
     private let contentLayer = CALayer()
     private var captureSize = NSSize(width: 1920, height: 1080)
-    private var currentContentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
 
     var presentationMode: OutputPresentationMode = .fit {
         didSet { needsLayout = true }
@@ -305,7 +302,6 @@ private final class SurfaceLayerView: NSView {
         contentLayer.contents = surface
         contentLayer.contentsGravity = .resize
         contentLayer.backgroundColor = NSColor.black.cgColor
-        contentLayer.contentsRect = currentContentsRect
         hostingLayer.addSublayer(contentLayer)
 
         // Setting self.layer BEFORE wantsLayer = true creates a layer-hosting view.
@@ -323,14 +319,33 @@ private final class SurfaceLayerView: NSView {
         super.layout()
         // Layer-hosting views don't auto-resize the layer — sync it manually.
         layer?.frame = bounds
+        applyContentsScale()
         layoutContentLayer()
     }
 
-    func setCaptureSize(_ size: NSSize, contentsRect: CGRect) {
+    /// Layer-hosting views are also excluded from AppKit's automatic contentsScale
+    /// propagation, so the layer stays at 1.0 and Core Animation filters for the
+    /// wrong output density. Track the window's backing scale by hand instead.
+    override func viewDidChangeBackingProperties() {
+        super.viewDidChangeBackingProperties()
+        applyContentsScale()
+    }
+
+    private func applyContentsScale() {
+        let scale = window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 1.0
+        guard scale > 0, contentLayer.contentsScale != scale else { return }
+        layer?.contentsScale = scale
+        contentLayer.contentsScale = scale
+    }
+
+    func setCaptureSize(_ size: NSSize) {
         captureSize = NSSize(width: max(size.width, 1), height: max(size.height, 1))
-        currentContentsRect = contentsRect
-        contentLayer.contentsRect = contentsRect
         needsLayout = true
+    }
+
+    func setSurface(_ surface: IOSurface) {
+        self.surface = surface
+        refreshSurface()
     }
 
     /// Re-assign the IOSurface as layer contents to force Core Animation

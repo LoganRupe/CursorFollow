@@ -51,6 +51,38 @@ enum CaptureQuality: String, CaseIterable {
     }
 }
 
+/// Fraction of the target window's native pixel resolution to capture.
+///
+/// Deliberately a multiplier rather than a fixed resolution list: window sizes and
+/// display scales vary too much for absolute presets to mean anything consistent.
+enum CaptureScale: String, CaseIterable {
+    case half
+    case threeQuarters
+    case native
+
+    var factor: CGFloat {
+        switch self {
+        case .half:
+            return 0.5
+        case .threeQuarters:
+            return 0.75
+        case .native:
+            return 1.0
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .half:
+            return "50%"
+        case .threeQuarters:
+            return "75%"
+        case .native:
+            return "100%"
+        }
+    }
+}
+
 /// Captures a target window using ScreenCaptureKit and publishes frames
 /// into the host-owned IOSurface rendered by CursorFollow Output.
 @MainActor
@@ -66,6 +98,11 @@ final class CaptureEngine: NSObject, ObservableObject {
     /// Set when the user explicitly stops capture; prevents auto-follow from restarting.
     @Published private(set) var userStopped = true
     @Published private(set) var captureQuality: CaptureQuality
+    @Published private(set) var captureScale: CaptureScale
+
+    /// Invoked on the main actor when the frame transport reallocates its surface,
+    /// so the output window can re-point its layer at the new one.
+    var onSurfaceChanged: ((IOSurface) -> Void)?
 
     /// Callback invoked on the capture queue after each frame is published.
     /// Used by OutputWindowController to trigger layer redisplay.
@@ -86,13 +123,19 @@ final class CaptureEngine: NSObject, ObservableObject {
     @Published private(set) var activeCaptureWidth: Int = 1920
     @Published private(set) var activeCaptureHeight: Int = 1080
     @Published private(set) var activeCaptureScale: CGFloat = 1.0
-    let maxCaptureWidth = 1920
-    let maxCaptureHeight = 1080
+
+    /// Ceiling on captured pixels per frame (~8.3 MP, i.e. 3840x2160 worth at any
+    /// aspect ratio). Expressed as an area rather than a width/height pair on purpose:
+    /// a landscape-shaped cap clamps tall windows on their long axis while leaving most
+    /// of the width unused, which cost portrait sources roughly twice as much resolution
+    /// as landscape ones. Bounds both the IOSurface allocation and the per-frame row copy.
+    nonisolated static let maxCapturePixels = 3840 * 2160
 
     private let defaults: UserDefaults
 
     private enum Keys {
         static let captureQuality = "settings.captureQuality"
+        static let captureScale = "settings.captureScale"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -103,6 +146,14 @@ final class CaptureEngine: NSObject, ObservableObject {
         } else {
             self.captureQuality = .balanced
             defaults.set(CaptureQuality.balanced.rawValue, forKey: Keys.captureQuality)
+        }
+
+        if let savedScale = defaults.string(forKey: Keys.captureScale),
+           let scale = CaptureScale(rawValue: savedScale) {
+            self.captureScale = scale
+        } else {
+            self.captureScale = .native
+            defaults.set(CaptureScale.native.rawValue, forKey: Keys.captureScale)
         }
 
         self.frameTransport = SharedMemoryFrameTransport()
@@ -122,6 +173,49 @@ final class CaptureEngine: NSObject, ObservableObject {
         log.info("Capture quality set to \(quality.rawValue, privacy: .public)")
     }
 
+    func setCaptureScale(_ scale: CaptureScale) {
+        guard captureScale != scale else { return }
+        captureScale = scale
+        defaults.set(scale.rawValue, forKey: Keys.captureScale)
+        log.info("Capture scale set to \(scale.rawValue, privacy: .public)")
+    }
+
+    /// Resolves the pixel dimensions to request from ScreenCaptureKit.
+    ///
+    /// `sourceSize` is in points and `pointPixelScale` is the scale of the display the
+    /// window lives on, so their product is the window's true backing-store resolution.
+    /// The user's preset is applied to that, then clamped by area to `pixelBudget`.
+    nonisolated static func captureDimensions(
+        sourceSize: CGSize,
+        pointPixelScale: CGFloat,
+        scale: CaptureScale,
+        pixelBudget: Int = maxCapturePixels
+    ) -> (width: Int, height: Int, effectiveScale: CGFloat) {
+        let pixelScale = max(pointPixelScale, 1)
+        let nativeWidth = max(sourceSize.width, 1) * pixelScale
+        let nativeHeight = max(sourceSize.height, 1) * pixelScale
+
+        var factor = scale.factor
+        let requestedPixels = (nativeWidth * factor) * (nativeHeight * factor)
+        if requestedPixels > CGFloat(pixelBudget) {
+            factor *= sqrt(CGFloat(pixelBudget) / requestedPixels)
+        }
+
+        // Round to even: some capture/encode paths dislike odd dimensions, and the
+        // half-pixel it costs is invisible next to the scaling already happening.
+        return (
+            width: evenDimension(nativeWidth * factor),
+            height: evenDimension(nativeHeight * factor),
+            effectiveScale: pixelScale * factor
+        )
+    }
+
+    /// Floors rather than rounds, so a budget-clamped pair can never land back above
+    /// the budget: rounding 3325.5 up to 3326 is enough to breach it.
+    nonisolated private static func evenDimension(_ value: CGFloat) -> Int {
+        max(Int(value.rounded(.down)) & ~1, 2)
+    }
+
     /// Start capturing the specified window.
     func startCapture(window: TrackedWindow) async {
         userStopped = false
@@ -134,19 +228,30 @@ final class CaptureEngine: NSObject, ObservableObject {
         do {
             let filter = SCContentFilter(desktopIndependentWindow: window.scWindow)
 
-            // Calculate dimensions that preserve the window's aspect ratio
-            // while fitting within the IOSurface bounds (1920x1080).
-            let pointPixelScale = Self.backingScaleFactor(for: window.frame)
-            let windowW = max(window.frame.width, 1)
-            let windowH = max(window.frame.height, 1)
-            let sourcePixelW = windowW * pointPixelScale
-            let sourcePixelH = windowH * pointPixelScale
-            let surfaceScale = min(CGFloat(maxCaptureWidth) / sourcePixelW, CGFloat(maxCaptureHeight) / sourcePixelH, 1.0)
-            let captureW = max(Int(sourcePixelW * surfaceScale), 1)
-            let captureH = max(Int(sourcePixelH * surfaceScale), 1)
+            // Take the scale from the filter rather than deriving it from NSScreen:
+            // ScreenCaptureKit knows which display the window is actually on. Matching
+            // it by hand means reconciling SCWindow.frame (CoreGraphics, y-down, origin
+            // at the main display's top-left) against NSScreen.frame (AppKit, y-up,
+            // origin bottom-left), which silently resolves to the wrong display for
+            // screens arranged above the main one.
+            let pointPixelScale = CGFloat(filter.pointPixelScale)
+            let sourceRect = filter.contentRect.isEmpty ? window.frame : filter.contentRect
+            let dimensions = Self.captureDimensions(
+                sourceSize: sourceRect.size,
+                pointPixelScale: pointPixelScale,
+                scale: captureScale
+            )
+            let captureW = dimensions.width
+            let captureH = dimensions.height
             self.activeCaptureWidth = captureW
             self.activeCaptureHeight = captureH
-            self.activeCaptureScale = pointPixelScale * surfaceScale
+            self.activeCaptureScale = dimensions.effectiveScale
+
+            // Size the shared surface to the capture exactly, so the output window
+            // renders all of it and needs no crop rect.
+            if let resizedSurface = frameTransport?.resize(width: captureW, height: captureH) {
+                onSurfaceChanged?(resizedSurface)
+            }
 
             let config = SCStreamConfiguration()
             config.width = captureW
@@ -190,7 +295,7 @@ final class CaptureEngine: NSObject, ObservableObject {
             self.lastError = nil
             self.frameCount = 0
 
-            log.info("Started capture of window '\(window.title)' (ID: \(window.id)) at \(captureW)x\(captureH)@\(frameRate)fps, quality=\(self.captureQuality.rawValue, privacy: .public), queueDepth=\(config.queueDepth), captureScale=\(self.activeCaptureScale) (source: \(Int(windowW))x\(Int(windowH))pt)")
+            log.info("Started capture of window '\(window.title)' (ID: \(window.id)) at \(captureW)x\(captureH)@\(frameRate)fps, quality=\(self.captureQuality.rawValue, privacy: .public), scale=\(self.captureScale.rawValue, privacy: .public), queueDepth=\(config.queueDepth), captureScale=\(self.activeCaptureScale) (source: \(Int(sourceRect.width))x\(Int(sourceRect.height))pt @\(pointPixelScale)x)")
         } catch {
             log.error("Failed to start capture: \(error.localizedDescription)")
             self.lastError = error.localizedDescription
@@ -220,6 +325,15 @@ final class CaptureEngine: NSObject, ObservableObject {
         await stopCapture()
     }
 
+    /// Re-applies the current quality and scale settings to a live capture.
+    ///
+    /// `SCStreamConfiguration` is fixed when the stream is created, so changing either
+    /// setting has no effect until the stream restarts.
+    func reapplyConfiguration(to window: TrackedWindow) async {
+        guard isCapturing else { return }
+        await switchTarget(to: window)
+    }
+
     /// Switch to capturing a different window with minimal interruption.
     func switchTarget(to window: TrackedWindow) async {
         let wasCapturing = isCapturing
@@ -238,23 +352,6 @@ final class CaptureEngine: NSObject, ObservableObject {
         self.lastError = error.localizedDescription
     }
 
-    private static func backingScaleFactor(for frame: CGRect) -> CGFloat {
-        let intersections = NSScreen.screens.map { screen in
-            (screen: screen, area: screen.frame.intersection(frame).area)
-        }
-        if let bestScreen = intersections.max(by: { $0.area < $1.area })?.screen,
-           intersections.contains(where: { $0.area > 0 }) {
-            return bestScreen.backingScaleFactor
-        }
-        return NSScreen.main?.backingScaleFactor ?? 1.0
-    }
-}
-
-private extension CGRect {
-    var area: CGFloat {
-        guard !isNull, !isEmpty else { return 0 }
-        return width * height
-    }
 }
 
 // MARK: - SCStream Output Delegate
