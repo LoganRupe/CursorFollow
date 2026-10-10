@@ -2,25 +2,11 @@
 
 ## Unreleased
 
-### Project
+## 0.5.1
 
-- CursorFollow is now open source under the MIT License, hosted at [github.com/LoganRupe/CursorFollow](https://github.com/LoganRupe/CursorFollow).
-- New app identifiers: the macOS bundle ID is `io.github.loganrupe.CursorFollowMac` and the Linux app id is `io.github.loganrupe.CursorFollowLinux`. On macOS, upgrading from 1.0 starts with default settings and asks for Screen Recording again. On Linux, re-enable **Start on login** once. The Windows publisher is now Logan Rupe; Windows settings carry over.
+First public release of **CursorFollow**, open source under the MIT License at [github.com/LoganRupe/CursorFollow](https://github.com/LoganRupe/CursorFollow). Runs on **macOS**, **Windows** and **Linux (Hyprland)**.
 
-### macOS
-
-- Runs on macOS 14 Sonoma and later (1.0 needed macOS 26.4).
-- Releases are signed with a self-signed certificate and are no longer notarized. Approve the first launch in **System Settings → Privacy & Security → Open Anyway**; updates after that open normally and keep the Screen Recording grant.
-
-### Linux
-
-- First working build of **CursorFollowLinux**: GTK 4 control panel and shared output window, per-window capture through Hyprland's toplevel-export protocol, auto-follow over Hyprland IPC, All / Include / Exclude filters, Fit / Fill / Actual scaling, key-file settings, and CLI flags for compositor key bindings. Hyprland only for now; see `CursorFollowLinux/README.md`.
-
-## Version 1.0 (Build 1)
-
-First release of **CursorFollow** for **macOS** and **Windows**.
-
-CursorFollow captures a target window and renders it into a stable, shareable window named **CursorFollow Output**. Share that one window in Zoom, Google Meet, Slack, Teams, OBS, or any app with a window-share picker, and it keeps following your target as you switch focus — so your audience always sees the right thing without you re-picking a share source.
+CursorFollow captures a target window and renders it into a stable, shareable window named **CursorFollow Output**. Share that one window in Zoom, Google Meet, Slack, Teams, OBS, or any app with a window-share picker, and it keeps following your target as you switch focus, so your audience always sees the right thing without you re-picking a share source.
 
 ### Highlights
 
@@ -34,7 +20,8 @@ CursorFollow captures a target window and renders it into a stable, shareable wi
 ### macOS
 
 - Window capture via **ScreenCaptureKit**; requires the **Screen Recording** permission on first launch.
-- Sandboxed menu bar app, signed and notarized for distribution outside the App Store.
+- Sandboxed menu bar app for macOS 14 Sonoma and later.
+- Signed with a self-signed certificate, not notarized. Approve the first launch in **System Settings → Privacy & Security → Open Anyway**; updates after that open normally and keep the Screen Recording grant.
 - Distributed as a drag-to-**Applications** `.dmg`.
 
 ### Windows
@@ -43,3 +30,12 @@ CursorFollow captures a target window and renders it into a stable, shareable wi
 - Auto-follow (cursor-under-window with foreground fallback), live frame telemetry, and single-instance guard.
 - Global hotkeys, Start-with-Windows, and capture-quality presets.
 - Distributed as a per-user **WiX MSI** installer (no admin required; clean upgrade and uninstall).
+
+### Linux
+
+- First working build of **CursorFollowLinux**: GTK 4 control panel and shared output window, per-window capture through Hyprland's toplevel-export protocol, auto-follow over Hyprland IPC, All / Include / Exclude filters, Fit / Fill / Actual scaling, key-file settings, and CLI flags for compositor key bindings. Hyprland only for now; see `CursorFollowLinux/README.md`.
+
+### Coming from the internal 1.0 build
+
+- The macOS bundle ID is now `io.github.loganrupe.CursorFollowMac`, so macOS treats 0.5.1 as a new app: settings start fresh and Screen Recording is asked for again. Delete the old app from **Applications**.
+- On Windows, uninstall 1.0 first; the MSI refuses to install over a higher version number. Uninstalling also clears 1.0's settings, so you start fresh.

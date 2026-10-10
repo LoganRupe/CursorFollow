@@ -79,7 +79,7 @@ Releases are published manually to [GitHub Releases](https://github.com/LoganRup
 
 1. **macOS** — run `./CursorFollowMac/scripts/package.sh` to produce a self-signed `CursorFollowMac-<version>.dmg` (details in [Docs/Distribution/Packaging.md](Docs/Distribution/Packaging.md)).
 2. **Windows** — build the `.msi` (see [Windows build](CursorFollowWin/README.md#build)).
-3. Create a new GitHub release, tag the version (e.g. `v1.0`), and upload both the `.dmg` and `.msi` as release assets.
+3. Create a new GitHub release, tag the version (e.g. `v0.5.1`), and upload both the `.dmg` and `.msi` as release assets.
 
 ## License
 

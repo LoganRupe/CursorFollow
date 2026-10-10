@@ -10,7 +10,7 @@
   <Identity
     Name="FC825819-FE47-4E24-9810-A461C3E02854"
     Publisher="CN=CursorFollow"
-    Version="1.0.0.0" />
+    Version="0.5.1.0" />
 
   <mp:PhoneIdentity PhoneProductId="FC825819-FE47-4E24-9810-A461C3E02854"
     PhonePublisherId="00000000-0000-0000-0000-000000000000" />
