@@ -71,7 +71,7 @@ The general reset is the same everywhere — quit your meeting app and CursorFol
 - **Windows app** — build, publish, installer: [CursorFollowWin/README.md](CursorFollowWin/README.md#build)
 - **Linux app** — build, test, install: [CursorFollowLinux/README.md](CursorFollowLinux/README.md#build-test-run)
 - **macOS packaging & signing** — [Docs/Distribution/Packaging.md](Docs/Distribution/Packaging.md)
-- **Working with AI coding agents** — [AGENTS.md](AGENTS.md)
+- **Contributing** — [CONTRIBUTING.md](CONTRIBUTING.md); AI coding agents also read [AGENTS.md](AGENTS.md)
 
 ### Releasing
 

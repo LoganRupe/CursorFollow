@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and unit test
+        working-directory: CursorFollowMac
+        run: |
+          xcodebuild -project CursorFollowMac.xcodeproj -scheme CursorFollowMac \
+            -destination 'platform=macOS' -only-testing:CursorFollowMacTests test
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build
+        working-directory: CursorFollowWin
+        run: dotnet build CursorFollowWin.slnx -c Release
+      - name: Unit test
+        working-directory: CursorFollowWin
+        run: dotnet test tests/CursorFollowWin.Tests -c Release
+
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libjson-glib-dev libwayland-dev wayland-protocols g++ make pkg-config
+      - name: Build and unit test
+        working-directory: CursorFollowLinux
+        run: make -j"$(nproc)" && make test
