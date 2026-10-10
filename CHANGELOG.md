@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Windows:** Quit now exits the process. If the Settings window had been opened, the app could hang on Quit with the CursorFollow Output window still up ([#5](https://github.com/LoganRupe/CursorFollow/issues/5)).
+
 ## 0.5.1
 
 First public release of **CursorFollow**, open source under the MIT License at [github.com/LoganRupe/CursorFollow](https://github.com/LoganRupe/CursorFollow). Runs on **macOS**, **Windows** and **Linux (Hyprland)**.
