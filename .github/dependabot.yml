@@ -4,9 +4,25 @@ updates:
     directory: /
     schedule: { interval: monthly }
     cooldown: { default-days: 14 }
+    groups:
+      actions: { patterns: ["*"] }
   - package-ecosystem: nuget
     directories: [/CursorFollowWin, /CursorFollowWin/Capture, /CursorFollowWin/Output, /CursorFollowWin/Shared, /CursorFollowWin/tests/CursorFollowWin.Tests]
     schedule: { interval: monthly }
     cooldown: { default-days: 14 }
     groups:
-      nuget: { patterns: ["*"] }
+      # Every project references Microsoft.Extensions.Logging; bumping it in some projects
+      # and not others fails the build with NU1605 (package downgrade).
+      logging:
+        patterns: ["Microsoft.Extensions.*"]
+      nuget:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    ignore:
+      # Windows App SDK 2.x is a deliberate platform move, not a routine bump.
+      - dependency-name: Microsoft.WindowsAppSDK
+        update-types: [version-update:semver-major]
+      # BuildTools tracks the Windows SDK in the TargetFramework (10.0.26100); its "minor" is
+      # the SDK build number, so move it together with the TFM by hand.
+      - dependency-name: Microsoft.Windows.SDK.BuildTools
+        update-types: [version-update:semver-minor]
