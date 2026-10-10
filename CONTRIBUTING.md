@@ -11,6 +11,8 @@ About) and what you were sharing to (Zoom, Meet, Teams, OBS...). A log file help
 
 Security problems go through [SECURITY.md](SECURITY.md), not public issues.
 
+Everyone taking part is expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Making changes
 
 1. Open an issue first for anything bigger than a small fix, so we agree on the approach
