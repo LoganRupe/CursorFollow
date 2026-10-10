@@ -33,12 +33,12 @@ $platform = @{ 'win-x64' = 'x64'; 'win-x86' = 'x86'; 'win-arm64' = 'ARM64' }[$Ri
 Write-Host "==> Publishing $Configuration / $Rid (self-contained, ReadyToRun)" -ForegroundColor Cyan
 # Route dotnet's stdout to the host so it does not pollute this script's success stream
 # (callers capture the returned publish path).
-dotnet publish $proj -c $Configuration -p:Platform=$platform -r $Rid --nologo | Out-Host
-if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed (exit $LASTEXITCODE)." }
-
-# Default publish path: bin\<Config>\<tfm>\<rid>\publish
+# Publish path: bin\<Config>\<tfm>\<rid>\publish (pinned with -o; the platform-specific default
+# would otherwise insert a bin\<platform>\ level).
 $tfm = 'net10.0-windows10.0.26100.0'
 $publishDir = Join-Path $repo "bin/$Configuration/$tfm/$Rid/publish"
+dotnet publish $proj -c $Configuration -p:Platform=$platform -r $Rid -o $publishDir --nologo | Out-Host
+if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed (exit $LASTEXITCODE)." }
 if (-not (Test-Path $publishDir)) { throw "Publish folder not found: $publishDir" }
 
 $exe = Join-Path $publishDir 'CursorFollowWin.exe'

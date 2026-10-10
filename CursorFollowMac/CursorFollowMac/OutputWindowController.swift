@@ -386,7 +386,9 @@ private final class SurfaceLayerView: NSView {
 // MARK: - Overlay View
 
 /// Transparent passthrough host so clicks reach the surface view beneath.
-private final class PassthroughHostingView<Content: View>: NSHostingView<Content> {
+/// Deliberately non-generic: Xcode 26's optimizer crashes (EarlyPerfInliner) inlining the
+/// deinit of a generic private NSHostingView subclass in Release builds.
+private final class PassthroughHostingView: NSHostingView<OutputWindowOverlayView> {
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
     override var isOpaque: Bool { false }
     override func viewDidMoveToWindow() {
