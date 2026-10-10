@@ -8,6 +8,14 @@ name: Release
 on:
   push:
     tags: ['v*']
+  # Packaging changes get a full installer build on their PR (artifacts only, no release).
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - CursorFollowMac/scripts/**
+      - CursorFollowWin/scripts/**
+      - CursorFollowWin/installer/**
+      - CursorFollowWin/CursorFollowWin.csproj
   workflow_dispatch:
     inputs:
       tag:
