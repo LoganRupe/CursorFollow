@@ -9,6 +9,7 @@
 
 ### macOS
 
+- Runs on macOS 14 Sonoma and later (1.0 needed macOS 26.4).
 - Releases are signed with a self-signed certificate and are no longer notarized. Approve the first launch in **System Settings → Privacy & Security → Open Anyway**; updates after that open normally and keep the Screen Recording grant.
 
 ### Linux

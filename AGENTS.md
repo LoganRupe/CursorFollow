@@ -11,7 +11,7 @@ the target as focus changes. Three independent native apps, no shared code:
 
 | Dir | Platform | Stack | Capture |
 | --- | --- | --- | --- |
-| `CursorFollowMac/` | macOS 26.4+ | Swift, SwiftUI + AppKit, Xcode project | ScreenCaptureKit |
+| `CursorFollowMac/` | macOS 14+ | Swift, SwiftUI + AppKit, Xcode project | ScreenCaptureKit |
 | `CursorFollowWin/` | Windows 11 | C#, WinUI 3, .NET 10 | Windows Graphics Capture + D3D11 |
 | `CursorFollowLinux/` | Hyprland (Wayland) | C++20, GTK 4, GNU make | `hyprland-toplevel-export-v1` |
 
