@@ -75,11 +75,13 @@ The general reset is the same everywhere — quit your meeting app and CursorFol
 
 ### Releasing
 
-Releases are published manually to [GitHub Releases](https://github.com/LoganRupe/CursorFollow/releases). For each version:
+GitHub Actions builds the installers ([.github/workflows/release.yml](.github/workflows/release.yml)):
 
-1. **macOS** — run `./CursorFollowMac/scripts/package.sh` to produce a self-signed `CursorFollowMac-<version>.dmg` (details in [Docs/Distribution/Packaging.md](Docs/Distribution/Packaging.md)).
-2. **Windows** — build the `.msi` (see [Windows build](CursorFollowWin/README.md#build)).
-3. Create a new GitHub release, tag the version (e.g. `v0.5.1`), and upload both the `.dmg` and `.msi` as release assets.
+1. Bump the version on every platform (`MARKETING_VERSION` in the Xcode project, `Version`/`FileVersion`/`AssemblyVersion` in `CursorFollowWin.csproj`, `VERSION` in `CursorFollowLinux/Makefile`) and move the **Unreleased** notes in `CHANGELOG.md` under a `## <version>` heading.
+2. Merge to `main`, then tag and push: `git tag -a v0.5.2 -m "CursorFollow 0.5.2" && git push origin v0.5.2`.
+3. The workflow builds the signed macOS DMG and the Windows MSI and attaches both to a **draft** release, with the changelog section as notes. Review it, then publish.
+
+macOS signing in CI uses the self-signed identity from two repository secrets, `MAC_SIGNING_P12` (base64 of the `.p12`) and `MAC_SIGNING_P12_PASSWORD`. See [Docs/Distribution/Packaging.md](Docs/Distribution/Packaging.md). Local builds still work: `./CursorFollowMac/scripts/package.sh` and `./CursorFollowWin/scripts/package.ps1`.
 
 ## License
 

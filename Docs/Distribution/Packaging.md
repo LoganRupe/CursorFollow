@@ -29,6 +29,13 @@ The Windows installer is covered in [CursorFollowWin/docs/Installer.md](../../Cu
    password and choose **Always Allow**.
 3. Optional, nicer DMG layout: `brew install create-dmg`.
 
+For CI, the release workflow imports the same identity from two repository secrets:
+
+```bash
+base64 -i CursorFollowSelfSigned.p12 | gh secret set MAC_SIGNING_P12
+tr -d '\n' < CursorFollowSelfSigned.p12.password | gh secret set MAC_SIGNING_P12_PASSWORD
+```
+
 To restore the identity on a new build machine, double-click the `.p12` (or
 `security import CursorFollowSelfSigned.p12 -k ~/Library/Keychains/login.keychain-db -T /usr/bin/codesign`).
 

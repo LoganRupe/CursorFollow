@@ -770,7 +770,7 @@ public sealed partial class SettingsWindow : Window
     private static string AppVersion()
     {
         var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-        return version is null ? "1.0" : $"{version.Major}.{version.Minor}";
+        return version is null ? "?" : $"{version.Major}.{version.Minor}.{version.Build}";
     }
 
     private static Button CreateFooterButton(string text, Brush background, Brush foreground)
