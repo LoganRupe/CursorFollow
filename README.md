@@ -16,6 +16,7 @@ CursorFollow ships for **macOS**, **Windows**, and **Linux (Hyprland)**. This pa
 - [Download & Install](#download--install)
 - [Troubleshooting](#troubleshooting)
 - [Developer Docs](#developer-docs)
+- [License](#license)
 
 ## Overview
 
@@ -46,7 +47,7 @@ These controls behave the same on both platforms (only the UI placement differs)
 
 Download the latest build from **[GitHub Releases](https://github.com/LoganRupe/CursorFollow/releases/latest)**, then install for your platform:
 
-- **macOS** — open the `.dmg` and drag **CursorFollowMac** into **Applications**. On first launch, grant the **Screen Recording** permission when prompted. See [macOS setup & permissions](CursorFollowMac/README.md#quick-start).
+- **macOS** — open the `.dmg` and drag **CursorFollowMac** into **Applications**. Releases are not notarized, so approve the first launch in **System Settings → Privacy & Security → Open Anyway**, then grant **Screen Recording** when prompted. See [macOS install](CursorFollowMac/README.md#install).
 - **Windows** — run the `.msi` (no admin required). See [Windows setup](CursorFollowWin/README.md#installer).
 - **Linux** — no packaged build yet; build from source with `make` and `make install`. See [Linux build](CursorFollowLinux/README.md#build-test-run).
 
@@ -69,12 +70,17 @@ The general reset is the same everywhere — quit your meeting app and CursorFol
 - **macOS app** — build, signing, packaging: [CursorFollowMac/README.md](CursorFollowMac/README.md#building--developing)
 - **Windows app** — build, publish, installer: [CursorFollowWin/README.md](CursorFollowWin/README.md#build)
 - **Linux app** — build, test, install: [CursorFollowLinux/README.md](CursorFollowLinux/README.md#build-test-run)
-- **Architecture & planning** — [Docs/README.md](Docs/README.md)
+- **macOS packaging & signing** — [Docs/Distribution/Packaging.md](Docs/Distribution/Packaging.md)
+- **Working with AI coding agents** — [AGENTS.md](AGENTS.md)
 
 ### Releasing
 
 Releases are published manually to [GitHub Releases](https://github.com/LoganRupe/CursorFollow/releases). For each version:
 
-1. **macOS** — run `./CursorFollowMac/scripts/package.sh` to produce a signed, notarized `CursorFollowMac-<version>.dmg` (details in [Docs/Distribution/Packaging.md](Docs/Distribution/Packaging.md)).
+1. **macOS** — run `./CursorFollowMac/scripts/package.sh` to produce a self-signed `CursorFollowMac-<version>.dmg` (details in [Docs/Distribution/Packaging.md](Docs/Distribution/Packaging.md)).
 2. **Windows** — build the `.msi` (see [Windows build](CursorFollowWin/README.md#build)).
 3. Create a new GitHub release, tag the version (e.g. `v1.0`), and upload both the `.dmg` and `.msi` as release assets.
+
+## License
+
+CursorFollow is released under the [MIT License](LICENSE).

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Project
+
+- CursorFollow is now open source under the MIT License, hosted at [github.com/LoganRupe/CursorFollow](https://github.com/LoganRupe/CursorFollow).
+- New app identifiers: the macOS bundle ID is `io.github.loganrupe.CursorFollowMac` and the Linux app id is `io.github.loganrupe.CursorFollowLinux`. On macOS, upgrading from 1.0 starts with default settings and asks for Screen Recording again. On Linux, re-enable **Start on login** once. The Windows publisher is now Logan Rupe; Windows settings carry over.
+
+### macOS
+
+- Releases are signed with a self-signed certificate and are no longer notarized. Approve the first launch in **System Settings → Privacy & Security → Open Anyway**; updates after that open normally and keep the Screen Recording grant.
+
 ### Linux
 
 - First working build of **CursorFollowLinux**: GTK 4 control panel and shared output window, per-window capture through Hyprland's toplevel-export protocol, auto-follow over Hyprland IPC, All / Include / Exclude filters, Fit / Fill / Actual scaling, key-file settings, and CLI flags for compositor key bindings. Hyprland only for now; see `CursorFollowLinux/README.md`.

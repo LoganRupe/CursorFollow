@@ -28,7 +28,7 @@
     <Icon Id="AppIcon.ico" SourceFile="..\Assets\AppIcon.ico" />
     <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/LoganRupe/CursorFollow" />
-    <Property Id="ARPHELPLINK" Value="https://github.com/LoganRupe/CursorFollow/src/branch/main/CursorFollowWin/docs/Troubleshooting.md" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/LoganRupe/CursorFollow/blob/main/CursorFollowWin/docs/Troubleshooting.md" />
     <!-- No Modify/Repair UI for this simple per-user payload. -->
     <Property Id="ARPNOMODIFY" Value="1" />
 
