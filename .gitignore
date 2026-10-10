@@ -12,6 +12,9 @@ DerivedData/
 *.dSYM.zip
 *.dSYM
 
+# Linux build outputs
+CursorFollowLinux/build/
+
 # .NET build outputs
 bin/
 obj/

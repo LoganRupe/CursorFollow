@@ -6,7 +6,7 @@
 
 Capture a target window and render it into a stable, shareable window named **CursorFollow Output**. Share that one window from Zoom, Google Meet, Slack, Teams, OBS, or any app with a window-share picker — and it keeps following your target as you switch focus, so your audience always sees the right thing without you re-picking a share source.
 
-CursorFollow ships for **macOS** and **Windows**. This page covers what's common to both; each platform's page has the setup, permissions, screenshots, and troubleshooting specific to that OS.
+CursorFollow ships for **macOS**, **Windows**, and **Linux (Hyprland)**. This page covers what's common to all of them; each platform's page has the setup, permissions, screenshots, and troubleshooting specific to that OS.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ CursorFollow ships for **macOS** and **Windows**. This page covers what's common
 
 ## Overview
 
-CursorFollow runs in the background — the **menu bar** on macOS, the **system tray** on Windows — and keeps **CursorFollow Output** pointed at the window you want to share. It can follow the frontmost eligible window automatically, or lock to a specific window manually. Because the thing you share is an ordinary app window, you keep your real webcam selected and simply add the output window as a screen/window share.
+CursorFollow runs in the background — the **menu bar** on macOS, the **system tray** on Windows, a small control panel on Linux — and keeps **CursorFollow Output** pointed at the window you want to share. It can follow the frontmost eligible window automatically, or lock to a specific window manually. Because the thing you share is an ordinary app window, you keep your real webcam selected and simply add the output window as a screen/window share.
 
 ## Platforms
 
@@ -27,8 +27,9 @@ CursorFollow runs in the background — the **menu bar** on macOS, the **system 
 | -------- | ------- | ------- | ------ | ---- |
 | **macOS** | ScreenCaptureKit | Menu bar app + shared output window | Mature | [CursorFollowMac/README.md](CursorFollowMac/README.md) |
 | **Windows** | Windows Graphics Capture | Tray app + shared output window | Output-window-first port | [CursorFollowWin/README.md](CursorFollowWin/README.md) |
+| **Linux** | Hyprland toplevel export (Wayland) | GTK 4 control panel + shared output window | First working build, Hyprland only | [CursorFollowLinux/README.md](CursorFollowLinux/README.md) |
 
-Both platforms render to the same **CursorFollow Output** window. The shared output window is the shipping feature on each — a virtual-camera mode is **not** part of the product.
+All platforms render to the same **CursorFollow Output** window. The shared output window is the shipping feature on each — a virtual-camera mode is **not** part of the product.
 
 ## How It Works
 
@@ -47,6 +48,7 @@ Download the latest build from **[GitHub Releases](https://github.com/LoganRupe/
 
 - **macOS** — open the `.dmg` and drag **CursorFollowMac** into **Applications**. On first launch, grant the **Screen Recording** permission when prompted. See [macOS setup & permissions](CursorFollowMac/README.md#quick-start).
 - **Windows** — run the `.msi` (no admin required). See [Windows setup](CursorFollowWin/README.md#installer).
+- **Linux** — no packaged build yet; build from source with `make` and `make install`. See [Linux build](CursorFollowLinux/README.md#build-test-run).
 
 Then point your meeting app's **window** picker at **CursorFollow Output**: pick a target window (or set **Target Mode** to **Auto**), make sure output isn't paused, and share it.
 
@@ -58,6 +60,7 @@ The general reset is the same everywhere — quit your meeting app and CursorFol
 
 - **macOS** — [Troubleshooting](CursorFollowMac/README.md#troubleshooting)
 - **Windows** — [Troubleshooting](CursorFollowWin/docs/Troubleshooting.md)
+- **Linux** — [Troubleshooting](CursorFollowLinux/README.md#troubleshooting)
 
 ## Developer Docs
 
@@ -65,6 +68,7 @@ The general reset is the same everywhere — quit your meeting app and CursorFol
 
 - **macOS app** — build, signing, packaging: [CursorFollowMac/README.md](CursorFollowMac/README.md#building--developing)
 - **Windows app** — build, publish, installer: [CursorFollowWin/README.md](CursorFollowWin/README.md#build)
+- **Linux app** — build, test, install: [CursorFollowLinux/README.md](CursorFollowLinux/README.md#build-test-run)
 - **Architecture & planning** — [Docs/README.md](Docs/README.md)
 
 ### Releasing
