@@ -169,6 +169,13 @@ public partial class App : Application
         _outputWindow?.DisposeCapture();
         _singleInstanceMutex?.Dispose();
         AppLog.Shutdown();
+
+        // Close every window ourselves rather than relying on Application.Exit to do it. With the
+        // Settings window open (three windows), Exit closed only some of them and returned; the
+        // window it skipped kept the message loop, and so the process, alive (issue #5).
+        _settingsWindow?.Close();
+        _panelWindow?.Close();
+        _outputWindow?.Close();
         Current.Exit();
     }
 
