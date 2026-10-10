@@ -7,7 +7,7 @@
 Capture a target window and render it into a stable, shareable window named **CursorFollow Output**. Share that one window from Zoom, Google Meet, Slack, Teams, OBS, or any app with a window-share picker — and it keeps following your target as you switch focus, so your audience always sees the right thing without you re-picking a share source.
 
 <p align="center">
-  <a href="Docs/images/readme/demo.mp4">
+  <a href="https://github.com/user-attachments/assets/04686f24-3177-4bce-87a0-a73b264b5102">
     <img src="Docs/images/readme/demo.gif" alt="CursorFollow following focus between Chrome and VS Code while its output window is shared in a Slack huddle" width="960">
   </a>
   <br>
