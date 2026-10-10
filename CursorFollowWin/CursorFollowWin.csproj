@@ -25,7 +25,6 @@
     <Version>0.5.1</Version>
     <FileVersion>0.5.1.0</FileVersion>
     <AssemblyVersion>0.5.1.0</AssemblyVersion>
-    <InformationalVersion>1.0</InformationalVersion>
     <Company>Logan Rupe</Company>
     <Product>CursorFollow</Product>
     <Authors>Logan Rupe</Authors>
@@ -41,10 +40,6 @@
 
   <PropertyGroup Condition="'$(RuntimeIdentifier)' == ''">
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="Exists('Properties\PublishProfiles\win-$(Platform).pubxml')">
-    <PublishProfile>win-$(Platform).pubxml</PublishProfile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -112,6 +107,10 @@
 
   <!-- Publish Properties -->
   <PropertyGroup>
+    <!-- Ship everything the app needs: the .NET runtime and the Windows App SDK runtime go into
+         the publish folder, so the MSI installs on a stock Windows 11 machine. -->
+    <SelfContained>true</SelfContained>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
     <!-- Trimming is intentionally OFF. WinUI 3 / XAML / Win2D resolve types via reflection and

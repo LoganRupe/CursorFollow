@@ -90,8 +90,7 @@ CursorFollowWin/
 ├── Package.appxmanifest               # MSIX packaging metadata (optional path)
 ├── Assets/                            # App/tile icons
 ├── Properties/
-│   ├── launchSettings.json            # Debug launch profiles
-│   └── PublishProfiles/               # win-x64 / win-x86 / win-arm64 publish profiles
+│   └── launchSettings.json            # Debug launch profiles
 └── docs/                              # Per-phase design + feasibility notes
 ```
 
@@ -239,15 +238,13 @@ Deleting `settings.json` resets the app to defaults.
 
 ## Publish
 
-Self-contained publish profiles are provided for each platform:
+Publishing is self-contained (the .NET and Windows App SDK runtimes are bundled), set in the csproj:
 
 ```powershell
-dotnet publish CursorFollowWin.csproj -c Release -p:PublishProfile=win-x64
-dotnet publish CursorFollowWin.csproj -c Release -p:PublishProfile=win-arm64
-dotnet publish CursorFollowWin.csproj -c Release -p:PublishProfile=win-x86
+./scripts/publish.ps1 -Rid win-x64     # or win-arm64 / win-x86
 ```
 
-These produce a **self-contained** build under
+This produces a build under
 `bin\Release\net10.0-windows10.0.26100.0\<rid>\publish\`. Release builds enable ReadyToRun
 (trimming is intentionally off — it is not safe for WinUI/XAML; see
 [docs/Installer.md](docs/Installer.md)).
