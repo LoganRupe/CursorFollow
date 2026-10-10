@@ -103,6 +103,8 @@
                          Installer has no single-value remove-on-uninstall, and we must not delete
                          the shared Run key wholesale).
         RemoveDataFolder removes %LocalAppData%\CursorFollowWin (settings.json + Logs\).
+        RemoveInstallTree removes what is left of the install folder after RemoveFiles: the
+                         per-language subfolders of the self-contained Windows App SDK.
 
       Impersonate=yes so HKCU / %LOCALAPPDATA% resolve to the installing user; Return=ignore so a
       missing key/folder never fails the uninstall.
@@ -115,10 +117,16 @@
                   Directory="INSTALLFOLDER"
                   ExeCommand="cmd.exe /c rmdir /s /q &quot;%LOCALAPPDATA%\CursorFollowWin&quot;"
                   Execute="deferred" Impersonate="yes" Return="ignore" />
+    <CustomAction Id="RemoveInstallTree"
+                  Directory="ProgramsFolder"
+                  ExeCommand="cmd.exe /c rmdir /s /q &quot;[INSTALLFOLDER]&quot;"
+                  Execute="deferred" Impersonate="yes" Return="ignore" />
     <InstallExecuteSequence>
       <Custom Action="RemoveRunValue" Before="RemoveFiles"
               Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
       <Custom Action="RemoveDataFolder" After="RemoveRunValue"
+              Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+      <Custom Action="RemoveInstallTree" After="RemoveFiles"
               Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
     </InstallExecuteSequence>
 

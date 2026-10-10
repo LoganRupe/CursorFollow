@@ -28,7 +28,11 @@
     <DefineConstants>Version=$(Version);PublishDir=$(PublishDir)</DefineConstants>
     <!-- Suppress ICE warnings that are expected for a per-user, self-contained payload. -->
     <!-- ICE61: expected with AllowSameVersionUpgrades (Maximum version == current). -->
-    <SuppressIces>ICE38;ICE43;ICE57;ICE61;ICE91</SuppressIces>
+    <!-- ICE03/ICE64: the self-contained Windows App SDK adds per-language folders of .mui files.
+         WiX reads odd language ids from the .mui version resources (ICE03), and the harvested
+         per-user subfolders have no RemoveFile rows (ICE64); RemoveInstallTree in Package.wxs
+         deletes the whole install folder on uninstall instead. -->
+    <SuppressIces>ICE03;ICE38;ICE43;ICE57;ICE61;ICE64;ICE91</SuppressIces>
   </PropertyGroup>
 
 </Project>
