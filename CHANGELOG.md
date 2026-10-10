@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **README demo**: a short clip at the top of the README shows CursorFollow following focus between Chrome and VS Code while shared in a Slack huddle, linked to the full walkthrough video.
+
 ## 0.5.1
 
 First public release of **CursorFollow**, open source under the MIT License at [github.com/LoganRupe/CursorFollow](https://github.com/LoganRupe/CursorFollow). Runs on **macOS**, **Windows** and **Linux (Hyprland)**.

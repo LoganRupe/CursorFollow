@@ -6,6 +6,14 @@
 
 Capture a target window and render it into a stable, shareable window named **CursorFollow Output**. Share that one window from Zoom, Google Meet, Slack, Teams, OBS, or any app with a window-share picker — and it keeps following your target as you switch focus, so your audience always sees the right thing without you re-picking a share source.
 
+<p align="center">
+  <a href="Docs/images/readme/demo.mp4">
+    <img src="Docs/images/readme/demo.gif" alt="CursorFollow following focus between Chrome and VS Code while its output window is shared in a Slack huddle" width="960">
+  </a>
+  <br>
+  <sub>Sharing CursorFollow Output in a Slack huddle on Windows. Click for the full walkthrough (1:39).</sub>
+</p>
+
 CursorFollow ships for **macOS**, **Windows**, and **Linux (Hyprland)**. This page covers what's common to all of them; each platform's page has the setup, permissions, screenshots, and troubleshooting specific to that OS.
 
 ## Table of Contents
