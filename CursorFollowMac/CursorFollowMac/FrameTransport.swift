@@ -59,7 +59,7 @@ final class SharedMemoryFrameTransport: FrameTransport, @unchecked Sendable {
         self.width = width
         self.height = height
         self.currentSurface = surface
-        log.info("Frame transport initialized: \(width)x\(height) BGRA, surfaceID=\(surface.surfaceID), alloc=\(surface.allocationSize) bytes")
+        log.info("Frame transport initialized: \(width)x\(height) BGRA, surfaceID=\(surface.ioSurfaceID), alloc=\(surface.allocationSize) bytes")
 
         // Publish surface ID via Darwin notification state (system-global, works cross-process)
         var token: Int32 = -1
@@ -103,7 +103,7 @@ final class SharedMemoryFrameTransport: FrameTransport, @unchecked Sendable {
         width = newWidth
         height = newHeight
         broadcastSurfaceID(newSurface)
-        log.info("Frame transport resized to \(newWidth)x\(newHeight), surfaceID=\(newSurface.surfaceID), alloc=\(newSurface.allocationSize) bytes")
+        log.info("Frame transport resized to \(newWidth)x\(newHeight), surfaceID=\(newSurface.ioSurfaceID), alloc=\(newSurface.allocationSize) bytes")
         return newSurface
     }
 
@@ -131,9 +131,9 @@ final class SharedMemoryFrameTransport: FrameTransport, @unchecked Sendable {
     /// Must be called with `lock` held (or from `init`, before the instance escapes).
     private func broadcastSurfaceID(_ surface: IOSurface) {
         guard notifyToken != -1 else { return }
-        notify_set_state(notifyToken, UInt64(surface.surfaceID))
+        notify_set_state(notifyToken, UInt64(surface.ioSurfaceID))
         notify_post(Self.surfaceNotificationName)
-        log.info("Published surfaceID=\(surface.surfaceID) via Darwin notification")
+        log.info("Published surfaceID=\(surface.ioSurfaceID) via Darwin notification")
     }
 
     func publishFrame(pixelBuffer: CVPixelBuffer, timestamp: CMTime) {
@@ -224,6 +224,13 @@ final class SharedMemoryFrameTransport: FrameTransport, @unchecked Sendable {
 
     /// The IOSurface ID for diagnostics and compatibility consumers.
     var surfaceID: IOSurfaceID {
-        surface.surfaceID
+        surface.ioSurfaceID
+    }
+}
+
+extension IOSurface {
+    /// `IOSurface.surfaceID` needs macOS 15; the C accessor works on every supported release.
+    var ioSurfaceID: IOSurfaceID {
+        IOSurfaceGetID(self)
     }
 }

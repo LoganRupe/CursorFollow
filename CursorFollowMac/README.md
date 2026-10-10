@@ -18,6 +18,8 @@ macOS host app for CursorFollow's shared-window workflow. CursorFollow runs in t
 
 ## Install
 
+Requires macOS 14 Sonoma or later.
+
 1. Download `CursorFollowMac-<version>.dmg` from [GitHub Releases](https://github.com/LoganRupe/CursorFollow/releases/latest).
 2. Open the DMG and drag **CursorFollowMac** into **Applications**.
 3. Open it once. macOS blocks it, because releases are not notarized by Apple.
@@ -45,7 +47,7 @@ See [How It Works](../README.md#how-it-works) for what Target Mode, Filter mode,
 ## Permissions
 
 - **Screen Recording**: Required for ScreenCaptureKit window capture.
-    - **macOS 13 Ventura / 14 Sonoma / 15 Sequoia**: **System Settings → Privacy & Security → Screen Recording**.
+    - **System Settings → Privacy & Security → Screen Recording**.
 
 The app is sandboxed (no system-extension or app-group entitlements).
 

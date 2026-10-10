@@ -66,7 +66,7 @@ final class OutputWindowController: NSObject, ObservableObject {
     init(surface: IOSurface) {
         self.surface = surface
         super.init()
-        log.info("OutputWindowController initialized with surfaceID=\(surface.surfaceID)")
+        log.info("OutputWindowController initialized with surfaceID=\(surface.ioSurfaceID)")
     }
 
     deinit {
@@ -83,7 +83,7 @@ final class OutputWindowController: NSObject, ObservableObject {
     func updateSurface(_ surface: IOSurface) {
         self.surface = surface
         surfaceView?.setSurface(surface)
-        log.info("Output window switched to surfaceID=\(surface.surfaceID)")
+        log.info("Output window switched to surfaceID=\(surface.ioSurfaceID)")
     }
 
     func setNoTarget() {
