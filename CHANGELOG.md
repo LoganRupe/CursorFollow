@@ -2,8 +2,6 @@
 
 ## Unreleased
 
-- **Windows:** Quit now exits the process. If the Settings window had been opened, the app could hang on Quit with the CursorFollow Output window still up ([#5](https://github.com/LoganRupe/CursorFollow/issues/5)).
-
 ## 0.5.1
 
 First public release of **CursorFollow**, open source under the MIT License at [github.com/LoganRupe/CursorFollow](https://github.com/LoganRupe/CursorFollow). Runs on **macOS**, **Windows** and **Linux (Hyprland)**.
@@ -32,6 +30,7 @@ CursorFollow captures a target window and renders it into a stable, shareable wi
 - Auto-follow (cursor-under-window with foreground fallback), live frame telemetry, and single-instance guard.
 - Global hotkeys, Start-with-Windows, and capture-quality presets.
 - Distributed as a per-user **WiX MSI** installer (no admin required; clean upgrade and uninstall).
+- Fixed: Quit could hang, leaving the process and output window running, if the Settings window had been opened ([#5](https://github.com/LoganRupe/CursorFollow/issues/5)).
 
 ### Linux
 
