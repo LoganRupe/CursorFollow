@@ -752,8 +752,8 @@ public sealed partial class SettingsWindow : Window
             Spacing = 12,
             HorizontalAlignment = HorizontalAlignment.Center,
         };
-        links.Children.Add(CreateLinkButton("Documentation", "https://github.com/LoganRupe/CursorFollow/src/branch/main/README.md"));
-        links.Children.Add(CreateLinkButton("Changelog", "https://github.com/LoganRupe/CursorFollow/src/branch/main/CHANGELOG.md"));
+        links.Children.Add(CreateLinkButton("Documentation", "https://github.com/LoganRupe/CursorFollow/blob/main/README.md"));
+        links.Children.Add(CreateLinkButton("Changelog", "https://github.com/LoganRupe/CursorFollow/blob/main/CHANGELOG.md"));
         stack.Children.Add(links);
         return stack;
     }

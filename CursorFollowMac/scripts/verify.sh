@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 #
-# verify.sh — developer verification of signing / hardened runtime / notarization.
+# verify.sh — developer verification of the release signature.
 #
-# macOS analog of `signtool verify` + `Get-AuthenticodeSignature`. Run this before
-# shipping and after install to confirm Gatekeeper will accept the build.
+# Releases are signed with the self-signed identity from make_signing_cert.sh and are
+# not notarized, so Gatekeeper (spctl) rejects them by design. This checks what we do
+# control: the signature is valid, uses the expected identity and bundle ID, and has
+# the hardened runtime and sandbox.
 #
 # Usage:
 #   ./scripts/verify.sh [path-to-.app|.dmg]   # defaults to build/export/CursorFollowMac.app
@@ -12,67 +14,49 @@
 
 source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
 require codesign
-require spctl
 
 TARGET="${1:-$APP_PATH}"
 [ -e "$TARGET" ] || die "not found: $TARGET"
 
 fails=0
 check() { if "$@"; then ok "$*"; else warn "FAILED: $*"; fails=$((fails+1)); fi; }
+expect() {  # expect <description> <haystack> <needle>
+  if grep -q -- "$3" <<<"$2"; then ok "$1"; else warn "FAILED: $1"; fails=$((fails+1)); fi
+}
 
 verify_app() {
-  local app="$1"
+  local app="$1" sig ents
   info "Verifying app bundle: $app"
 
-  # 1. Code signature is valid, deep, and strict (covers embedded extension).
   check codesign --verify --deep --strict --verbose=2 "$app"
 
-  # 2. Signed by Developer ID + hardened runtime flag present.
-  info "Signature authority + flags:"
-  codesign -dvv "$app" 2>&1 | grep -E 'Authority|TeamIdentifier|flags|Identifier=' || true
-  if codesign -dvv "$app" 2>&1 | grep -q 'flags=.*runtime'; then
-    ok "hardened runtime enabled"
+  sig="$(codesign -dvv "$app" 2>&1)"
+  echo "$sig" | grep -E '^(Identifier|Authority|Signature)=|flags=' | sed 's/^/    /'
+  expect "bundle identifier = $APP_BUNDLE_ID" "$sig" "^Identifier=$APP_BUNDLE_ID\$"
+  expect "hardened runtime enabled" "$sig" 'flags=.*runtime'
+  if [ "$SIGN_IDENTITY" = "-" ]; then
+    expect "ad-hoc signature" "$sig" '^Signature=adhoc'
   else
-    warn "FAILED: hardened runtime flag not set (notarization will reject)"; fails=$((fails+1))
-  fi
-  if codesign -dvv "$app" 2>&1 | grep -q "TeamIdentifier=$TEAM_ID"; then
-    ok "team identifier = $TEAM_ID"
-  else
-    warn "FAILED: unexpected team identifier"; fails=$((fails+1))
+    expect "signed by \"$SIGN_IDENTITY\"" "$sig" "^Authority=$SIGN_IDENTITY\$"
   fi
 
-  # 3. Gatekeeper assessment (requires notarization ticket to pass).
-  check spctl -a -vvv -t exec "$app"
-
-  # 4. Notarization ticket stapled?
-  if xcrun stapler validate "$app" >/dev/null 2>&1; then
-    ok "notarization ticket stapled"
-  else
-    warn "no stapled ticket (run ./scripts/notarize.sh) — Gatekeeper will need online check"
-  fi
-
-  # 5. No system extension should be embedded (CameraExtension was removed).
-  local ext
-  ext="$(/usr/bin/find "$app/Contents/Library/SystemExtensions" -maxdepth 1 -name '*.systemextension' 2>/dev/null | head -1)"
-  if [ -n "$ext" ]; then
-    warn "FAILED: unexpected embedded system extension: $(basename "$ext")"; fails=$((fails+1))
-  else
-    ok "no embedded system extension (expected)"
-  fi
+  ents="$(codesign -d --entitlements - --xml "$app" 2>/dev/null || true)"
+  expect "App Sandbox entitlement present" "$ents" 'com.apple.security.app-sandbox'
 }
 
 case "$TARGET" in
   *.app) verify_app "$TARGET" ;;
   *.dmg)
     info "Verifying DMG: $TARGET"
-    check spctl -a -vvv -t open --context context:primary-signature "$TARGET"
-    if xcrun stapler validate "$TARGET" >/dev/null 2>&1; then ok "DMG ticket stapled"; else warn "DMG not stapled"; fi
+    check hdiutil verify -quiet "$TARGET"
     info "Mounting to verify the contained app"
     MNT="$(hdiutil attach "$TARGET" -nobrowse -readonly | grep '/Volumes/' | sed 's/.*\(\/Volumes\/.*\)/\1/' | tail -1)"
     if [ -n "${MNT:-}" ]; then
       INNER="$(/usr/bin/find "$MNT" -maxdepth 1 -name '*.app' | head -1)"
-      [ -n "$INNER" ] && verify_app "$INNER"
+      if [ -n "$INNER" ]; then verify_app "$INNER"; else warn "FAILED: no .app in DMG"; fails=$((fails+1)); fi
       hdiutil detach "$MNT" >/dev/null 2>&1 || true
+    else
+      warn "FAILED: could not mount DMG"; fails=$((fails+1))
     fi
     ;;
   *) die "unsupported target: $TARGET" ;;

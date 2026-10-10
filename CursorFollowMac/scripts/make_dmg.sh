@@ -2,10 +2,8 @@
 #
 # make_dmg.sh — build a drag-to-Applications DMG: the macOS "installer".
 #
-# On macOS the idiomatic installer for a Developer ID app (especially one that
-# activates a system extension) is a DMG containing the .app plus an
-# /Applications symlink. The user drags the app over, which also satisfies the
-# "must run from /Applications" requirement for system-extension activation.
+# On macOS the idiomatic installer is a DMG containing the .app plus an
+# /Applications symlink. The user drags the app over.
 #
 # Usage: ./scripts/make_dmg.sh [path-to-.app]
 #   defaults to build/export/CursorFollowMac.app
@@ -50,4 +48,4 @@ hdiutil create \
 
 rm -rf "$STAGE"
 ok "Built $DMG_PATH"
-info "Next: ./scripts/notarize.sh \"$DMG_PATH\""
+info "Next: ./scripts/verify.sh \"$DMG_PATH\""

@@ -1,42 +1,53 @@
 #!/usr/bin/env bash
 #
-# build_release.sh — archive CursorFollowMac and export a Developer ID signed .app.
+# build_release.sh — build CursorFollowMac (Release) and sign it with the release identity.
 #
-# This is the macOS analog of "produce the release binary the installer wraps".
-# Output: build/export/CursorFollowMac.app (Developer ID signed, hardened runtime).
+# Output: build/export/CursorFollowMac.app, signed with $SIGN_IDENTITY, hardened runtime.
+# Not notarized: users approve the first launch in System Settings → Privacy & Security.
+#
+# Xcode builds with an ad-hoc signature (the project has no team), then this script
+# re-signs with the self-signed identity, keeping the entitlements Xcode generated
+# (App Sandbox comes from the ENABLE_APP_SANDBOX build setting, not the .entitlements file).
 #
 # Usage: ./scripts/build_release.sh
 
 source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
 require xcodebuild
+require codesign
 
-info "Cleaning previous archive/export"
-rm -rf "$ARCHIVE_PATH" "$EXPORT_DIR"
-mkdir -p "$BUILD_DIR"
+if [ "$SIGN_IDENTITY" != "-" ] && ! security find-certificate -c "$SIGN_IDENTITY" >/dev/null 2>&1; then
+  die "signing identity \"$SIGN_IDENTITY\" not found; run ./scripts/make_signing_cert.sh (or SIGN_IDENTITY=- for ad-hoc)"
+fi
 
-info "Archiving $SCHEME (Release, Developer ID)"
+info "Cleaning previous build"
+rm -rf "$DERIVED_DATA" "$EXPORT_DIR"
+mkdir -p "$EXPORT_DIR"
+
+info "Building $SCHEME (Release, universal)"
 xcodebuild \
   -project "$PROJECT" \
   -scheme "$SCHEME" \
   -configuration Release \
   -destination 'generic/platform=macOS' \
-  -archivePath "$ARCHIVE_PATH" \
-  -allowProvisioningUpdates \
-  DEVELOPMENT_TEAM="$TEAM_ID" \
-  archive
+  -derivedDataPath "$DERIVED_DATA" \
+  ONLY_ACTIVE_ARCH=NO \
+  build
 
-info "Exporting Developer ID app from archive"
-xcodebuild \
-  -exportArchive \
-  -archivePath "$ARCHIVE_PATH" \
-  -exportOptionsPlist "$EXPORT_OPTIONS" \
-  -exportPath "$EXPORT_DIR" \
-  -allowProvisioningUpdates
+BUILT_APP="$DERIVED_DATA/Build/Products/Release/$APP_NAME.app"
+[ -d "$BUILT_APP" ] || die "expected app not found at $BUILT_APP"
+/bin/cp -R "$BUILT_APP" "$APP_PATH"
 
-[ -d "$APP_PATH" ] || die "expected app not found at $APP_PATH"
+info "Signing with \"$SIGN_IDENTITY\""
+ENTITLEMENTS="$BUILD_DIR/entitlements.plist"
+codesign -d --entitlements - --xml "$APP_PATH" > "$ENTITLEMENTS" 2>/dev/null
+codesign --force --timestamp=none --options runtime \
+  --entitlements "$ENTITLEMENTS" \
+  --sign "$SIGN_IDENTITY" \
+  "$APP_PATH"
+rm -f "$ENTITLEMENTS"
 
 # Surface the version so the operator can confirm the upgrade bump landed.
 VER="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PATH/Contents/Info.plist" 2>/dev/null || echo '?')"
 BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PATH/Contents/Info.plist" 2>/dev/null || echo '?')"
-ok "Exported $APP_PATH (version $VER build $BUILD)"
-info "Next: ./scripts/notarize.sh \"$APP_PATH\"  (or run ./scripts/package.sh for the full pipeline)"
+ok "Built $APP_PATH (version $VER build $BUILD)"
+info "Next: ./scripts/make_dmg.sh  (or run ./scripts/package.sh for the full pipeline)"

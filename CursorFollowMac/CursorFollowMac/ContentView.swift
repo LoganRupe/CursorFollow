@@ -1139,12 +1139,12 @@ private struct SettingsModalView: View {
                     aboutLink(
                         "DOCUMENTATION",
                         icon: "doc.text",
-                        destination: "https://github.com/LoganRupe/CursorFollow/src/branch/main/README.md"
+                        destination: "https://github.com/LoganRupe/CursorFollow/blob/main/README.md"
                     )
                     aboutLink(
                         "CHANGELOG",
                         icon: "clock.arrow.circlepath",
-                        destination: "https://github.com/LoganRupe/CursorFollow/src/branch/main/CHANGELOG.md"
+                        destination: "https://github.com/LoganRupe/CursorFollow/blob/main/CHANGELOG.md"
                     )
                 }
             }

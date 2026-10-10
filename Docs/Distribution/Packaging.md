@@ -1,94 +1,58 @@
 # macOS Packaging, Signing & Distribution
 
-This covers building, signing, installing, upgrading, and uninstalling
-CursorFollow on macOS — the Mac equivalents of the Windows installer checklist
-you started from.
-
-> **Read this first if you copied a Windows checklist.** Most Windows packaging
-> concepts do **not** map 1:1 to macOS. The table below says what translates,
-> what changes, and what simply doesn't exist here.
-
-## Windows → macOS: what's valid and what isn't
-
-| Windows concept | macOS reality | Valid here? |
-| --- | --- | --- |
-| MSI / NSIS / Inno Setup installer | A **DMG** with a drag-to-`/Applications` icon. No "install wizard"; the user drags the app. (A `.pkg` is the alternative — see below.) | ✅ Reworked → `make_dmg.sh` |
-| Per-machine install to `Program Files` | App lives in `/Applications` (all users) or `~/Applications`. | ✅ Different location |
-| MSI upgrade codes / version comparison | Replace the `.app` bundle; macOS keys off the **bundle ID** + a higher `CFBundleShortVersionString`/`CFBundleVersion`. In-app auto-update is **Sparkle**, not built in. | ⚠️ Concept differs |
-| Authenticode code-signing cert (DigiCert/EV) | **Apple Developer ID Application** cert (issued by Apple, needs the $99/yr account). Different authority entirely — you can't reuse a Windows cert. | ⚠️ Replace, don't port |
-| Timestamping server | Apple's secure timestamp is automatic via `codesign`. | ✅ Automatic |
-| SmartScreen reputation | **Gatekeeper + Notarization** (`notarytool`) + ticket **stapling**. This has *no* Windows analog and is mandatory for distribution. | 🆕 New step |
-| Registry keys (HKLM/HKCU) | **No registry.** Settings live in `~/Library/Preferences/<bundleid>.plist`. | ❌ Doesn't exist |
-| `Add/Remove Programs` uninstaller | **No built-in uninstaller.** Ship a script or document manual cleanup. | 🆕 → `uninstall.sh` |
-| Driver / service install | N/A — the CoreMediaIO system extension was removed. (If one is ever re-added, it activates via `OSSystemExtensionRequest`, not file copies.) | ❌ Removed |
-| `signtool verify` / `Get-AuthenticodeSignature` | `codesign --verify`, `spctl`, `stapler validate`. | ✅ → `verify.sh` |
-
-**Bottom line:** the five checklist items are all valid *as goals*, but the
-mechanisms are different. There's no registry cleanup, no install wizard, no
-purchased signing cert, and notarization is an extra step Windows never had.
+How CursorFollow for macOS is built, signed, packaged, upgraded and uninstalled.
+The Windows installer is covered in [CursorFollowWin/docs/Installer.md](../../CursorFollowWin/docs/Installer.md).
 
 ## Project facts that drive the setup
 
-- App is **sandboxed** (`ENABLE_APP_SANDBOX = YES`) and distributed with
-  **Developer ID** (notarized), not via the Mac App Store.
-- **Hardened runtime is ON** (required for notarization) — already set in the project.
-- No system extension and no app-group entitlement: the CoreMediaIO
-  CameraExtension was removed, so the only feature is the shared-window output.
-  `verify.sh`/`uninstall.sh` still check for a stray extension so they keep
-  working on machines where an old build registered one.
-- Identity: Team `YOURTEAMID`, app `io.github.loganrupe.CursorFollowMac`.
+- App is **sandboxed** (`ENABLE_APP_SANDBOX = YES`) with the **hardened runtime** on.
+- Releases are signed with a **self-signed certificate** and are **not notarized**.
+  There is no Apple Developer account involved. Gatekeeper blocks the first launch,
+  and the user approves it once in **System Settings → Privacy & Security → Open
+  Anyway** (steps in [CursorFollowMac/README.md](../../CursorFollowMac/README.md#install)).
+- The certificate exists to keep the signature identical between releases. macOS
+  ties the Screen Recording grant to the signing identity; an ad-hoc signature
+  changes every build, so users would have to re-grant the permission after
+  every update.
+- Bundle ID: `io.github.loganrupe.CursorFollowMac`.
 
 ## One-time prerequisites
 
-1. **Apple Developer Program** membership ($99/yr) for Team `YOURTEAMID`.
-2. **Developer ID Application** certificate installed in the login keychain.
-   Check with: `security find-identity -v -p codesigning` (look for
-   "Developer ID Application: … (YOURTEAMID)").
-3. **notarytool credentials** stored once as a keychain profile:
+1. Create the signing identity in your login keychain and keep a backup:
    ```bash
-   xcrun notarytool store-credentials "CursorFollowNotary" \
-     --apple-id you@example.com --team-id YOURTEAMID \
-     --password <app-specific-password>
+   ./CursorFollowMac/scripts/make_signing_cert.sh --export ~/CursorFollowSelfSigned.p12
    ```
-   The app-specific password comes from appleid.apple.com → Sign-In & Security,
-   **not** your Apple ID password.
-4. Optional, nicer DMG layout: `brew install create-dmg`.
+   Store the `.p12` and its `.p12.password` file in a password manager, then
+   delete them from disk. Losing the certificate means the next release gets a
+   new identity and every user re-grants Screen Recording once.
+2. The first `codesign` run shows a keychain prompt for the key. Enter your login
+   password and choose **Always Allow**.
+3. Optional, nicer DMG layout: `brew install create-dmg`.
 
-## Code signing plan
-
-1. Xcode signs the app with **Developer ID Application** during `archive`
-   (automatic signing, hardened runtime on).
-2. `-exportArchive` with `ExportOptions.plist` (`method = developer-id`)
-   produces the distributable `.app`.
-3. **Notarize** the `.app`, then build the DMG, then notarize the DMG, then
-   **staple** tickets to both. Stapling lets Gatekeeper approve the app offline.
-4. `verify.sh` confirms: valid signature, hardened-runtime flag, correct Team
-   ID, Gatekeeper acceptance, and a stapled ticket — before anything ships.
+To restore the identity on a new build machine, double-click the `.p12` (or
+`security import CursorFollowSelfSigned.p12 -k ~/Library/Keychains/login.keychain-db -T /usr/bin/codesign`).
 
 ## Build the installer (DMG)
 
-Full pipeline (build → notarize → DMG → notarize → staple):
+Full pipeline (build → sign → DMG → verify):
 
 ```bash
 ./CursorFollowMac/scripts/package.sh
-# → build/CursorFollowMac-<version>.dmg  (notarized, stapled, ready to ship)
+# → build/CursorFollowMac-<version>.dmg
 ```
 
 Or step by step:
 
 ```bash
-./CursorFollowMac/scripts/build_release.sh      # build/export/CursorFollowMac.app (Developer ID signed)
-./CursorFollowMac/scripts/notarize.sh build/export/CursorFollowMac.app
+./CursorFollowMac/scripts/build_release.sh      # build/export/CursorFollowMac.app (self-signed)
 ./CursorFollowMac/scripts/make_dmg.sh           # build/CursorFollowMac-<version>.dmg
-./CursorFollowMac/scripts/notarize.sh build/CursorFollowMac-<version>.dmg
 ./CursorFollowMac/scripts/verify.sh build/CursorFollowMac-<version>.dmg
 ```
 
-**DMG vs `.pkg`:** DMG is the right default here — drag-to-`/Applications` with
-no install scripting to maintain. Choose a `.pkg` only if you later need an actual
-installer (pre-flight scripts, choosing install location, MDM deployment). A
-`.pkg` needs a separate **Developer ID Installer** certificate and
-`productbuild --sign`; that path is not scripted yet.
+`build_release.sh` lets Xcode build with an ad-hoc signature, then re-signs the
+app with `SIGN_IDENTITY` (default `CursorFollow Self-Signed`) and the entitlements
+Xcode generated. `SIGN_IDENTITY=- ./CursorFollowMac/scripts/package.sh` produces an
+ad-hoc signed build if you don't have the certificate.
 
 ## Upgrade path
 
@@ -96,7 +60,7 @@ There is no MSI-style upgrade engine. To ship an update:
 
 1. Bump **`MARKETING_VERSION`** (user-facing) and **`CURRENT_PROJECT_VERSION`**
    (must strictly increase) in the Xcode project.
-2. Run `./CursorFollowMac/scripts/package.sh` to produce the new signed/notarized DMG.
+2. Run `./CursorFollowMac/scripts/package.sh` to produce the new DMG, signed with the same certificate.
 3. The user drags the new app over the old one in `/Applications` (same bundle
    ID → macOS treats it as an upgrade; preferences are preserved).
 
@@ -106,9 +70,8 @@ and replaces the Windows updater. Not wired up yet.
 
 ## Uninstall cleanup
 
-Deleting the `.app` leaves preferences, caches, saved state, the Screen
-Recording (TCC) grant, and (on machines where an old build registered one) a
-stray system extension behind. Clean removal:
+Deleting the `.app` leaves preferences, caches, saved state and the Screen
+Recording (TCC) grant behind. Clean removal:
 
 ```bash
 ./CursorFollowMac/scripts/uninstall.sh --dry-run   # preview exactly what would be removed
@@ -117,10 +80,7 @@ stray system extension behind. Clean removal:
 ```
 
 It quits the app, removes the bundle and all per-user data, resets the Screen
-Recording grant (so a reinstall re-prompts), removes any login item, and reports
-whether a stray system extension is still registered. Remove that via **System
-Settings → General → Login Items & Extensions → Camera Extensions** (the
-`systemextensionsctl` CLI is blocked while SIP is enabled).
+Recording grant (so a reinstall re-prompts) and removes any login item.
 
 ## Developer verification
 
@@ -128,19 +88,19 @@ Settings → General → Login Items & Extensions → Camera Extensions** (the
 ./CursorFollowMac/scripts/verify.sh build/export/CursorFollowMac.app   # or a .dmg
 ```
 
-Checks signature validity (deep/strict), hardened-runtime flag, Team ID,
-Gatekeeper assessment (`spctl`), and ticket
-stapling. Non-zero exit on any failure — safe to gate a release on.
+Checks signature validity (deep/strict), bundle ID, signing identity, the
+hardened-runtime flag and the App Sandbox entitlement. It skips Gatekeeper
+(`spctl`), which rejects un-notarized builds by design. Non-zero exit on any
+failure, so it is safe to gate a release on.
 
 ## Script reference (`CursorFollowMac/scripts/`)
 
 | Script | Purpose |
 | --- | --- |
 | `config.sh` | Shared identity/paths/helpers; sourced by the rest. Override via env. |
-| `build_release.sh` | Archive + export the Developer ID signed `.app`. |
+| `make_signing_cert.sh` | Create the self-signed release identity (idempotent), optionally export a backup. |
+| `build_release.sh` | Build the Release `.app` and sign it with the release identity. |
 | `make_dmg.sh` | Build the drag-to-`/Applications` DMG (the installer). |
-| `notarize.sh` | Submit to Apple notarization and staple the ticket (`.app`/`.dmg`/`.pkg`). |
-| `package.sh` | One-shot: build → notarize → DMG → notarize → staple. |
-| `verify.sh` | Verify signing, hardened runtime, Gatekeeper, notarization. |
-| `uninstall.sh` | Full uninstall cleanup (app, prefs, container, TCC, login item, sysext note). |
-| `ExportOptions.plist` | `xcodebuild -exportArchive` options (Developer ID). |
+| `package.sh` | One-shot: build → sign → DMG → verify. |
+| `verify.sh` | Verify signature, identity, hardened runtime and sandbox. |
+| `uninstall.sh` | Full uninstall cleanup (app, prefs, caches, TCC grant, login item). |

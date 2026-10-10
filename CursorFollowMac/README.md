@@ -1,11 +1,12 @@
 # CursorFollowMac
 
-macOS host app for CursorFollow's shared-window workflow. CursorFollow runs in the menu bar and renders a target window into a stable, shareable window named **CursorFollow Output**. The historical CameraExtension target remains in the project, but Shared Window V1 renders into the host-owned `CursorFollow Output` window — the shipping feature is the shared window, not a virtual camera.
+macOS host app for CursorFollow's shared-window workflow. CursorFollow runs in the menu bar and renders a target window into a stable, shareable window named **CursorFollow Output**.
 
 > New here? See the [project overview](../README.md) for what CursorFollow does and the controls that are common to macOS and Windows.
 
 ## Table of Contents
 
+- [Install](#install)
 - [Quick Start](#quick-start)
 - [Permissions](#permissions)
 - [Screenshots](#screenshots)
@@ -14,6 +15,21 @@ macOS host app for CursorFollow's shared-window workflow. CursorFollow runs in t
 - [Building & Developing](#building--developing)
 
 ---
+
+## Install
+
+1. Download `CursorFollowMac-<version>.dmg` from [GitHub Releases](https://github.com/LoganRupe/CursorFollow/releases/latest).
+2. Open the DMG and drag **CursorFollowMac** into **Applications**.
+3. Open it once. macOS blocks it, because releases are not notarized by Apple.
+4. Go to **System Settings → Privacy & Security**, scroll to the "CursorFollowMac was blocked" message and click **Open Anyway**, then confirm.
+
+You only do this on first install. Updates are signed with the same certificate, so they open normally and keep the Screen Recording permission.
+
+If you prefer the terminal, this clears the download quarantine instead of steps 3 and 4:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/CursorFollowMac.app
+```
 
 ## Quick Start
 
@@ -85,27 +101,23 @@ From the repository root:
 
 ```bash
 cd CursorFollowMac
-xcodebuild -project CursorFollowMac.xcodeproj -scheme CursorFollowMac -configuration Debug -destination 'platform=macOS,arch=arm64' -allowProvisioningUpdates clean build
+xcodebuild -project CursorFollowMac.xcodeproj -scheme CursorFollowMac -configuration Debug -destination 'platform=macOS,arch=arm64' clean build
 ```
 
-Or from anywhere:
-
-```bash
-xcodebuild -project ~/repos/CursorFollow/CursorFollowMac/CursorFollowMac.xcodeproj -scheme CursorFollowMac -configuration Debug -destination 'platform=macOS,arch=arm64' -allowProvisioningUpdates clean build
-```
+No Apple developer account is needed. Debug builds are ad-hoc signed ("Sign to Run Locally"), so macOS asks for Screen Recording again after each rebuild.
 
 ### Build & Deploy (Stale-Binary Safe)
 
 Xcode incremental builds and macOS binary caching can run stale code. Use this sequence when validating runtime changes.
 
 ```bash
-cd ~/repos/CursorFollow/CursorFollowMac
+cd CursorFollowMac
 
 # 1. Kill any running instance first.
 pkill -9 -f CursorFollowMac 2>/dev/null; sleep 1
 
 # 2. Force a clean build.
-xcodebuild -scheme CursorFollowMac -configuration Debug -destination 'platform=macOS,arch=arm64' -allowProvisioningUpdates clean build
+xcodebuild -scheme CursorFollowMac -configuration Debug -destination 'platform=macOS,arch=arm64' clean build
 
 # 3. Replace existing app bundle.
 rm -rf /Applications/CursorFollowMac.app
@@ -121,15 +133,13 @@ open /Applications/CursorFollowMac.app
 One-liner:
 
 ```bash
-pkill -9 -f CursorFollowMac 2>/dev/null; sleep 1 && cd ~/repos/CursorFollow/CursorFollowMac && xcodebuild -scheme CursorFollowMac -configuration Debug -destination 'platform=macOS,arch=arm64' -allowProvisioningUpdates clean build && rm -rf /Applications/CursorFollowMac.app && cp -R ~/Library/Developer/Xcode/DerivedData/CursorFollowMac-*/Build/Products/Debug/CursorFollowMac.app /Applications/CursorFollowMac.app && open /Applications/CursorFollowMac.app
+pkill -9 -f CursorFollowMac 2>/dev/null; sleep 1 && cd CursorFollowMac && xcodebuild -scheme CursorFollowMac -configuration Debug -destination 'platform=macOS,arch=arm64' clean build && rm -rf /Applications/CursorFollowMac.app && cp -R ~/Library/Developer/Xcode/DerivedData/CursorFollowMac-*/Build/Products/Debug/CursorFollowMac.app /Applications/CursorFollowMac.app && open /Applications/CursorFollowMac.app
 ```
-
-If this is the first signed build on a machine, run once from a logged-in Xcode session so account credentials are available for profile creation.
 
 ### Signing Identifiers
 
-- Team ID: `YOURTEAMID`
-- Host Bundle: `io.github.loganrupe.CursorFollowMac`
+- Bundle ID: `io.github.loganrupe.CursorFollowMac`
+- Release signing identity: `CursorFollow Self-Signed`, a self-signed certificate created by `scripts/make_signing_cert.sh`. No Apple team.
 
 The app is sandboxed (no system-extension or app-group entitlements). The
 CoreMediaIO virtual-camera extension was removed — the shipping feature is the
@@ -142,13 +152,13 @@ CursorFollowMac/
 ├── CursorFollowMac/               # Host app sources
 ├── CursorFollowMacTests/
 ├── CursorFollowMacUITests/
-├── scripts/                       # Packaging/signing/notarization tooling
+├── scripts/                       # Packaging, signing and uninstall tooling
 └── CursorFollowMac.xcodeproj/
 ```
 
 ### Packaging & Distribution
 
-Build, sign, notarize, install, and uninstall scripts live in [scripts/](scripts/).
+Build, sign, package, verify and uninstall scripts live in [scripts/](scripts/).
 Run them from the repo root, e.g. `./CursorFollowMac/scripts/package.sh`. See
 [Docs/Distribution/Packaging.md](../Docs/Distribution/Packaging.md) for the full
-workflow and the Windows→macOS mapping.
+workflow.
