@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Linux
+
+- First working build of **CursorFollowLinux**: GTK 4 control panel and shared output window, per-window capture through Hyprland's toplevel-export protocol, auto-follow over Hyprland IPC, All / Include / Exclude filters, Fit / Fill / Actual scaling, key-file settings, and CLI flags for compositor key bindings. Hyprland only for now; see `CursorFollowLinux/README.md`.
+
 ## Version 1.0 (Build 1)
 
 First release of **CursorFollow** for **macOS** and **Windows**.

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=CursorFollow
+Comment=Share one window that follows the window you are working in
+Exec=cursorfollow
+Icon=io.github.loganrupe.CursorFollowLinux
+Terminal=false
+Categories=Utility;AudioVideo;
+Keywords=screen;share;capture;window;
+StartupNotify=false
+DBusActivatable=false

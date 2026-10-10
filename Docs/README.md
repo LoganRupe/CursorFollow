@@ -1,6 +1,6 @@
 # CursorFollow Documentation
 
-Project docs for CursorFollow — a macOS menu bar app that tracks a target window and presents the capture in a stable, shareable output window.
+Project docs for CursorFollow — an app (macOS, Windows, Linux) that tracks a target window and presents the capture in a stable, shareable output window.
 
 ## Structure
 
