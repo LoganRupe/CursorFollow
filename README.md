@@ -2,9 +2,17 @@
   <img src="Docs/images/app-icon.png" alt="CursorFollow app icon" width="128" height="128">
 </p>
 
-# CursorFollow
+<h1 align="center">CursorFollow</h1>
 
-Capture a target window and render it into a stable, shareable window named **CursorFollow Output**. Share that one window from Zoom, Google Meet, Slack, Teams, OBS, or any app with a window-share picker — and it keeps following your target as you switch focus, so your audience always sees the right thing without you re-picking a share source.
+<h3 align="center">Share one window. It follows you.</h3>
+
+<p align="center">
+  <a href="CursorFollowMac/README.md">macOS</a>
+  &nbsp;/&nbsp;
+  <a href="CursorFollowWin/README.md">Windows</a>
+  &nbsp;/&nbsp;
+  <a href="CursorFollowLinux/README.md">Linux (Hyprland)</a>
+</p>
 
 <p align="center">
   <a href="https://github.com/user-attachments/assets/04686f24-3177-4bce-87a0-a73b264b5102">
@@ -13,6 +21,8 @@ Capture a target window and render it into a stable, shareable window named **Cu
   <br>
   <sub>Sharing CursorFollow Output in a Slack huddle on Windows. Click for the full walkthrough (1:39).</sub>
 </p>
+
+Capture a target window and render it into a stable, shareable window named **CursorFollow Output**. Share that one window from Zoom, Google Meet, Slack, Teams, OBS, or any app with a window-share picker — and it keeps following your target as you switch focus, so your audience always sees the right thing without you re-picking a share source.
 
 CursorFollow ships for **macOS**, **Windows**, and **Linux (Hyprland)**. This page covers what's common to all of them; each platform's page has the setup, permissions, screenshots, and troubleshooting specific to that OS.
 
