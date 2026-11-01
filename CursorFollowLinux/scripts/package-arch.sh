@@ -30,7 +30,7 @@ makepkg -f --skipchecksums --noconfirm "$@"
 PKG="$(ls "$NAME-$VER"-*-"$ARCH".pkg.tar.zst)"
 mkdir tree
 bsdtar -xf "$PKG" -C tree --exclude '.*'
-tar -czf "$NAME-$VER-$ARCH.tar.gz" -C tree usr
+tar -czf "$NAME-$VER-$ARCH.tar.gz" --owner=0 --group=0 --numeric-owner -C tree usr
 
 echo "Built $OUT/$PKG"
 echo "Built $OUT/$NAME-$VER-$ARCH.tar.gz"
