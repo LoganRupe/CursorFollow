@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 0.5.2
+
+- **Windows dependencies**: Microsoft.Extensions.Logging 10.0.13. Package versions for the Windows projects now live in one place, so they can't drift apart.
 - **README demo**: a short clip at the top of the README shows CursorFollow following focus between Chrome and VS Code while shared in a Slack huddle, linked to the full walkthrough video.
 
 ## 0.5.1
