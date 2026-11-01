@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Linux packages for Arch and Omarchy**: install with `yay -S cursorfollow` from the AUR, or grab the `.pkg.tar.zst` (for `sudo pacman -U`) or the `x86_64` install tarball from the release. The Makefile now honours `LDFLAGS` and no longer writes the desktop and icon caches during staged (`DESTDIR`) installs.
+
 ## 0.5.2
 
 - **Windows dependencies**: Microsoft.Extensions.Logging 10.0.13. Package versions for the Windows projects now live in one place, so they can't drift apart.

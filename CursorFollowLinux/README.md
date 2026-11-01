@@ -46,7 +46,7 @@ What is not in yet:
 - **dmabuf transport.** The compositor offers it; the engine uses `wl_shm` for now.
 - **System tray icon.** Hyprland setups vary too much (waybar, omarchy-shell, none);
   the panel is a normal window and the CLI covers key bindings.
-- Packaging (PKGBUILD / Flatpak) and a global-shortcuts portal integration.
+- Flatpak and other distro packages, and a global-shortcuts portal integration.
 
 ---
 
@@ -70,6 +70,39 @@ sudo apt install libgtk-4-dev libjson-glib-dev libwayland-dev wayland-protocols 
 ```
 
 No permissions dialog: Hyprland's export protocol does not go through the portal.
+
+---
+
+## Install
+
+Arch and Omarchy, from the AUR:
+
+```sh
+yay -S cursorfollow
+```
+
+Or take `cursorfollow-<version>-1-x86_64.pkg.tar.zst` from
+[GitHub Releases](https://github.com/LoganRupe/CursorFollow/releases/latest) and install it
+with pacman, which pulls in the dependencies:
+
+```sh
+sudo pacman -U cursorfollow-<version>-1-x86_64.pkg.tar.zst
+```
+
+Other x86_64 distros: the release also has `cursorfollow-<version>-x86_64.tar.gz`, the same
+files laid out under `usr/`. Install the runtime libraries from [Requirements](#requirements),
+then unpack it into a prefix:
+
+```sh
+sudo tar -xzf cursorfollow-<version>-x86_64.tar.gz -C /usr/local --strip-components=1
+```
+
+That binary is built on Arch, so it needs a glibc and GTK at least as new as Arch's at
+release time. If it won't start, build from source instead.
+
+From source, see [Build, test, run](#build-test-run) below; `make install` puts it under
+`~/.local`. The PKGBUILD lives in `packaging/arch/`; `scripts/package-arch.sh` builds it from
+your checkout instead of the release tarball.
 
 ---
 
