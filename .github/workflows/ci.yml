@@ -48,3 +48,26 @@ jobs:
       - name: Build and unit test
         working-directory: CursorFollowLinux
         run: make -j"$(nproc)" && make test
+
+  # Builds the Arch package from this commit (not the tag tarball the PKGBUILD pins),
+  # so a packaging break shows up on the PR that caused it.
+  linux-arch:
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+    steps:
+      - name: Install build tools
+        run: pacman -Syu --noconfirm --needed base-devel git namcap
+      - uses: actions/checkout@v7
+      - name: Build package (makepkg refuses to run as root)
+        run: |
+          useradd -m builder
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
+          chown -R builder "$GITHUB_WORKSPACE"
+          sudo -u builder ./CursorFollowLinux/scripts/package-arch.sh --syncdeps
+      - name: namcap
+        run: |
+          namcap CursorFollowLinux/packaging/arch/PKGBUILD CursorFollowLinux/build/arch/cursorfollow-[0-9]*.pkg.tar.zst | tee namcap.txt
+          if grep -q ' E: ' namcap.txt; then echo "::error::namcap reported errors"; exit 1; fi
+      - name: .SRCINFO is current
+        working-directory: CursorFollowLinux/packaging/arch
+        run: sudo -u builder makepkg --printsrcinfo | diff -u .SRCINFO -

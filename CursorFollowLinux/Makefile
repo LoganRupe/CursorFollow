@@ -39,7 +39,7 @@ all: $(BIN)
 
 $(BIN): $(APP_OBJ) $(PROTO_OBJ)
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(PKG_LIBS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(PKG_LIBS)
 
 $(BUILD)/obj/%.o: src/%.cpp $(PROTO_HDR)
 	@mkdir -p $(dir $@)
@@ -59,7 +59,7 @@ $(BUILD)/protocols/%.o: $(BUILD)/protocols/%.c $(PROTO_HDR)
 # Tests link the app objects minus main so they can exercise the real code.
 $(BUILD)/tests/%: tests/%.cpp $(LIB_OBJ) $(PROTO_OBJ)
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -Itests -o $@ $< $(LIB_OBJ) $(PROTO_OBJ) $(PKG_LIBS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -Itests -o $@ $< $(LIB_OBJ) $(PROTO_OBJ) $(PKG_LIBS)
 
 test: $(TEST_BIN)
 	@set -e; for t in $(TEST_BIN); do echo "== $$t"; $$t; done
@@ -71,8 +71,12 @@ install: $(BIN)
 	install -Dm755 $(BIN) $(DESTDIR)$(PREFIX)/bin/cursorfollow
 	install -Dm644 data/io.github.loganrupe.CursorFollowLinux.desktop $(DESTDIR)$(PREFIX)/share/applications/io.github.loganrupe.CursorFollowLinux.desktop
 	install -Dm644 data/io.github.loganrupe.CursorFollowLinux.png $(DESTDIR)$(PREFIX)/share/icons/hicolor/512x512/apps/io.github.loganrupe.CursorFollowLinux.png
-	-update-desktop-database $(DESTDIR)$(PREFIX)/share/applications 2>/dev/null
-	-gtk-update-icon-cache -q -t $(DESTDIR)$(PREFIX)/share/icons/hicolor 2>/dev/null
+# Staged installs (DESTDIR, i.e. packages) leave the caches to the package manager's hooks;
+# writing them here would ship files that clash with the system's own caches.
+ifeq ($(DESTDIR),)
+	-update-desktop-database $(PREFIX)/share/applications 2>/dev/null
+	-gtk-update-icon-cache -q -t $(PREFIX)/share/icons/hicolor 2>/dev/null
+endif
 
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/cursorfollow \

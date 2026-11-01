@@ -1,7 +1,8 @@
 name: Release
 
-# Push a v* tag (matching the app versions) to build the macOS DMG and Windows MSI and
-# attach them to a draft GitHub release. Review the draft, then publish it.
+# Push a v* tag (matching the app versions) to build the macOS DMG, Windows MSI and Arch
+# package + install tarball, and attach them to a draft GitHub release. Review the draft,
+# then publish it.
 # Run manually (Actions -> Release -> Run workflow) to build the installers as workflow
 # artifacts without touching releases; pass an existing tag to (re)build its draft release.
 
@@ -16,6 +17,9 @@ on:
       - CursorFollowWin/scripts/**
       - CursorFollowWin/installer/**
       - CursorFollowWin/CursorFollowWin.csproj
+      - CursorFollowLinux/Makefile
+      - CursorFollowLinux/packaging/**
+      - CursorFollowLinux/scripts/**
   workflow_dispatch:
     inputs:
       tag:
@@ -89,9 +93,32 @@ jobs:
           path: CursorFollowWin/installer/dist/*.msi
           if-no-files-found: error
 
+  linux:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install build tools
+        run: pacman -Syu --noconfirm --needed base-devel git
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG || github.ref }}
+      - name: Build Arch package and install tarball
+        run: |
+          useradd -m builder
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
+          chown -R builder "$GITHUB_WORKSPACE"
+          sudo -u builder ./CursorFollowLinux/scripts/package-arch.sh --syncdeps
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux-arch
+          path: |
+            CursorFollowLinux/build/arch/cursorfollow-[0-9]*-x86_64.pkg.tar.zst
+            CursorFollowLinux/build/arch/cursorfollow-[0-9]*-x86_64.tar.gz
+          if-no-files-found: error
+
   release:
     if: ${{ github.event_name == 'push' || inputs.tag != '' }}
-    needs: [macos, windows]
+    needs: [macos, windows, linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -107,7 +134,8 @@ jobs:
         run: |
           v="${TAG#v}"
           ls dist
-          ls dist/CursorFollowMac-"$v".dmg dist/CursorFollowWin-"$v"-win-x64.msi
+          ls dist/CursorFollowMac-"$v".dmg dist/CursorFollowWin-"$v"-win-x64.msi \
+             dist/cursorfollow-"$v"-*-x86_64.pkg.tar.zst dist/cursorfollow-"$v"-x86_64.tar.gz
       - name: Release notes from CHANGELOG.md
         run: |
           v="${TAG#v}"

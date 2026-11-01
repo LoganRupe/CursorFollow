@@ -67,7 +67,7 @@ Download the latest build from **[GitHub Releases](https://github.com/LoganRupe/
 
 - **macOS** — open the `.dmg` and drag **CursorFollowMac** into **Applications**. Releases are not notarized, so approve the first launch in **System Settings → Privacy & Security → Open Anyway**, then grant **Screen Recording** when prompted. See [macOS install](CursorFollowMac/README.md#install).
 - **Windows** — run the `.msi` (no admin required). See [Windows setup](CursorFollowWin/README.md#installer).
-- **Linux** — no packaged build yet; build from source with `make` and `make install`. See [Linux build](CursorFollowLinux/README.md#build-test-run).
+- **Linux (Arch / Omarchy)** — `yay -S cursorfollow` from the AUR, or `sudo pacman -U` the release `.pkg.tar.zst`. Other distros: the release tarball or a source build. See [Linux install](CursorFollowLinux/README.md#install).
 
 Then point your meeting app's **window** picker at **CursorFollow Output**: pick a target window (or set **Target Mode** to **Auto**), make sure output isn't paused, and share it.
 
@@ -95,9 +95,10 @@ The general reset is the same everywhere — quit your meeting app and CursorFol
 
 GitHub Actions builds the installers ([.github/workflows/release.yml](.github/workflows/release.yml)):
 
-1. Bump the version on every platform (`MARKETING_VERSION` in the Xcode project, `Version`/`FileVersion`/`AssemblyVersion` in `CursorFollowWin.csproj`, `VERSION` in `CursorFollowLinux/Makefile`) and move the **Unreleased** notes in `CHANGELOG.md` under a `## <version>` heading.
+1. Bump the version on every platform (`MARKETING_VERSION` in the Xcode project, `Version`/`FileVersion`/`AssemblyVersion` in `CursorFollowWin.csproj`, `VERSION` in `CursorFollowLinux/Makefile`, `pkgver` in `CursorFollowLinux/packaging/arch/PKGBUILD`) and move the **Unreleased** notes in `CHANGELOG.md` under a `## <version>` heading.
 2. Merge to `main`, then tag and push: `git tag -a v0.5.2 -m "CursorFollow 0.5.2" && git push origin v0.5.2`.
-3. The workflow builds the signed macOS DMG and the Windows MSI and attaches both to a **draft** release, with the changelog section as notes. Review it, then publish.
+3. The workflow builds the signed macOS DMG, the Windows MSI and the Arch package plus install tarball, and attaches them to a **draft** release, with the changelog section as notes. Review it, then publish.
+4. Update the AUR: set `sha256sums` in the PKGBUILD to the new tag tarball's hash (`curl -sL https://github.com/LoganRupe/CursorFollow/archive/refs/tags/v<version>.tar.gz | sha256sum`), regenerate `.SRCINFO` with `makepkg --printsrcinfo > .SRCINFO`, commit both here, and push them to `aur.archlinux.org/cursorfollow.git`.
 
 macOS signing in CI uses the self-signed identity from two repository secrets, `MAC_SIGNING_P12` (base64 of the `.p12`) and `MAC_SIGNING_P12_PASSWORD`. See [Docs/Distribution/Packaging.md](Docs/Distribution/Packaging.md). Local builds still work: `./CursorFollowMac/scripts/package.sh` and `./CursorFollowWin/scripts/package.ps1`.
 

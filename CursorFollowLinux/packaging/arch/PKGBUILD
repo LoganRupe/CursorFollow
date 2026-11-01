@@ -1,0 +1,33 @@
+# Maintainer: Logan Rupe <logan@coldtap.io>
+
+pkgname=cursorfollow
+pkgver=0.5.2
+pkgrel=1
+pkgdesc='Share one window that follows the window you are working in (Hyprland)'
+arch=('x86_64' 'aarch64')
+url='https://github.com/LoganRupe/CursorFollow'
+license=('MIT')
+depends=('gtk4' 'json-glib' 'wayland')
+# wayland-scanner ships in the wayland package, already a runtime dependency.
+makedepends=('pkgconf')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('a2028d5dcf805e410ad79cc7aac0b89f52b1fec0e831fc23c1f5363b679c43ae')
+
+build() {
+  cd "CursorFollow-$pkgver/CursorFollowLinux"
+  make VERSION="$pkgver"
+}
+
+check() {
+  cd "CursorFollow-$pkgver/CursorFollowLinux"
+  make VERSION="$pkgver" test
+}
+
+package() {
+  cd "CursorFollow-$pkgver"
+  make -C CursorFollowLinux VERSION="$pkgver" PREFIX=/usr DESTDIR="$pkgdir" install
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  # 0.5.2's Makefile still writes these caches under DESTDIR; pacman's hooks own them.
+  rm -f "$pkgdir/usr/share/applications/mimeinfo.cache" \
+        "$pkgdir/usr/share/icons/hicolor/icon-theme.cache"
+}
