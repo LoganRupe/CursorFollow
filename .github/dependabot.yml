@@ -7,14 +7,12 @@ updates:
     groups:
       actions: { patterns: ["*"] }
   - package-ecosystem: nuget
-    directories: [/CursorFollowWin, /CursorFollowWin/Capture, /CursorFollowWin/Output, /CursorFollowWin/Shared, /CursorFollowWin/tests/CursorFollowWin.Tests]
+    # Versions live in CursorFollowWin/Directory.Packages.props (central package management),
+    # so one bump covers every project.
+    directory: /CursorFollowWin
     schedule: { interval: monthly }
     cooldown: { default-days: 14 }
     groups:
-      # Every project references Microsoft.Extensions.Logging; bumping it in some projects
-      # and not others fails the build with NU1605 (package downgrade).
-      logging:
-        patterns: ["Microsoft.Extensions.*"]
       nuget:
         patterns: ["*"]
         update-types: [minor, patch]
