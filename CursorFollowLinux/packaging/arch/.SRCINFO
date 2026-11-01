@@ -11,6 +11,6 @@ pkgbase = cursorfollow
 	depends = json-glib
 	depends = wayland
 	source = cursorfollow-0.5.3.tar.gz::https://github.com/LoganRupe/CursorFollow/archive/refs/tags/v0.5.3.tar.gz
-	sha256sums = a2028d5dcf805e410ad79cc7aac0b89f52b1fec0e831fc23c1f5363b679c43ae
+	sha256sums = 58ecfef2ae3bd7c6bb00bf122e8f41e304980f539254c96050917c6ad1b8a2e5
 
 pkgname = cursorfollow

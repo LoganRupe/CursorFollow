@@ -11,7 +11,7 @@ depends=('gtk4' 'json-glib' 'wayland')
 # wayland-scanner ships in the wayland package, already a runtime dependency.
 makedepends=('pkgconf')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('a2028d5dcf805e410ad79cc7aac0b89f52b1fec0e831fc23c1f5363b679c43ae')
+sha256sums=('58ecfef2ae3bd7c6bb00bf122e8f41e304980f539254c96050917c6ad1b8a2e5')
 
 build() {
   cd "CursorFollow-$pkgver/CursorFollowLinux"
