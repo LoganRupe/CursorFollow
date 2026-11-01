@@ -1,0 +1,16 @@
+pkgbase = cursorfollow
+	pkgdesc = Share one window that follows the window you are working in (Hyprland)
+	pkgver = 0.5.2
+	pkgrel = 1
+	url = https://github.com/LoganRupe/CursorFollow
+	arch = x86_64
+	arch = aarch64
+	license = MIT
+	makedepends = pkgconf
+	depends = gtk4
+	depends = json-glib
+	depends = wayland
+	source = cursorfollow-0.5.2.tar.gz::https://github.com/LoganRupe/CursorFollow/archive/refs/tags/v0.5.2.tar.gz
+	sha256sums = a2028d5dcf805e410ad79cc7aac0b89f52b1fec0e831fc23c1f5363b679c43ae
+
+pkgname = cursorfollow
