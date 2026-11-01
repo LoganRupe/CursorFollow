@@ -1,7 +1,7 @@
 # CursorFollowLinux build. Plain GNU make on purpose: the only build-time tools
 # are g++, pkg-config and wayland-scanner, all of which ship with a Wayland desktop.
 
-VERSION ?= 0.5.1
+VERSION ?= 0.5.2
 PREFIX  ?= $(HOME)/.local
 BUILD   ?= build
 
