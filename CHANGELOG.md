@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.5.3
+
 - **Linux packages for Arch and Omarchy**: install with `yay -S cursorfollow` from the AUR, or grab the `.pkg.tar.zst` (for `sudo pacman -U`) or the `x86_64` install tarball from the release. The Makefile now honours `LDFLAGS` and no longer writes the desktop and icon caches during staged (`DESTDIR`) installs.
 
 ## 0.5.2

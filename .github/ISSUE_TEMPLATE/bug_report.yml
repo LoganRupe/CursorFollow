@@ -14,7 +14,7 @@ body:
     attributes:
       label: CursorFollow version
       description: Settings → About, or the release you downloaded.
-      placeholder: 0.5.2
+      placeholder: 0.5.3
     validations:
       required: true
   - type: input
