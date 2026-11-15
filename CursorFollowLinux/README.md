@@ -75,19 +75,16 @@ No permissions dialog: Hyprland's export protocol does not go through the portal
 
 ## Install
 
-Arch and Omarchy, from the AUR:
-
-```sh
-yay -S cursorfollow
-```
-
-Or take `cursorfollow-<version>-1-x86_64.pkg.tar.zst` from
+Arch and Omarchy: take `cursorfollow-<version>-1-x86_64.pkg.tar.zst` from
 [GitHub Releases](https://github.com/LoganRupe/CursorFollow/releases/latest) and install it
 with pacman, which pulls in the dependencies:
 
 ```sh
 sudo pacman -U cursorfollow-<version>-1-x86_64.pkg.tar.zst
 ```
+
+pacman won't see new versions on its own; install the next release's package the same way.
+An AUR package (`yay -S cursorfollow`) is coming once AUR account registration reopens.
 
 Other x86_64 distros: the release also has `cursorfollow-<version>-x86_64.tar.gz`, the same
 files laid out under `usr/`. Install the runtime libraries from [Requirements](#requirements),

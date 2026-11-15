@@ -67,7 +67,7 @@ Download the latest build from **[GitHub Releases](https://github.com/LoganRupe/
 
 - **macOS** — open the `.dmg` and drag **CursorFollowMac** into **Applications**. Releases are not notarized, so approve the first launch in **System Settings → Privacy & Security → Open Anyway**, then grant **Screen Recording** when prompted. See [macOS install](CursorFollowMac/README.md#install).
 - **Windows** — run the `.msi` (no admin required). See [Windows setup](CursorFollowWin/README.md#installer).
-- **Linux (Arch / Omarchy)** — `yay -S cursorfollow` from the AUR, or `sudo pacman -U` the release `.pkg.tar.zst`. Other distros: the release tarball or a source build. See [Linux install](CursorFollowLinux/README.md#install).
+- **Linux (Arch / Omarchy)** — `sudo pacman -U` the release `.pkg.tar.zst` (an AUR package is coming). Other distros: the release tarball or a source build. See [Linux install](CursorFollowLinux/README.md#install).
 
 Then point your meeting app's **window** picker at **CursorFollow Output**: pick a target window (or set **Target Mode** to **Auto**), make sure output isn't paused, and share it.
 
